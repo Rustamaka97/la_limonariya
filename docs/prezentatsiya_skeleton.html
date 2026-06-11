@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="uz" data-lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limonariya — Ombor va obvalka tizimi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#0e4037; --green-deep:#092f28; --green-soft:#16553f;
+  --cream:#fff0e5; --cream-2:#f6e3cf; --amber:#f3b759; --amber-2:#d99a2b;
+  --ink:#13241f; --ok:#3e9c6e; --warn:#e25c4a; --line:rgba(14,64,55,.12);
+  --bg:#fdf8f2;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+html[data-lang="uz"] .ru{display:none!important}
+html[data-lang="ru"] .uz{display:none!important}
+
+/* ============ HERO ============ */
+.hero{background:radial-gradient(120% 90% at 50% -10%, var(--green-soft) 0%, var(--green) 45%, var(--green-deep) 100%);color:var(--cream);text-align:center;padding:56px 24px 88px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:48px;background:var(--bg);clip-path:ellipse(75% 100% at 50% 100%)}
+.lang-toggle{position:absolute;top:20px;right:20px;display:flex;gap:0;border:1px solid rgba(255,240,229,.35);border-radius:999px;overflow:hidden;z-index:5}
+.lang-toggle button{background:transparent;border:none;color:var(--cream);font:600 12px 'Manrope',sans-serif;padding:7px 14px;cursor:pointer;letter-spacing:.06em}
+.lang-toggle button.on{background:var(--cream);color:var(--green)}
+.hero img.logo{width:200px;height:200px;border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,.35);margin-bottom:28px}
+.hero h1{font-family:'Playfair Display',Georgia,serif;font-size:clamp(34px,6vw,56px);font-weight:600;letter-spacing:.01em;margin-bottom:14px}
+.hero .sub{font-size:clamp(15px,2.4vw,19px);opacity:.85;max-width:640px;margin:0 auto 10px}
+.hero .pill{display:inline-block;margin-top:22px;border:1px solid rgba(243,183,89,.6);color:var(--amber);border-radius:999px;padding:8px 20px;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+
+/* ============ LAYOUT ============ */
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+section{padding:72px 0}
+.eyebrow{display:block;color:var(--amber-2);font-weight:800;font-size:12px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}
+h2{font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,4.2vw,38px);font-weight:600;color:var(--green);margin-bottom:14px}
+.lead{font-size:clamp(15px,2.2vw,17.5px);max-width:760px;color:#3c4f49}
+.center{text-align:center}.center .lead{margin:0 auto}
+
+/* ============ DIAGNOSTIKA ============ */
+.diag{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:42px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:26px 22px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--amber),var(--amber-2))}
+.stat .num{font-family:'Playfair Display',serif;font-size:46px;font-weight:700;color:var(--green);line-height:1.1}
+.stat .cap{font-size:13.5px;color:#51645d;margin-top:8px;font-weight:500}
+.stat.bad::before{background:linear-gradient(90deg,var(--warn),#c43c2b)}
+.diag .verdict{margin-top:36px;background:var(--green);color:var(--cream);border-radius:18px;padding:24px 30px;font-size:clamp(15px,2.2vw,17px);display:flex;gap:16px;align-items:flex-start}
+.diag .verdict svg{flex:0 0 26px;margin-top:2px;color:var(--amber)}
+
+/* ============ OQIM (flow) ============ */
+.flow{display:flex;flex-wrap:wrap;gap:0;justify-content:center;margin-top:46px;align-items:stretch}
+.fstep{flex:1 1 150px;max-width:190px;text-align:center;padding:0 8px;position:relative}
+.fstep .ic{width:64px;height:64px;border-radius:20px;background:#fff;border:1px solid var(--line);box-shadow:0 4px 18px rgba(14,64,55,.08);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--green)}
+.fstep .ic svg{width:30px;height:30px}
+.fstep h3{font-size:15.5px;font-weight:800;color:var(--green)}
+.fstep p{font-size:12.5px;color:#5a6d66;margin-top:4px}
+.fstep:not(:last-child)::after{content:"";position:absolute;top:32px;right:-14px;width:28px;height:2px;background:var(--amber);opacity:.7}
+@media(max-width:760px){.fstep:not(:last-child)::after{display:none}.flow{gap:22px}}
+
+/* ============ SCREENS ============ */
+.screens{background:linear-gradient(180deg,var(--bg) 0%,var(--cream-2) 100%)}
+.phones{display:flex;flex-wrap:wrap;gap:34px;justify-content:center;margin-top:52px;align-items:flex-start}
+.shot{display:flex;flex-direction:column;align-items:center;gap:18px}
+.shot .capt{max-width:330px;text-align:center;font-size:13.5px;color:#51645d}
+.shot .capt b{color:var(--green)}
+.browser-wrap{margin-top:46px;overflow-x:auto;padding-bottom:8px}
+
+/* phone frame */
+.phone{width:340px;background:#0b0d0c;border-radius:44px;padding:10px;box-shadow:0 24px 70px rgba(9,47,40,.35),0 4px 16px rgba(0,0,0,.18);flex:0 0 auto}
+.phone>*{border-radius:0}
+.ph-top{background:var(--bg);border-radius:34px 34px 0 0;display:flex;align-items:center;justify-content:space-between;padding:12px 22px 4px;position:relative}
+.ph-time{font:700 12px 'Manrope';color:var(--ink)}
+.ph-island{position:absolute;left:50%;transform:translateX(-50%);top:10px;width:88px;height:22px;background:#0b0d0c;border-radius:999px}
+.ph-sig{width:34px;height:10px;border-radius:3px;background:linear-gradient(90deg,var(--ink) 60%,rgba(19,36,31,.25) 60%)}
+.ph-app{background:var(--bg);min-height:640px;display:flex;flex-direction:column}
+.ph-nav{background:#fff;border-top:1px solid var(--line);border-radius:0 0 34px 34px;display:flex;justify-content:space-around;padding:10px 6px 16px}
+.nav-it{display:flex;flex-direction:column;align-items:center;gap:3px;color:#8aa098;text-decoration:none;font-size:9.5px;font-weight:700}
+.nav-it svg{width:21px;height:21px}
+.nav-it.active{color:var(--green)}
+.nav-it.active span{color:var(--amber-2)}
+
+/* browser frame */
+.browser{min-width:760px;max-width:980px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(9,47,40,.18);overflow:hidden}
+.br-bar{display:flex;align-items:center;gap:8px;background:var(--cream-2);padding:12px 16px;border-bottom:1px solid var(--line)}
+.dot{width:11px;height:11px;border-radius:50%}.dot.r{background:#ee6a5f}.dot.y{background:#f5bd4f}.dot.g{background:#61c554}
+.br-url{margin-left:14px;background:#fff;border:1px solid var(--line);border-radius:8px;font:600 12px 'JetBrains Mono',monospace;color:#51645d;padding:5px 14px}
+.br-body{padding:0}
+
+/* ============ FORMULAS ============ */
+.formulas{background:var(--green);color:var(--cream)}
+.formulas .eyebrow{color:var(--amber)}
+.formulas h2{color:var(--cream)}
+.formulas .lead{color:rgba(255,240,229,.75)}
+.ftable{margin-top:44px;display:flex;flex-direction:column;gap:12px}
+.frow{display:grid;grid-template-columns:minmax(180px,1fr) 40px minmax(220px,1.4fr);gap:14px;align-items:center;background:rgba(255,240,229,.06);border:1px solid rgba(255,240,229,.14);border-radius:14px;padding:16px 22px}
+.frow code{font:600 13.5px 'JetBrains Mono',monospace;color:var(--amber);word-break:break-all}
+.frow .arr{text-align:center;color:var(--amber);font-size:18px}
+.frow .feat{font-size:14.5px;font-weight:600}
+.frow .feat small{display:block;font-weight:400;opacity:.65;font-size:12.5px;margin-top:2px}
+@media(max-width:640px){.frow{grid-template-columns:1fr}.frow .arr{display:none}}
+.formulas .punch{margin-top:36px;text-align:center;font-family:'Playfair Display',serif;font-size:clamp(19px,3vw,25px);font-style:italic;color:var(--amber)}
+
+/* ============ PHASES ============ */
+.phases-list{margin-top:48px;display:flex;flex-direction:column;gap:0;position:relative}
+.phase{display:grid;grid-template-columns:56px 1fr;gap:20px;padding:22px 0;position:relative}
+.phase:not(:last-child)::after{content:"";position:absolute;left:27px;top:74px;bottom:-8px;width:2px;background:var(--line)}
+.phase .n{width:56px;height:56px;border-radius:50%;background:#fff;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font:800 19px 'Manrope';color:var(--green);z-index:1}
+.phase.star .n{background:var(--amber);border-color:var(--amber);color:var(--green)}
+.phase h3{font-size:17px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.phase h3 .tag{font-size:11px;font-weight:800;background:var(--amber);color:var(--green);border-radius:999px;padding:3px 12px;letter-spacing:.05em}
+.phase p{font-size:14px;color:#51645d;margin-top:4px;max-width:640px}
+
+/* ============ NEEDS + FOOTER ============ */
+.needs{background:#fff;border-top:1px solid var(--line)}
+.needs ul{margin-top:30px;list-style:none;display:flex;flex-direction:column;gap:14px;max-width:680px}
+.needs li{display:flex;gap:14px;align-items:flex-start;font-size:15px}
+.needs li svg{flex:0 0 22px;color:var(--ok);margin-top:3px}
+footer{background:var(--green-deep);color:rgba(255,240,229,.7);text-align:center;padding:54px 24px}
+footer img{width:84px;height:84px;border-radius:18px;margin-bottom:18px;opacity:.95}
+footer .fname{font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);margin-bottom:6px}
+footer .fsub{font-size:13px}
+footer .fby{margin-top:22px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="lang-toggle"><button id="btn-uz" class="on" onclick="setLang('uz')">UZ</button><button id="btn-ru" onclick="setLang('ru')">РУ</button></div>
+  <img class="logo" src="%%LOGO%%" alt="Limonariya">
+  <h1>Limonariya</h1>
+  <p class="sub uz">Ombor va obvalka hisobining yangi tizimi — sizning daftaringiz va jadvalingiz o'rniga, sizning formulalaringiz bilan.</p>
+  <p class="sub ru">Новая система учёта склада и обвалки — вместо тетради и таблицы, на ваших же формулах.</p>
+  <span class="pill uz">Pilot loyiha · Rustam aka uchun</span>
+  <span class="pill ru">Пилотный проект · для Рустам ака</span>
+</header>
+
+<!-- ================= DIAGNOSTIKA ================= -->
+<section class="diag">
+  <div class="wrap">
+    <span class="eyebrow uz">Diagnostika</span><span class="eyebrow ru">Диагностика</span>
+    <h2 class="uz">Jadvalingizni o'rganib chiqdik</h2><h2 class="ru">Мы изучили вашу таблицу</h2>
+    <p class="lead uz">«Отчет Limonariya» faylidagi barcha varaqlar — Месяц, Обвалка, Шашлык — va daftardagi tex-kartalar tahlil qilindi. Muammo hisob modelida emas: <b>model to'g'ri</b>. Muammo — uni qo'lda yuritishda.</p>
+    <p class="lead ru">Разобраны все листы файла «Отчет Limonariya» — Месяц, Обвалка, Шашлык — и тех-карты из тетради. Проблема не в модели учёта: <b>модель верная</b>. Проблема — в ручном исполнении.</p>
+    <div class="stats">
+      <div class="stat bad"><div class="num">1 <span style="font-size:22px">kun</span></div><div class="cap uz">jurnal «Месяц» shuncha yashadi: 28.05 boshlandi — va to'xtadi</div><div class="cap ru">столько прожил журнал «Месяц»: начат 28.05 — и заброшен</div></div>
+      <div class="stat bad"><div class="num">0</div><div class="cap uz">«Остаток на конец дня» ustuni <b>bir marta ham</b> hisoblanmagan</div><div class="cap ru">колонка «Остаток на конец дня» не сведена <b>ни разу</b></div></div>
+      <div class="stat bad"><div class="num">28.5 <span style="font-size:22px">kg</span></div><div class="cap uz">Шапок bo'yicha ikki varaq orasidagi farq: 70.3 va 98.8 — hech kim sezmagan</div><div class="cap ru">расхождение по Шапок между листами: 70.3 против 98.8 — никто не заметил</div></div>
+      <div class="stat bad"><div class="num">+13.9%</div><div class="cap uz">obvalkada vazn balansi xatosi: 85 kg tushadan 96.8 kg «chiqqan»</div><div class="cap ru">ошибка баланса веса в обвалке: из туши 85 кг «вышло» 96.8 кг</div></div>
+    </div>
+    <div class="verdict">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+      <div>
+        <span class="uz">Bu Excel'ni yomon yuritish emas — bu <b>Excel'da yashab bo'lmasligining isboti</b>: har kuni ~20 mahsulot × 3 ustunni qo'lda ayirib chiqish kerak edi. Dastur buni o'zi qiladi.</span>
+        <span class="ru">Это не «плохо вели Excel» — это <b>доказательство, что в Excel так жить нельзя</b>: каждый день нужно было вручную вычитать ~20 позиций × 3 колонки. Программа сделает это сама.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OQIM ================= -->
+<section>
+  <div class="wrap center">
+    <span class="eyebrow uz">Qanday ishlaydi</span><span class="eyebrow ru">Как это работает</span>
+    <h2 class="uz">Bitta oqim — tushadan hisobotgacha</h2><h2 class="ru">Один поток — от туши до отчёта</h2>
+    <p class="lead uz">Qoldiq hech qayerda «saqlanmaydi» — har bir harakat yoziladi, qoldiqni dastur o'zi hisoblaydi. Shuning uchun uni buzib ham, yo'qotib ham bo'lmaydi.</p>
+    <p class="lead ru">Остаток нигде не «хранится» — записывается каждое движение, остаток программа считает сама. Поэтому его нельзя ни сломать, ни потерять.</p>
+    <div class="flow">
+      <div class="fstep"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18l-2 13H5L3 7z"/><path d="M8 7a4 4 0 018 0"/></svg></div><h3 class="uz">Tusha</h3><h3 class="ru">Туша</h3><p class="uz">qo'y / mol · vazn · narx</p><p class="ru">қўй / мол · вес · цена</p></div>
+      <div class="fstep"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21l8.5-8.5"/><path d="M11.5 12.5L21 3c.6 3.2-.9 7.1-4 10l-4 1z"/></svg></div><h3>Obvalka</h3><p class="uz">qismlarga ajratish + jonli balans</p><p class="ru">разделка + живой баланс веса</p></div>
+      <div class="fstep"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8l8-5 8 5v8l-8 5-8-5V8z"/><path d="M4 8l8 5 8-5M12 13v8"/></svg></div><h3 class="uz">Ombor</h3><h3 class="ru">Склад</h3><p class="uz">qoldiq avtomatik +</p><p class="ru">остаток сам растёт</p></div>
+      <div class="fstep"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M3 4h2l2.6 12h10.8L21 8H7"/></svg></div><h3 class="uz">Sotuv</h3><h3 class="ru">Продажа</h3><p class="uz">kunlik jadvaldan chiqim</p><p class="ru">расход в дневной таблице</p></div>
+      <div class="fstep"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 20v-6M11 20V8M17 20v-4"/><path d="M3 20h18"/></svg></div><h3>Hisobot</h3><p class="uz">tannarx · yo'qotish % · marja</p><p class="ru">себестоимость · потери % · маржа</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SCREENS ================= -->
+<section class="screens">
+  <div class="wrap center">
+    <span class="eyebrow uz">Dastur ekranlari</span><span class="eyebrow ru">Экраны программы</span>
+    <h2 class="uz">Hammasi sizning raqamlaringiz bilan</h2><h2 class="ru">Всё — на ваших реальных цифрах</h2>
+    <p class="lead uz">Quyidagi ekranlardagi har bir son — jadvalingizdan olingan: 28.05 qoldiqlari, Suxrobdan olingan qo'y (09.05), sizning marinad koeffitsiyentlaringiz.</p>
+    <p class="lead ru">Каждое число на экранах ниже — из вашей таблицы: остатки на 28.05, баран от Сухроба (09.05), ваши коэффициенты маринада.</p>
+
+    <div class="phones">
+      <div class="shot">
+        %%SCREEN_DASH%%
+        <p class="capt uz"><b>Asosiy ekran.</b> Jonli qoldiqlar, bugungi kirim-chiqim, kam qoldiq ogohlantirishi — telefonda.</p>
+        <p class="capt ru"><b>Главный экран.</b> Живые остатки, движения за день, предупреждения о низком остатке — в телефоне.</p>
+      </div>
+      <div class="shot">
+        %%SCREEN_OBV%%
+        <p class="capt uz"><b>Obvalka.</b> Sizning 09.05 holatingiz: 50.3 kg qo'y → lahm tannarxi 162 258 so'm/kg. Vazn balansi jonli — Maruf holatidagi +13.9% xato endi o'tib ketmaydi.</p>
+        <p class="capt ru"><b>Обвалка.</b> Ваш кейс от 09.05: баран 50.3 кг → себестоимость мякоти 162 258 сум/кг. Баланс веса живой — ошибка +13.9% как у Маруфа больше не пройдёт.</p>
+      </div>
+      <div class="shot">
+        %%SCREEN_HIS%%
+        <p class="capt uz"><b>Hisobot.</b> Tusha marjasi (+5 707 390 so'm), tannarx, marinad koeffitsiyentlari, yo'qotish nazorati.</p>
+        <p class="capt ru"><b>Отчёты.</b> Маржа туши (+5 707 390 сум), себестоимость, коэффициенты маринада, контроль потерь.</p>
+      </div>
+    </div>
+
+    <div class="browser-wrap">
+      %%SCREEN_JAD%%
+    </div>
+    <p class="capt" style="max-width:720px;margin:18px auto 0;font-size:13.5px;color:#51645d">
+      <span class="uz"><b>Kunlik jadval (kompyuterda).</b> Sizning «Месяц» varag'ingiz — lekin «Qoldiq» ustunini endi dastur o'zi to'ldiradi. Excel'da u bir marta ham to'ldirilmagan edi.</span>
+      <span class="ru"><b>Дневная таблица (на компьютере).</b> Ваш лист «Месяц» — но колонку «Остаток» теперь заполняет программа. В Excel она не была заполнена ни разу.</span>
+    </p>
+  </div>
+</section>
+
+<!-- ================= FORMULAS ================= -->
+<section class="formulas">
+  <div class="wrap">
+    <span class="eyebrow uz">Eng muhimi</span><span class="eyebrow ru">Самое главное</span>
+    <h2 class="uz">Sizning formulalaringiz — dasturda</h2><h2 class="ru">Ваши формулы — в программе</h2>
+    <p class="lead uz">Biz hisob modelini o'ylab topmadik — uni jadvalingizdan oldik. Dastur sizning matematikangizni 1:1 takrorlaydi, faqat qo'l mehnatisiz.</p>
+    <p class="lead ru">Мы не придумывали модель учёта — мы взяли её из вашей таблицы. Программа повторяет вашу математику 1:1, только без ручного труда.</p>
+    <div class="ftable">
+      <div class="frow"><code>=F4/B4</code><span class="arr">→</span><div class="feat"><span class="uz">Tannarx avtomatik</span><span class="ru">Себестоимость автоматически</span><small class="uz">tusha narxi ÷ lahm vazni — suyak bepul, hammasi go'shtga</small><small class="ru">цена туши ÷ вес мякоти — кости бесплатно, всё на мясо</small></div></div>
+      <div class="frow"><code>=2.7+8*1.13</code><span class="arr">→</span><div class="feat"><span class="uz">Marinad konvertori</span><span class="ru">Конвертер маринада</span><small class="uz">xom → marinadlangan: ×1.17 farsh, ×1.13 kuskovoy, ×1.05 koreyka</small><small class="ru">сырое → маринованное: ×1.17 фарш, ×1.13 кусковой, ×1.05 корейка</small></div></div>
+      <div class="frow"><code>=8.2+6+10+3</code><span class="arr">→</span><div class="feat"><span class="uz">Inventarizatsiya ekrani</span><span class="ru">Экран инвентаризации</span><small class="uz">qozonlar bo'yicha tortishlar yig'indisi — 70.3 va 98.8 endi farq qilmaydi</small><small class="ru">сумма взвешиваний по ёмкостям — расхождений 70.3 vs 98.8 больше не будет</small></div></div>
+      <div class="frow"><code>=E4*1.17/0.14</code><span class="arr">→</span><div class="feat"><span class="uz">Six kalkulyatori</span><span class="ru">Калькулятор сихов</span><small class="uz">kg → shampur soni: 5 kg farsh = 41.8 six (140 g dan)</small><small class="ru">кг → количество шампуров: 5 кг фарша = 41.8 сихов (по 140 г)</small></div></div>
+      <div class="frow"><code class="uz">«Буглама — от Казон кабоб»</code><code class="ru">«Буглама — от Казон кабоб»</code><span class="arr">→</span><div class="feat"><span class="uz">Tex-kartalar va hosila taomlar</span><span class="ru">Тех-карты и производные блюда</span><small class="uz">taom sotildi → ingredientlar o'zi chiqdi (Шапок retsepti, 5 ta salat tayyor)</small><small class="ru">блюдо продано → ингредиенты списались сами (рецепт Шапок, 5 салатов уже есть)</small></div></div>
+    </div>
+    <p class="punch uz">«Шапок: 17.5 kg × 9.23 = 161.5 porsiya × 22 000 = 3 553 550 so'm» — bu sizning hisobingiz. Endi u avtomatik.</p>
+    <p class="punch ru">«Шапок: 17.5 кг × 9.23 = 161.5 порций × 22 000 = 3 553 550 сум» — это ваш расчёт. Теперь он автоматический.</p>
+  </div>
+</section>
+
+<!-- ================= PHASES ================= -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow uz">Yo'l xaritasi</span><span class="eyebrow ru">Дорожная карта</span>
+    <h2 class="uz">Bosqichma-bosqich ishga tushiramiz</h2><h2 class="ru">Запускаем по этапам</h2>
+    <p class="lead uz">Foyda 2-bosqichdayoq paydo bo'ladi — asosiy muammo (obvalka → qoldiq) birinchi navbatda hal qilinadi.</p>
+    <p class="lead ru">Польза появляется уже на этапе 2 — главная задача (обвалка → остаток) решается первой.</p>
+    <div class="phases-list">
+      <div class="phase"><div class="n">1</div><div><h3 class="uz">Katalog</h3><h3 class="ru">Каталог</h3><p class="uz">Barcha qism va taomlar ro'yxati — jadvalingizdagi 16 pozitsiya + menyu tayyor holda kiritiladi. Nomlar tartibga keladi (Вағора/Вагора, Филе-жиз/Фели жиз — bitta mahsulot).</p><p class="ru">Список всех частей и блюд — 16 позиций из вашей таблицы + меню заносятся сразу. Имена приводятся в порядок (Вағора/Вагора, Филе-жиз/Фели жиз — один продукт).</p></div></div>
+      <div class="phase star"><div class="n">2</div><div><h3 class="uz">Obvalka + qoldiq <span class="tag">Asosiy</span></h3><h3 class="ru">Обвалка + остаток <span class="tag">Главное</span></h3><p class="uz">Tusha → qismlar → ombor avtomatik. Jonli vazn balansi + tannarx + tusha marjasi. Sizning asosiy muammoyingiz shu yerda hal bo'ladi.</p><p class="ru">Туша → части → склад автоматически. Живой баланс веса + себестоимость + маржа туши. Ваша главная проблема решается здесь.</p></div></div>
+      <div class="phase"><div class="n">3</div><div><h3 class="uz">Kunlik jadval</h3><h3 class="ru">Дневная таблица</h3><p class="uz">Kirim / sotuv / qoldiq kunlar bo'yicha — Excel'dagidek tanish, lekin qoldiq o'zi hisoblanadi. Bir kunda istalgancha chiqim.</p><p class="ru">Приход / продажа / остаток по дням — привычно как Excel, но остаток считается сам. Любое число списаний за день.</p></div></div>
+      <div class="phase"><div class="n">4</div><div><h3 class="uz">Hisobotlar + inventarizatsiya</h3><h3 class="ru">Отчёты + инвентаризация</h3><p class="uz">Davr bo'yicha kirim-chiqim, yo'qotish %, tannarx dinamikasi. Inventarizatsiya — tortishlar yig'indisi bilan, farqlar jurnalga yoziladi.</p><p class="ru">Приход-расход за период, потери %, динамика себестоимости. Инвентаризация — суммой взвешиваний, расхождения фиксируются в журнале.</p></div></div>
+      <div class="phase"><div class="n">5</div><div><h3 class="uz">Tex-kartalar</h3><h3 class="ru">Тех-карты</h3><p class="uz">Taom sotildi → ingredientlar o'zi chiqadi. Shashlik normalari (140/90/85 g), Шапок retsepti (1.625 kg aralashma), daftardagi 5 ta salat — hammasi tayyor, kiritamiz xolos.</p><p class="ru">Блюдо продано → ингредиенты списываются сами. Нормы шашлыка (140/90/85 г), рецепт Шапок (смесь 1.625 кг), 5 салатов из тетради — всё уже есть, просто заносим.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NEEDS ================= -->
+<section class="needs">
+  <div class="wrap">
+    <span class="eyebrow uz">Sizdan nima kerak</span><span class="eyebrow ru">Что нужно от вас</span>
+    <h2 class="uz">Atigi uchta narsa</h2><h2 class="ru">Всего три вещи</h2>
+    <ul>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="22" height="22"><path d="M20 6L9 17l-5-5"/></svg><div><span class="uz"><b>30 daqiqa suhbat</b> — bir nechta aniqlik: Шапок 70.3 yoki 98.8? «Сол 5г» — soya yoki tuz? Salat nomlari to'g'rimi?</span><span class="ru"><b>30 минут разговора</b> — несколько уточнений: Шапок 70.3 или 98.8? «Сол 5г» — соя или соль? Названия салатов верны?</span></div></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="22" height="22"><path d="M20 6L9 17l-5-5"/></svg><div><span class="uz"><b>Daftardagi qolgan tex-kartalar</b> — suratga olib yuborsangiz kifoya, biz o'zimiz kiritamiz.</span><span class="ru"><b>Остальные тех-карты из тетради</b> — достаточно сфотографировать и прислать, занесём сами.</span></div></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="22" height="22"><path d="M20 6L9 17l-5-5"/></svg><div><span class="uz"><b>1–2 kishi</b> — kim ma'lumot kiritadi (omborchi, menejer). Telefon kifoya.</span><span class="ru"><b>1–2 человека</b> — кто будет заносить данные (кладовщик, менеджер). Телефона достаточно.</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <img src="%%LOGO%%" alt="Limonariya">
+  <div class="fname">Limonariya Restaurant</div>
+  <div class="fsub uz">Ombor va obvalka hisobi tizimi · pilot loyiha · 2026</div>
+  <div class="fsub ru">Система учёта склада и обвалки · пилотный проект · 2026</div>
+  <div class="fby">XONSOFT tomonidan tayyorlandi</div>
+</footer>
+
+<script>
+function setLang(l){
+  document.documentElement.dataset.lang = l;
+  document.getElementById('btn-uz').classList.toggle('on', l==='uz');
+  document.getElementById('btn-ru').classList.toggle('on', l==='ru');
+}
+</script>
+</body>
+</html>
