@@ -51,6 +51,7 @@ TUSHA (qo'y / mol)  →  OBVALKA  →  QOLDIQ (qismlar omborda)  →  CHIQIM (os
 | **Kunlik jadval** | Odatdagi «Excel kabi» ko'rinish: sanani tanladi → har mahsulot bo'yicha kirim / sotuv / qoldiq. |
 | **Katalog** | Barcha qism va taomlar ro'yxati (qo'shish / o'zgartirish / o'chirish). |
 | **Hisobotlar** | Davr → kirim-chiqim, yo'qotish %, tannarx, grafiklar, yuklab olish. |
+| **Analitika (direktor)** | Kunning sof foydasi: har bir taom marjasi minus zavedeniyaning kunlik xarajatlari (gaz, svet, oshpaz, salatchi…). Zararsizlik nuqtasi: «bugun plyusga chiqish uchun necha porsiya sotish kerak». Faqat direktor ko'radi. |
 
 ---
 
@@ -99,12 +100,13 @@ Navbat bilan ishga tushiramiz — foyda **2-bosqichdayoq** paydo bo'ladi.
 - Barcha qism va taomlar ro'yxati (hozirgi jadvaldan olsa bo'ladi — u bizda bor).
 - Taxminiy chiqish normalari: qo'y / mol odatda qancha beradi (yo'qotishni nazorat qilish uchun).
 - 1–2 kishi, kim ma'lumot kiritadi (omborchi, menejer).
+- Zavedeniyaning standart kunlik xarajatlari ro'yxati (gaz, svet, oshpaz/salatchi maoshlari va h.k.) — direktor analitikasi uchun.
 
 ---
 
 ## Texnologiyalar (qisqacha)
 
-Zamonaviy veb-stek (Next.js + Supabase). Telefon va kompyuter brauzerida ishlaydi, ma'lumotlar himoyalangan bazada, login/parol va rollar orqali kirish. Dastur **individual** — sizning restoran uchun yozilgan, shablon emas.
+Zamonaviy veb-stek (Next.js + Supabase). Telefon va kompyuter brauzerida ishlaydi, ma'lumotlar himoyalangan bazada. Rollar: **direktor** (hammasi, foyda va xarajatlar bilan), **admin** (ma'lumot kiritish), **kassir** (sotuv, tannarxsiz), **ofitsiant** (menyu va buyurtmalar, pulsiz). Tannarx va marjani faqat direktor ko'radi. Dastur **individual** — sizning restoran uchun yozilgan, shablon emas.
 
 ---
 
