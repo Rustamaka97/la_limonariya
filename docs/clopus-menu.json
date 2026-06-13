@@ -1,0 +1,1012 @@
+{
+  "source": "Clopus / ELITE POS live photos 2026-06-13 (+ owner confirmations round 2)",
+  "categories": [
+    "ТАОМЛАР",
+    "ШАШЛИКЛАР",
+    "БАЛИКЛАР",
+    "САЛАТЛАР",
+    "ИЧИМЛИКЛАР",
+    "СПИРТЛИ ИЧИМЛИК",
+    "ПРОЧЕЕ",
+    "ШИРИНЛИКЛАР",
+    "Мороженое",
+    "Non choy"
+  ],
+  "items": [
+    {
+      "category": "ТАОМЛАР",
+      "name": "КУй Лапатка",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Балаза шурво",
+      "price_uzs": 35000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Шея баранина",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Кавурга мол",
+      "price_uzs": 220000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Булён",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Сомса Бухороча",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Ковурилган канот",
+      "price_uzs": 80000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "КАВОБЧА",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Авгон жиз",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Умакай жиз",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Буглама",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Куртоба",
+      "price_uzs": 60000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "ШУРВО (мол гушти)",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "ҚОЗОН КАБОБ (қуй гушти)",
+      "price_uzs": 260000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "ОШ (лазер заказ)",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "ВАҒУРИ",
+      "price_uzs": 260000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "ЖИЗ феле (мол гушти)",
+      "price_uzs": 240000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Уйгурча жиз",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Мастава",
+      "price_uzs": 35000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "лапата куй",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Фри порс",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Тушонка шурво",
+      "price_uzs": 40000
+    },
+    {
+      "category": "ТАОМЛАР",
+      "name": "Сарёгли жиз кг",
+      "price_uzs": 250000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "КУСКОВОЙ (мол гушти) шт",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "КУСКОВОЙ (қуй гушти)",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "ФАРШ",
+      "price_uzs": 23000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "КОРЕЙКА ШАШЛИК",
+      "price_uzs": 35000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "ТОВУК СОНЧАЛАРИ",
+      "price_uzs": 55000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "ТОВУҚ КАНОТЧАЛАРИ",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "ПОМИДОРЧА ШАШЛИК",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Жигар шашлик",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Марварид",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Думма шашлик",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Доллар шашлик",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Феле шашлик",
+      "price_uzs": 35000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Овошной шашлик",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ШАШЛИКЛАР",
+      "name": "Бахор шашлик",
+      "price_uzs": 24000
+    },
+    {
+      "category": "БАЛИКЛАР",
+      "name": "Сазан (соуссиз)",
+      "price_uzs": 80000
+    },
+    {
+      "category": "БАЛИКЛАР",
+      "name": "САЗАН (соуслик)",
+      "price_uzs": 80000
+    },
+    {
+      "category": "БАЛИКЛАР",
+      "name": "Балик барбеку",
+      "price_uzs": 90000
+    },
+    {
+      "category": "БАЛИКЛАР",
+      "name": "свежий соус",
+      "price_uzs": 8000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Салат нарез",
+      "price_uzs": 5000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Тарвуз",
+      "price_uzs": 15000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Айрон графин",
+      "price_uzs": 35000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Соус",
+      "price_uzs": 8000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Аристократ",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Греческий",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Бакалажан с мясом",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Сора",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Шотланский",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "bodiring narez",
+      "price_uzs": 10000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Халодес",
+      "price_uzs": 30000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "селедка асорти",
+      "price_uzs": 100000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Чакка",
+      "price_uzs": 10000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Лимон нарез шт",
+      "price_uzs": 10000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Фруктовый ассорти (Катта)",
+      "price_uzs": 70000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Фруктовый ассоти (Кичик)",
+      "price_uzs": 40000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Калампир",
+      "price_uzs": 5000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Фруктовий ассорти с шоколадои",
+      "price_uzs": 85000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Шинпинён",
+      "price_uzs": 30000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "ЦЕЗАР",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "ГУРМАН",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "СМАК",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "МУЖСКОЙ КАПРИЗ",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "ВЕСЕНИЙ",
+      "price_uzs": 20000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "СВЕЖИЙ",
+      "price_uzs": 25000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "СОЛЕННЫЙ АССОРТИ",
+      "price_uzs": 20000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "ОВОЩНОЙ АССОРТИ",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "МЯСНОЙ АССОРТИ",
+      "price_uzs": 150000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "ПЕКИН",
+      "price_uzs": 45000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "АЧЧИК-ЧУЧУК",
+      "price_uzs": 20000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "ЧИРОКЧИ",
+      "price_uzs": 25000
+    },
+    {
+      "category": "САЛАТЛАР",
+      "name": "Чакка турп",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Адреналин 0,5",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Сок лимон лайм",
+      "price_uzs": 18000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Мохито натурал",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Гарди (олма лимон)",
+      "price_uzs": 18000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "чорток бакалашка 1,5",
+      "price_uzs": 8000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Флавис Мохито",
+      "price_uzs": 13000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Блис (Ананас)",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Блис (Апелсин)",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Горелла",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Блис (Анор)",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Гарди (Апелсин)",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Гарди (Ананас)",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Кола 1.5л",
+      "price_uzs": 18000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Чорток 0.7л",
+      "price_uzs": 16000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Фамилй 1 л",
+      "price_uzs": 5000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Фанта 1.5л",
+      "price_uzs": 18000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Сок",
+      "price_uzs": 16000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Сприте 1.5л",
+      "price_uzs": 18000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Флеш",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "флавс",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Гидролифе газ 1.5",
+      "price_uzs": 5000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Чорток 1.5",
+      "price_uzs": 8000
+    },
+    {
+      "category": "ИЧИМЛИКЛАР",
+      "name": "Мохито",
+      "price_uzs": 15000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Тбилисоба 0.7 (Вино)",
+      "price_uzs": 85000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "сарбаст филтр 0,45",
+      "price_uzs": 10000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "сарбаст без филтр 0,45",
+      "price_uzs": 10000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Куза 0,7",
+      "price_uzs": 45000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Гоод гоосе 0,5",
+      "price_uzs": 45000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Лвофф 0.7",
+      "price_uzs": 55000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Лвофф 0.5",
+      "price_uzs": 45000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Триллиат 0.7",
+      "price_uzs": 60000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Жатеский гус 0,5",
+      "price_uzs": 18000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Казак 0,5",
+      "price_uzs": 45000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Жиггерман 0.7",
+      "price_uzs": 95000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Вачач 0.7",
+      "price_uzs": 45000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Байкал 0.7",
+      "price_uzs": 90000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Голд Узбекситан",
+      "price_uzs": 230000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "ТАНБУР 0.7",
+      "price_uzs": 250000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Чистая 0.5",
+      "price_uzs": 45000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Тошкент ХО",
+      "price_uzs": 130000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Медовая 0.7",
+      "price_uzs": 80000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Рич 0.7",
+      "price_uzs": 50000
+    },
+    {
+      "category": "СПИРТЛИ ИЧИМЛИК",
+      "name": "Казак 0.7",
+      "price_uzs": 55000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "ЛЁД",
+      "price_uzs": 5000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Сигарет Кастер",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Эссе голд",
+      "price_uzs": 32000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Шур балик",
+      "price_uzs": 40000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Wawel шоколад",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Эссе оригинал",
+      "price_uzs": 45000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Казакстан (шоколад)",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Алёнка (шоколад)",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Кит Кат (шоколад)",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Чак-чук",
+      "price_uzs": 100000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Кент 3",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Сырные палочки",
+      "price_uzs": 12000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Курт шт",
+      "price_uzs": 1000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Семечка тузсиз Mega 75 гр",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Курт Mega",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Туздон",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Эрмак 160 гр",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Чипс",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "ГРЕНКИ",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Пиво асорти",
+      "price_uzs": 50000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Эссе Ченч (Сигарет)",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Шоколад (Max фун)",
+      "price_uzs": 22000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Зажигалка",
+      "price_uzs": 5000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Арахис",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Семечка эрмак 100 гр",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "курт файз",
+      "price_uzs": 5000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "пепилница идиш",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Буханка",
+      "price_uzs": 5000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Кулча",
+      "price_uzs": 3500
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Вафли",
+      "price_uzs": 60000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Катта вафли",
+      "price_uzs": 90000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "клубника шоколад",
+      "price_uzs": 55000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Семечка",
+      "price_uzs": 7000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Парламент (Сигарет)",
+      "price_uzs": 28000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Палл-Малл (Сигарет)",
+      "price_uzs": 24000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Шоколад (Миллинум)",
+      "price_uzs": 22000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Шоколад (Алпен голд)",
+      "price_uzs": 17000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Сигарет (Кент микс)",
+      "price_uzs": 26000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Мева кесиш",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Патир",
+      "price_uzs": 15000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Шурдонак 100 гр",
+      "price_uzs": 10000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Стакан майда",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Стакан катта",
+      "price_uzs": 30000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "уксус идиш",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ПРОЧЕЕ",
+      "name": "Семечка Туз мега 100гр",
+      "price_uzs": 12000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Наполеон",
+      "price_uzs": 40000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Выпечка",
+      "price_uzs": 50000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Меренгивый",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Три шоколад",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Орео",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Чизкейк",
+      "price_uzs": 40000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Бенто торт",
+      "price_uzs": 50000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Рулет сникерс",
+      "price_uzs": 50000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Матилда",
+      "price_uzs": 35000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Опера фист",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Опера смородина",
+      "price_uzs": 25000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Сан-себастан",
+      "price_uzs": 40000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "КЛУБНИКА ШОКОЛАД",
+      "price_uzs": 12000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Мороженое 100гр",
+      "price_uzs": 20000
+    },
+    {
+      "category": "ШИРИНЛИКЛАР",
+      "name": "Мороженое 50гр",
+      "price_uzs": 10000
+    },
+    {
+      "category": "Мороженое",
+      "name": "Газета",
+      "price_uzs": 7000
+    },
+    {
+      "category": "Мороженое",
+      "name": "Голд",
+      "price_uzs": 15000
+    },
+    {
+      "category": "Мороженое",
+      "name": "Керамика",
+      "price_uzs": 9000
+    },
+    {
+      "category": "Non choy",
+      "name": "Собой идиш кичик",
+      "price_uzs": 1000
+    },
+    {
+      "category": "Non choy",
+      "name": "Собой идиш катта",
+      "price_uzs": 3000
+    },
+    {
+      "category": "Non choy",
+      "name": "Нон",
+      "price_uzs": 5000
+    },
+    {
+      "category": "Non choy",
+      "name": "Чой",
+      "price_uzs": 5000
+    },
+    {
+      "category": "Non choy",
+      "name": "Чой лимон",
+      "price_uzs": 10000
+    },
+    {
+      "category": "Non choy",
+      "name": "нон ассорти",
+      "price_uzs": 10000
+    },
+    {
+      "category": "Non choy",
+      "name": "кук чой",
+      "price_uzs": 5000
+    },
+    {
+      "category": "Non choy",
+      "name": "кора чой",
+      "price_uzs": 5000
+    },
+    {
+      "category": "Non choy",
+      "name": "кийик ути чой",
+      "price_uzs": 5000
+    },
+    {
+      "category": "Non choy",
+      "name": "Буханка нон",
+      "price_uzs": 5000
+    },
+    {
+      "category": "Non choy",
+      "name": "кулча нон",
+      "price_uzs": 4000
+    }
+  ],
+  "printers": [
+    {
+      "station": "SALAT",
+      "ip": "192.168.1.131",
+      "status": "Он-лайн"
+    },
+    {
+      "station": "OSHXONA",
+      "ip": "192.168.1.132",
+      "status": "Он-лайн"
+    },
+    {
+      "station": "SHASHLIK",
+      "ip": "192.168.1.133",
+      "status": "Он-лайн"
+    },
+    {
+      "station": "BALIQ",
+      "ip": "192.168.1.134",
+      "status": "Он-лайн"
+    },
+    {
+      "station": "BAR (Чек • BAR)",
+      "ip": "192.168.1.137",
+      "status": "Он-лайн"
+    }
+  ],
+  "terminals": [
+    {
+      "name": "T2 (локальный/хост-терминал, текущий)",
+      "ip": "192.168.1.12",
+      "status": "текущий (хост)"
+    },
+    {
+      "name": "Terminal 1",
+      "ip": "192.168.1.15",
+      "status": "Он-лайн (ожидающих сообщений: 0)"
+    },
+    {
+      "name": "T3 (идентификатор терминала: 3)",
+      "ip": "неизвестен",
+      "status": "временно недоступен (вактинча ишламаяпти) — терминал реальный, не списан"
+    }
+  ],
+  "note": "Updated per Rustam aka round-2 answers: Фарш кг removed, Aristokrat dup removed, Казон кабоб мол removed, ШАШЛИКЛАР added (14), service/deposit items removed, name normalized. Ambiguous ПРОЧЕЕ/Non choy items (Стакан майда/катта, пепилница идиш, уксус идиш, Собой идиш кичик/катта) LEFT IN — pending owner confirm."
+}
