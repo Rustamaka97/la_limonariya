@@ -1,0 +1,5253 @@
+[
+  {
+    "date": "24-май",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 71.7,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шапок",
+        "kg": 71.7,
+        "extra": "40.5 + 31.2 = 71.7 (written under header word 'шапок')"
+      },
+      {
+        "name": "Умакай",
+        "kg": 5,
+        "extra": ""
+      },
+      {
+        "name": "тушонка",
+        "kg": 6.8,
+        "extra": ""
+      },
+      {
+        "name": "мастава",
+        "kg": 6.4,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 7.1,
+        "extra": "азимда"
+      },
+      {
+        "name": "суяк",
+        "kg": 2.8,
+        "extra": "2.8 + 1.8"
+      },
+      {
+        "name": "илик суяк",
+        "kg": 8.6,
+        "extra": "шап-к 3 кг"
+      },
+      {
+        "name": "шапок",
+        "kg": 8.6,
+        "extra": "8.6 + 4.9"
+      },
+      {
+        "name": "тиле",
+        "kg": 15.1,
+        "extra": "(филе?)"
+      },
+      {
+        "name": "салат",
+        "kg": 4,
+        "extra": ""
+      }
+    ],
+    "raw_text": "24-май обордан мол (дит) | шапок 40.5 + 31.2 = 71.7 | 71.7 | 5 Умакай | 6.8 тушонка | 6.4 мастава | 7.1 салат азимда | 2.8 + 1.8 суяк | 8.6 илик суяк (шап-к 3 кг) | 8.6 + 4.9 шапок | 15.1 тиле | 4 салат",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "26-май",
+    "source": "Азим ака",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 27,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шашлик",
+        "kg": 7.2,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 3.05,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 6.1,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 1.5,
+        "extra": "1.5 + 0.8"
+      },
+      {
+        "name": "базон-к",
+        "kg": 0,
+        "extra": "scribbled/overwritten number ~0.8 6, unreadable"
+      },
+      {
+        "name": "думба",
+        "kg": 2.15,
+        "extra": ""
+      }
+    ],
+    "raw_text": "26 май Азим ака (қ..)  W | 27 КГ | 7.2 шашлик | 3.050 корейка | 6.1 шапок | 1.5+0.8 суяк | [scribbled] базон-к | 2.150 думба",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "28-май",
+    "source": "Махзод",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 20.59,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 20.59,
+        "extra": "обордан келди фарш(га)"
+      }
+    ],
+    "raw_text": "28 май мол келди Махзод | 20,590 обордан келди фарш[га]",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "29-май",
+    "source": "Азимдан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 72.6,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "вагора",
+        "kg": 13.6,
+        "extra": "13.6 + 15"
+      },
+      {
+        "name": "шапок",
+        "kg": 3.7,
+        "extra": "3.7 + 6.2"
+      },
+      {
+        "name": "вазон-к",
+        "kg": 7.4,
+        "extra": "7.4 + 7.3 (базон-к/вагон-к)"
+      },
+      {
+        "name": "думба",
+        "kg": 5.6,
+        "extra": "5.6 + 6.3"
+      },
+      {
+        "name": "суяк",
+        "kg": 3,
+        "extra": "3 + 3.6"
+      },
+      {
+        "name": "мусор",
+        "kg": 0.6,
+        "extra": "0.6 + 0.4"
+      },
+      {
+        "name": "жакор",
+        "kg": 0.7,
+        "extra": "(закор? low confidence)"
+      }
+    ],
+    "raw_text": "29 май қўй келди Азимдан - 2[..] | 34.6 + 38 кг = 72.6 | 72.6 | 13.6 + 15 вагора | 3.7 + 6.2 шапок | 7.4 + 7.3 вазон-к | 5.6 + 6.3 думба | 3 + 3.6 суяк | 0.6 + 0.4 мусор | 0.7 жакор",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "25-май",
+    "source": "Зу..",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 52.8,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шашлик",
+        "kg": 4.8,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 10.2,
+        "extra": ""
+      },
+      {
+        "name": "тушонка",
+        "kg": 8,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 9.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 4.75,
+        "extra": ""
+      },
+      {
+        "name": "вырызко",
+        "kg": 5.1,
+        "extra": "(вырезка)"
+      },
+      {
+        "name": "илик",
+        "kg": 5.2,
+        "extra": ""
+      },
+      {
+        "name": "мас-",
+        "kg": 7.2,
+        "extra": "(мастава?)"
+      }
+    ],
+    "raw_text": "25 май 52.8 (мол) Зу[..] | 52.8 | 4.8 шашлик | 10.2 шапок | 8.0 тушонка | 9.5 филе | 4.75 суяк | 5.1 вырызко | 5.2 илик | 7.2 мас-[тава]",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "25-май",
+    "source": "Азимдан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 18,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шаш",
+        "kg": 3.8,
+        "extra": "(шашлик)"
+      },
+      {
+        "name": "мусор",
+        "kg": 0.3,
+        "extra": ""
+      },
+      {
+        "name": "базон",
+        "kg": 8.2,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 1.8,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 1.9,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 2,
+        "extra": ""
+      }
+    ],
+    "raw_text": "25 май Азимдан қўй | 18 кг келди  W | 3.8 шаш | 0.3 мусор | 8.2 базон | 1.8 шапок | 1.9 суяк | 2 думба",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "29-май",
+    "source": "Хусниддин",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 60,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "филе",
+        "kg": 6.5,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 12,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 12.85,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 1.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 7.8,
+        "extra": "7.8 + 1.4"
+      },
+      {
+        "name": "мор-д",
+        "kg": 1.65,
+        "extra": "(name low confidence)"
+      },
+      {
+        "name": "тушонка",
+        "kg": 5,
+        "extra": "5 + 4.4"
+      },
+      {
+        "name": "умакай",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "илик",
+        "kg": 1.8,
+        "extra": ""
+      }
+    ],
+    "raw_text": "29 май 60 кг мол Хусниддин[дан] | 60 кг | 6.5 филе | 12 шапок | 12.850 шаш-к | 1.5 салат | 7.8 + 1.4 суяк | 1.650 мор-д | 5 + 4.4 тушонка | 3 умакай | 1.8 илик",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.19.jpeg"
+  },
+  {
+    "date": "6 май",
+    "source": "Маруф",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 112,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "туш-а",
+        "kg": 20,
+        "extra": ""
+      },
+      {
+        "name": "умакай",
+        "kg": 13.5,
+        "extra": "crossed-out 4,10 above this line"
+      },
+      {
+        "name": "вырузка",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 4.4,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 18,
+        "extra": ""
+      }
+    ],
+    "raw_text": "6 май Маруф\n112 кг мол келди\n20 кг туш-а\n[4,10 crossed out] 13,5 кг умакай\n2,9 кг вырузка\n4,4 кг шапов\n18 кг филе",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.25.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 16.45,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шаш",
+        "kg": 16.45,
+        "extra": "header line, underlined"
+      },
+      {
+        "name": "шар-д",
+        "kg": 2.476,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 9.5,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 2.6,
+        "extra": ""
+      },
+      {
+        "name": "чарви",
+        "kg": 2.94,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 18.3,
+        "extra": ""
+      }
+    ],
+    "raw_text": "16,450 кг шаш\n2,476 кг шар-д\n9,5 кг шапов\n2,6 кг салат\n2,940 кг чарви\n18,3 кг суяк",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.25.jpeg"
+  },
+  {
+    "date": "9 май",
+    "source": "сарвар",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 32.8,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шаш",
+        "kg": 5.67,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 2.47,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 3.3,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 1.5,
+        "extra": ""
+      },
+      {
+        "name": "казон-к",
+        "kg": 1,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0,
+        "extra": "no kg written"
+      }
+    ],
+    "raw_text": "9 май сарвар\n32,8 келди\n5,670 шаш\n2,470 думба\n3,300 шапов\n1,5 суяк\n1 казон-к\nмусор\n42,8 (subtotal)\n[ENTIRE BLOCK CROSSED OUT WITH BIG X]",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.25.jpeg"
+  },
+  {
+    "date": "6 май",
+    "source": "сарвар",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 27.5,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "ваггора",
+        "kg": 11.7,
+        "extra": ""
+      },
+      {
+        "name": "буғлама",
+        "kg": 7.3,
+        "extra": ""
+      },
+      {
+        "name": "шапо-к",
+        "kg": 1.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.3,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.6,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 3.8,
+        "extra": ""
+      }
+    ],
+    "raw_text": "6 май сарвар\n27,500 қўй келди\n11,7 ваггора\n7,3 буғлама\n1,5 шапо-к\n2,3 суяк\n0,6 мусор\n3,8 думба",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.25.jpeg"
+  },
+  {
+    "date": "7 май",
+    "source": "сарвар",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 27.3,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "ваг",
+        "kg": 1.7,
+        "extra": ""
+      },
+      {
+        "name": "буғлама",
+        "kg": 7.15,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.35,
+        "extra": ""
+      },
+      {
+        "name": "шаш",
+        "kg": 7.78,
+        "extra": ""
+      },
+      {
+        "name": "кор-я",
+        "kg": 1.82,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.3,
+        "extra": ""
+      },
+      {
+        "name": "жигав",
+        "kg": 1,
+        "extra": ""
+      },
+      {
+        "name": "шапо-к",
+        "kg": 5.17,
+        "extra": "the 1 in 5,170 appears struck/corrected"
+      }
+    ],
+    "raw_text": "7 май сарвар\n27,3 қўй келди\nваг 1.7\n7,150 буғлама\n2,350 суяк\n7,780 шаш\n1,820 кор-я\n0,3 мусор\n1 жигав\n5,170 шапо-к",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.25.jpeg"
+  },
+  {
+    "date": "8 май",
+    "source": "бозор",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 17.238,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "ваггора",
+        "kg": 8.5,
+        "extra": ""
+      },
+      {
+        "name": "бозон-к",
+        "kg": 4.5,
+        "extra": "likely казон-к (казон-кабоб)"
+      },
+      {
+        "name": "шапов",
+        "kg": 1.9,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.35,
+        "extra": ""
+      }
+    ],
+    "raw_text": "8 май бозор\n17,238 қўй гўшти\n8,5 ваггора\n4,5 бозон-к\n1,9 шапов\n2,350 суяк",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.25.jpeg"
+  },
+  {
+    "date": "9 май",
+    "source": "Сарвар",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 32.9,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шашлик",
+        "kg": 8.5,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 2.7,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.377,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.76,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 5.577,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 2.45,
+        "extra": ""
+      },
+      {
+        "name": "жигар",
+        "kg": 0.6,
+        "extra": ""
+      },
+      {
+        "name": "ваггора",
+        "kg": 2.38,
+        "extra": ""
+      },
+      {
+        "name": "козон-к",
+        "kg": 7.47,
+        "extra": ""
+      }
+    ],
+    "raw_text": "9 май Сарвар\n32.900 бўй келди\n8.5 шашлик\n2.7 корейка\n2.377 суяк\n0.760 мусор\n5.577 шапок\n2.450 думба\n0.6 жигар\n2.380 ваггора\n7.470 козон-к",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.26.jpeg"
+  },
+  {
+    "date": "10-май",
+    "source": "маруф",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 44,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "Умакай",
+        "kg": 5,
+        "extra": "кг"
+      },
+      {
+        "name": "тушонка",
+        "kg": 28,
+        "extra": "кг"
+      },
+      {
+        "name": "суяк",
+        "kg": 6.5,
+        "extra": "кг"
+      },
+      {
+        "name": "шашлик",
+        "kg": 10.85,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 9.4,
+        "extra": "8.1+13=9.4"
+      },
+      {
+        "name": "марварид",
+        "kg": 8.7,
+        "extra": ""
+      },
+      {
+        "name": "общий суяк",
+        "kg": 1.6,
+        "extra": ""
+      },
+      {
+        "name": "без",
+        "kg": 0.1,
+        "extra": ""
+      }
+    ],
+    "raw_text": "10-май маруф\n44 кг мол гўшт\n5 кг Умакай\n28 кг тушонка\n6.5 кг суяк\n10.850 шашлик\n8.1+13=9.4 шапок\n8.7 марварид\n1.6 общий суяк\n0.1 без",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.26.jpeg"
+  },
+  {
+    "date": "16 май",
+    "source": "",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 32.1,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "без мусор",
+        "kg": 0.45,
+        "extra": ""
+      },
+      {
+        "name": "бозон-к",
+        "kg": 6.2,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.5,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 4.4,
+        "extra": ""
+      },
+      {
+        "name": "ваггора",
+        "kg": 18.5,
+        "extra": ""
+      }
+    ],
+    "raw_text": "16 май 32.1 бозор\n0.450 без мусор\n6.2 бозон-к\n2.5 суяк\n4.4 шапок\n18.5 ваггора",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.26.jpeg"
+  },
+  {
+    "date": "9-май",
+    "source": "Сухроб",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 50.3,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "вагора",
+        "kg": 21.6,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 2.433,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.5,
+        "extra": ""
+      },
+      {
+        "name": "без",
+        "kg": 1.5,
+        "extra": ""
+      },
+      {
+        "name": "бозон-к",
+        "kg": 21.8,
+        "extra": ""
+      }
+    ],
+    "raw_text": "9-май Сухроб\n50.3 бўй-келди\n21.6 вагора\n2.433 шапов\n2.5 суяк\n1.5 без\n21.8 бозон-к",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.26.jpeg"
+  },
+  {
+    "date": "12-май",
+    "source": "маруф",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 39,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "бўйин (балаза",
+        "kg": 2.7,
+        "extra": ""
+      },
+      {
+        "name": "ваггора",
+        "kg": 13.1,
+        "extra": ""
+      },
+      {
+        "name": "мастава",
+        "kg": 1.4,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 3.7,
+        "extra": ""
+      },
+      {
+        "name": "бозон-к",
+        "kg": 7.08,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.9,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 4.4,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 0.8,
+        "extra": ""
+      },
+      {
+        "name": "шап",
+        "kg": 4.8,
+        "extra": ""
+      },
+      {
+        "name": "бўйин",
+        "kg": 2.8,
+        "extra": ""
+      }
+    ],
+    "raw_text": "12-май маруф\n39 кг бўй келди.\n2.7 бўйин (балаза\n13.1 ваггора\n1.4 мастава\n3.7 суяк\n7.080 бозон-к\n0.9 мусор\n4.4 шапов\n0.8 думба\n4.8 шап\n2.8 бўйин",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.26.jpeg"
+  },
+  {
+    "date": "15-май",
+    "source": "маруф",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 28,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "Умакай",
+        "kg": 6.6,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 2.7,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 4.86,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 5.1,
+        "extra": ""
+      },
+      {
+        "name": "мор-д",
+        "kg": 1.76,
+        "extra": ""
+      },
+      {
+        "name": "шап-к",
+        "kg": 7.28,
+        "extra": ""
+      }
+    ],
+    "raw_text": "15-май маруф.\n28 кг мол келди\n6.6 Умакай\n2.7 филе\n4.860 суяк\n5.1 шапов\n1.760 мор-д\n7.280 шап-к",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.26.jpeg"
+  },
+  {
+    "date": "16 май",
+    "source": "Сарвар",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 17.2,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "базон-к",
+        "kg": 4.2,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 4.08,
+        "extra": ""
+      },
+      {
+        "name": "вагора",
+        "kg": 3.3,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.4,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 0.9,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 2.28,
+        "extra": ""
+      }
+    ],
+    "raw_text": "16 май Сарвар\n17,2 бўй келди\n4,2 базон-к\n4,080 шаш-к\n3,3 вагора\n2,4 суяк\n0,9 думба\n2,280 шапов",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "17 май",
+    "source": "",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "вагора",
+        "kg": 15,
+        "extra": "кг"
+      },
+      {
+        "name": "базон-к",
+        "kg": 7.7,
+        "extra": "кг"
+      },
+      {
+        "name": "суяк",
+        "kg": 4.9,
+        "extra": "кг"
+      },
+      {
+        "name": "шапов",
+        "kg": 7.7,
+        "extra": "кг"
+      },
+      {
+        "name": "шашлик",
+        "kg": 6.458,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 2.326,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "17 май бўй келди бозор\n15 кг вагора\n7,7 кг базон-к\n4,9 кг суяк\n7,7 кг шапов\n6,458 машлик\n2,326 корейка\nдумба\nмусор",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "20 май",
+    "source": "Бозордан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 12.145,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "базон-кабоб",
+        "kg": 12.145,
+        "extra": "бўй гушт"
+      },
+      {
+        "name": "базон-к",
+        "kg": 7,
+        "extra": "кг (ўчирилган/crossed out)"
+      },
+      {
+        "name": "балаза",
+        "kg": 0,
+        "extra": "(ўчирилган/crossed out)"
+      },
+      {
+        "name": "суяк",
+        "kg": 0.8,
+        "extra": "08 (ўчирилган/crossed out)"
+      }
+    ],
+    "raw_text": "20 май Бозордан\n12,145 бўй гушт базон-кабоб\n7 кг базон-к (crossed out)\nбалаза (crossed out)\n08 суяк (crossed out)\nдиагональ ҳисоблар: 93·746-27^72 / 229·54-01 / 26,9 / 29,2 / расход",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "17 май",
+    "source": "бозордан",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 85,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "умакай",
+        "kg": 16,
+        "extra": "кг (read uncertain)"
+      },
+      {
+        "name": "тушанки",
+        "kg": 2,
+        "extra": "кг"
+      },
+      {
+        "name": "(ўчирилган/crossed out line)",
+        "kg": 0,
+        "extra": "illegible кг"
+      },
+      {
+        "name": "филе",
+        "kg": 13,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 13.4,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 3.365,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 17.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк илик",
+        "kg": 7.16,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.4,
+        "extra": ""
+      }
+    ],
+    "raw_text": "17 май\n85 кг мал бозордан\n16 кг умакай\n2 кг тушанки\n(crossed out кг line)\n13 филе\n13,4 шаш-к\n3,365 мар-д\n17,5 шапов\n7,160 суяк илик\n2,4 суяк",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "18 май",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 7.35,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "базон-к",
+        "kg": 0,
+        "extra": "берилди"
+      }
+    ],
+    "raw_text": "18 май\n7,350 бўй келди бозорда(н)\nбазон-к берилди",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "20 май",
+    "source": "Сарвар",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 24.4,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шаш-к",
+        "kg": 6.3,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.3,
+        "extra": "1,5+0,8"
+      },
+      {
+        "name": "шапов",
+        "kg": 2.6,
+        "extra": "1,6+1"
+      },
+      {
+        "name": "бдин",
+        "kg": 1.6,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.34,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 7,
+        "extra": ""
+      },
+      {
+        "name": "балаза",
+        "kg": 4,
+        "extra": ""
+      }
+    ],
+    "raw_text": "20 май\n24,4 бўй келди Сарвар\n6,3 шаш-к\n1,5+0,8 суяк\n1,6+1 шапов\n1,6 бдин\n0,34 мусор\n7 базон-к\n4 балаза",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "20 май",
+    "source": "Азим академ",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 37.2,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "вагора",
+        "kg": 14.7,
+        "extra": ""
+      },
+      {
+        "name": "жигар",
+        "kg": 1.4,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 8.6,
+        "extra": "6,1+2,5"
+      },
+      {
+        "name": "суяк",
+        "kg": 3.8,
+        "extra": ""
+      },
+      {
+        "name": "без",
+        "kg": 0.6,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 4.9,
+        "extra": ""
+      },
+      {
+        "name": "бўлинон",
+        "kg": 0.3,
+        "extra": ""
+      }
+    ],
+    "raw_text": "20 май бўй келди\n37,2 Азим акадан\n14,7 вагора\n1,4 жигар\n2,9 шапов\n6,1+2,5 базон-к\n3,8 суяк\n0,6 без\n4,9 думба\n0,3 бўлинон\n(diagonal: расход)",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.28.jpeg"
+  },
+  {
+    "date": "21.05",
+    "source": "Азим",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 53.1,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "суяк",
+        "kg": 2.755,
+        "extra": "2.755+1.4"
+      },
+      {
+        "name": "шапоk",
+        "kg": 5.45,
+        "extra": "5.450+3.9"
+      },
+      {
+        "name": "базон+буглама",
+        "kg": 9.9,
+        "extra": "9.9+0.6"
+      },
+      {
+        "name": "ваггора",
+        "kg": 17.5,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 2.1,
+        "extra": "2.1+2.6"
+      },
+      {
+        "name": "мусор",
+        "kg": 0.65,
+        "extra": "Растёт"
+      },
+      {
+        "name": "қўй шаш-к",
+        "kg": 5.34,
+        "extra": ""
+      },
+      {
+        "name": "жигар",
+        "kg": 0,
+        "extra": "no weight written"
+      }
+    ],
+    "raw_text": "21 май (Азим)(қассоб қўй)\n53.1 қўй келди\n2.755+1.4 суяк\n5.450+3.9 шапоk\n9.9+0.6 базон+буглама\n17.5 ваггора\n2.1+2.6 думба\n0.650 мусор  Растёт\n5.340 қўй шаш-к\nжигар",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.29.jpeg"
+  },
+  {
+    "date": "21.05",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 32.6,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "умапай+туш-о",
+        "kg": 6.2,
+        "extra": ""
+      },
+      {
+        "name": "шапоb",
+        "kg": 5.2,
+        "extra": "5.2+2.7"
+      },
+      {
+        "name": "жиз",
+        "kg": 8.7,
+        "extra": ""
+      },
+      {
+        "name": "суяк илик",
+        "kg": 5,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 3.4,
+        "extra": ""
+      },
+      {
+        "name": "лоф-д",
+        "kg": 1.5,
+        "extra": ""
+      }
+    ],
+    "raw_text": "21.май (мол гўшти бозолдук)\n32,6\n6.2 умапай+туш-о\n5,2+2,7 шапоb\n8,7 жиз\n5 суяк илик\n3,4 шаш-к\n1,5 лоф-д",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.29.jpeg"
+  },
+  {
+    "date": "23.05",
+    "source": "Азим",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 48,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "суяк",
+        "kg": 3.7,
+        "extra": ""
+      },
+      {
+        "name": "без",
+        "kg": 0.5,
+        "extra": ""
+      },
+      {
+        "name": "шапоb",
+        "kg": 6,
+        "extra": ""
+      },
+      {
+        "name": "жигар",
+        "kg": 1.8,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 3.5,
+        "extra": ""
+      },
+      {
+        "name": "буз.+вазон-к",
+        "kg": 11.2,
+        "extra": "11.2"
+      },
+      {
+        "name": "ваггора",
+        "kg": 19.1,
+        "extra": ""
+      },
+      {
+        "name": "буриган",
+        "kg": 0.2,
+        "extra": ""
+      }
+    ],
+    "raw_text": "23 май Азим (қўй келди)\n48 кг\n3,7 суяк\n0,5 без\n6 шапоb\n1,8 жигар\n3,5 думба\n11,2 буз.+вазон-к\n19,1 ваггора\n0,2 буриган",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.29.jpeg"
+  },
+  {
+    "date": "24.05",
+    "source": "бозордан",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 71.7,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "осб",
+        "kg": 71.7,
+        "extra": "40.5+31.2=71.7 total; осб?"
+      },
+      {
+        "name": "умакай",
+        "kg": 5,
+        "extra": ""
+      },
+      {
+        "name": "тушонка/постава салат",
+        "kg": 5,
+        "extra": "5+1.8; 4 кг"
+      },
+      {
+        "name": "суяк",
+        "kg": 0.8,
+        "extra": "0.8+2"
+      },
+      {
+        "name": "илик суяк",
+        "kg": 8.6,
+        "extra": ""
+      },
+      {
+        "name": "шапоk",
+        "kg": 8,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 15.1,
+        "extra": ""
+      }
+    ],
+    "raw_text": "24 май (бозордан) мол  махзод\n40,5+31,2 = 71,7\n71,7  осб?\n5 умакай\n5+1,8 тушонка постава салат  4 кг\n0,8+2 суяк\n8,6 илик суяк\n8,0 шапоk\n15,1 филе",
+    "confidence": "low",
+    "_file": "photo_2026-06-14 13.27.29.jpeg"
+  },
+  {
+    "date": "25.05",
+    "source": "Азимдан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 34.5,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "ваггора",
+        "kg": 15,
+        "extra": ""
+      },
+      {
+        "name": "шапоb",
+        "kg": 3.8,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 3.95,
+        "extra": ""
+      },
+      {
+        "name": "базон",
+        "kg": 1.9,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 3.7,
+        "extra": ""
+      },
+      {
+        "name": "без",
+        "kg": 0.55,
+        "extra": ""
+      }
+    ],
+    "raw_text": "25 май Азимдан қўй келди\n34,5 кг\n15 ваггора\n3,8 шапоb\n3,950 суяк\n1,9 базон\n3,7 думба\n0,550 без",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.29.jpeg"
+  },
+  {
+    "date": "24.05",
+    "source": "бозор",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 71.7,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "Уг.макай",
+        "kg": 5,
+        "extra": ""
+      },
+      {
+        "name": "тушонка",
+        "kg": 6.8,
+        "extra": ""
+      },
+      {
+        "name": "мастава",
+        "kg": 4,
+        "extra": ""
+      },
+      {
+        "name": "салат азимджан",
+        "kg": 1.1,
+        "extra": "азимджан"
+      },
+      {
+        "name": "суяк",
+        "kg": 4.6,
+        "extra": "2.8+1.8"
+      },
+      {
+        "name": "илик суяк",
+        "kg": 3.6,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 8.5,
+        "extra": "3.6+4.9"
+      },
+      {
+        "name": "филе",
+        "kg": 15.6,
+        "extra": "шаш-к. 8 кг"
+      },
+      {
+        "name": "салат",
+        "kg": 4,
+        "extra": ""
+      }
+    ],
+    "raw_text": "24-май бозордан мол (дит?)  шапок  40,5 + 31.2 = 71.7   71.7\n5 - Уг.макай\n6.8 - тушонка\n4 - мастава\n1.1 - салат азимджан\n2.8 + 1.8 - суяк\n3.6 - илик суяк\n3.6 + 4.9 - шапок\n15.6 - филе | шаш-к. 8 кг\n4 - салат",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "26.05",
+    "source": "Азим ака",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 27,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шашлик",
+        "kg": 7.2,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 3.05,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 6.1,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 2.3,
+        "extra": "1.5+0.8"
+      },
+      {
+        "name": "бозон-к",
+        "kg": 0.8,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 2.15,
+        "extra": ""
+      }
+    ],
+    "raw_text": "26-май Азим ака (қўй) (калди?)  27 кг\n7.2 - шашлик\n3.050 - корейка\n6.1 - шапок\n1.5 + 0.8 - суяк\n0.8 - бозон-к\n2.150 - думба",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "28.05",
+    "source": "Махзод",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 20.59,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 20.59,
+        "extra": "бозордан келди"
+      }
+    ],
+    "raw_text": "28-май мол келди Махзод\n20.590 бозордан келди фарш",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "29.05",
+    "source": "Азимдан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 72.6,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "вагора",
+        "kg": 28.6,
+        "extra": "13.6+15"
+      },
+      {
+        "name": "шапок",
+        "kg": 9.9,
+        "extra": "3.7+6.2"
+      },
+      {
+        "name": "базон-к",
+        "kg": 14.7,
+        "extra": "7.4+7.3"
+      },
+      {
+        "name": "думба",
+        "kg": 11.9,
+        "extra": "5.6+6.3"
+      },
+      {
+        "name": "суяк",
+        "kg": 6.6,
+        "extra": "3+3.6"
+      },
+      {
+        "name": "мусор",
+        "kg": 1,
+        "extra": "0.6+0.4"
+      },
+      {
+        "name": "жилка",
+        "kg": 0.7,
+        "extra": ""
+      }
+    ],
+    "raw_text": "29-май қўй келди Азимдан\n34.6 + 38 кг = 72.6   72.6\n13.6 + 15 - вагора\n3.7 + 6.2 - шапок\n7.4 + 7.3 - базон-к\n5.6 + 6.3 - думба\n3 + 3.6 - суяк\n0.6 + 0.4 - мусор\n0.7 - жилка",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "25.05",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 52.8,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шашлик",
+        "kg": 4.8,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 10.2,
+        "extra": ""
+      },
+      {
+        "name": "тушенка",
+        "kg": 8,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 9.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 4.75,
+        "extra": ""
+      },
+      {
+        "name": "вырезка",
+        "kg": 4.1,
+        "extra": ""
+      },
+      {
+        "name": "илик",
+        "kg": 5.2,
+        "extra": ""
+      },
+      {
+        "name": "мас-а",
+        "kg": 7.2,
+        "extra": ""
+      }
+    ],
+    "raw_text": "25-май 52.8 (мол) Уг...\n52.8\n4.8 - шашлик\n10.2 - шапок\n8.0 - тушенка\n9.5 - филе\n4.75 - суяк\n4.1 - вырезка\n5.2 - илик\n7.2 - мас-а",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "25.05",
+    "source": "Азимдан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 18,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "маш",
+        "kg": 3.8,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.3,
+        "extra": ""
+      },
+      {
+        "name": "базон",
+        "kg": 8.2,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 1.8,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 1.9,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 2,
+        "extra": ""
+      }
+    ],
+    "raw_text": "25-май Азимдан (қўй)\n18 кг келди\n3.8 - маш\n0.3 - мусор\n8.2 - базон\n1.8 - шапок\n1.9 - суяк\n2 - думба",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "29.05",
+    "source": "Хуснуддан",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 60,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "филе",
+        "kg": 6.5,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 12,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 12.85,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 1.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 9.2,
+        "extra": "7.8+1.4"
+      },
+      {
+        "name": "мор-я",
+        "kg": 1.65,
+        "extra": ""
+      },
+      {
+        "name": "тушонка",
+        "kg": 9.4,
+        "extra": "5+4.4"
+      },
+      {
+        "name": "Уг.макай",
+        "kg": 5,
+        "extra": ""
+      },
+      {
+        "name": "илик",
+        "kg": 1.8,
+        "extra": ""
+      }
+    ],
+    "raw_text": "29-май 60 кг мол Хуснуддан\n60 кг\n6.5 - филе\n12 - шапок\n12.850 - шаш-к\n1.5 - салат\n7.8 + 1.4 - суяк\n1.650 - мор-я\n5 + 4.4 - тушонка\n5 - Уг.макай\n1.8 - илик",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.31.jpeg"
+  },
+  {
+    "date": "31.05.26",
+    "source": "Улугбек / Шахзод",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 95.871,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "Улугбек",
+        "kg": 3.371,
+        "extra": "(source/lot)"
+      },
+      {
+        "name": "шахзод",
+        "kg": 52.5,
+        "extra": "(source/lot)"
+      },
+      {
+        "name": "янги қассоб",
+        "kg": 40,
+        "extra": "кг (source/lot)"
+      },
+      {
+        "name": "Общ.",
+        "kg": 95.871,
+        "extra": "total = 3.371+52.5+40"
+      },
+      {
+        "name": "салатга W",
+        "kg": 3.371,
+        "extra": "-3,371"
+      },
+      {
+        "name": "ушакай",
+        "kg": 5,
+        "extra": "-5"
+      },
+      {
+        "name": "мастава",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 78,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 17,
+        "extra": "leading number partly struck/overwritten, ~17"
+      },
+      {
+        "name": "суяк",
+        "kg": 13.7,
+        "extra": "13,7 - 1.2 (лишк/leftover)"
+      },
+      {
+        "name": "тушанла",
+        "kg": 15,
+        "extra": ""
+      },
+      {
+        "name": "марварид",
+        "kg": 6.78,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 14,
+        "extra": ""
+      }
+    ],
+    "raw_text": "31.05.26 Мол гўшт\n3,371 Улугбек\n52.5 шахзод\n40 кг янги қассоб\n95,871 Общ.\n-3,371 салатга W\n-5 ушакай\n3 мастава\n78 филе\n17 шапок\n13,7 - 1.2 лишк суяк\n15 тушанла\n6,780 марварид\n14 шаш-к",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.32.jpeg"
+  },
+  {
+    "date": "31.05.26",
+    "source": "Азим",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 75,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "думба",
+        "kg": 8,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 13,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 15.3,
+        "extra": ""
+      },
+      {
+        "name": "ваггора",
+        "kg": 26,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 6.2,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.6,
+        "extra": "0,6+0,?5 (second addend unclear)"
+      },
+      {
+        "name": "шаш-к",
+        "kg": 5.2,
+        "extra": ""
+      }
+    ],
+    "raw_text": "31.05.26 қўй - келди Азимдан\n75 кг -\n8 думба\n13 шапок\n15,3 базон-к\n26 ваггора\n6,2 суяк\n0,6+0,?5 мусор\n5,2 шаш-к",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.32.jpeg"
+  },
+  {
+    "date": "02.06.26",
+    "source": "Азим",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 32.5,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "буғлама",
+        "kg": 8.25,
+        "extra": "- 8,250 - 0,850 (8.250 minus 0.850)"
+      },
+      {
+        "name": "суяк",
+        "kg": 2.1,
+        "extra": "2,? (decimal unclear)"
+      },
+      {
+        "name": "думба",
+        "kg": 4,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 2.8,
+        "extra": "leading digit overwritten, ~2.8"
+      },
+      {
+        "name": "корейка",
+        "kg": 2.35,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 7.55,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.45,
+        "extra": ""
+      }
+    ],
+    "raw_text": "02.06.26 қўй келди Азим\n32.5 кг -\n- 8,250 - 0,850 буғлама\n2,? суяк\n4 думба\n2,8 шапок\n2,350 корейка\n7,550 шаш-к\n0,450 мусор",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.32.jpeg"
+  },
+  {
+    "date": "3.06.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 22.45,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "келди (фарш олди)",
+        "kg": 22.45,
+        "extra": "22,450 кг келди"
+      },
+      {
+        "name": "борил чарви",
+        "kg": 8.1,
+        "extra": "+8,1"
+      }
+    ],
+    "raw_text": "3.06.26 Фарш га олди келди\n22,450 кг келди\n+8,1 борил чарви",
+    "confidence": "low",
+    "_file": "photo_2026-06-14 13.27.32.jpeg"
+  },
+  {
+    "date": "04.06.26",
+    "source": "",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 42.8,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "бозордан",
+        "kg": 42.8,
+        "extra": "42,8 кг бозордан (source)"
+      },
+      {
+        "name": "шаш-к",
+        "kg": 7.2,
+        "extra": "salat. line; leading number struck, 7,2"
+      },
+      {
+        "name": "шапок",
+        "kg": 2.7,
+        "extra": "2,7+2,8"
+      },
+      {
+        "name": "ваггора",
+        "kg": 15.5,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 5.5,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 7.3,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 1,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.6,
+        "extra": ""
+      },
+      {
+        "name": "ушакан",
+        "kg": 0.2,
+        "extra": ""
+      }
+    ],
+    "raw_text": "04.06.26 Қўй гўшт келди\n42,8 кг бозордан\nсалат.\n7,2 шаш-к\n2,7+2,8 шапок\n15,5 ваггора\n5,5 суяк\n7,3 базон-к\n1 думба\n0,6 мусор\n0,2 ушакан",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.32.jpeg"
+  },
+  {
+    "date": "04.06.26",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 109.8,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "бозордан",
+        "kg": 109.8,
+        "extra": "109,8 бозордан (source)"
+      },
+      {
+        "name": "салат",
+        "kg": 4.5,
+        "extra": "-4,5"
+      },
+      {
+        "name": "ушакай",
+        "kg": 5,
+        "extra": ""
+      },
+      {
+        "name": "тушонка",
+        "kg": 5,
+        "extra": "5+14,6"
+      },
+      {
+        "name": "мяс-а",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 11.2,
+        "extra": "11,2+7,5+2  мар-79"
+      },
+      {
+        "name": "филе",
+        "kg": 16.2,
+        "extra": ""
+      },
+      {
+        "name": "сулп",
+        "kg": 11.8,
+        "extra": "11,8+7,5"
+      },
+      {
+        "name": "виризха",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 16,
+        "extra": ""
+      }
+    ],
+    "raw_text": "04.06.26 Мол гўшт\n109,8 бозордан\n- 4,5 салат\n5 ушакай\n5+14,6 тушонка\n3 мяс-а\n11,2+7,5+2 шапок  мар-79\n16,2 филе\n11,8+7,5 сулп\n3 виризха\n16 шаш-к",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.32.jpeg"
+  },
+  {
+    "date": "5 июнь",
+    "source": "Азим",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 61.5,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "вангора",
+        "kg": 18.6,
+        "extra": "leading dash/minus '-18.6'"
+      },
+      {
+        "name": "шапов",
+        "kg": 9.4,
+        "extra": "8.6+0.8"
+      },
+      {
+        "name": "казон-к",
+        "kg": 10.7,
+        "extra": "written '10.7+' (trailing plus, no second term)"
+      },
+      {
+        "name": "суяк",
+        "kg": 5.8,
+        "extra": "4.8+1"
+      },
+      {
+        "name": "думба",
+        "kg": 8.5,
+        "extra": "4.1+4.4"
+      },
+      {
+        "name": "мусор",
+        "kg": 0.73,
+        "extra": "0.6+0.130"
+      },
+      {
+        "name": "шап-к",
+        "kg": 6.5,
+        "extra": ""
+      }
+    ],
+    "raw_text": "5 [июнь scribbled] бўй келди\n61,5  Азимдан-\n-18.6  Вангора\n8.6+0.8  шапов\n10,7+  Казон-к\n4,8+1  суяк\n4,1+4,4  думба\n0,6+0,130  мусор\n6,5  шап-к.",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.34.jpeg"
+  },
+  {
+    "date": "9 июнь?",
+    "source": "Шахзод",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 85.2,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "мал гўшт",
+        "kg": 57,
+        "extra": "+ (addend, summed below)"
+      },
+      {
+        "name": "мол гўшт",
+        "kg": 28.2,
+        "extra": "+ (sum 57+28.2=85.2 written under)"
+      },
+      {
+        "name": "мастава",
+        "kg": 6,
+        "extra": ""
+      },
+      {
+        "name": "тушонка",
+        "kg": 10,
+        "extra": "5+5"
+      },
+      {
+        "name": "умакай",
+        "kg": 5,
+        "extra": "part name uncertain (verbatim 'умакай')"
+      },
+      {
+        "name": "салат",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 16.3,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 10.6,
+        "extra": ""
+      },
+      {
+        "name": "илик",
+        "kg": 2.3,
+        "extra": ""
+      },
+      {
+        "name": "шапов",
+        "kg": 17,
+        "extra": ""
+      },
+      {
+        "name": "стейк рустам",
+        "kg": 0.34,
+        "extra": "0.340; 'рустам' = name annotation"
+      },
+      {
+        "name": "шашлик",
+        "kg": 13.8,
+        "extra": ""
+      },
+      {
+        "name": "мар гарид",
+        "kg": 1.3,
+        "extra": "likely маринад"
+      }
+    ],
+    "raw_text": "9 [июнь?] Шахзоддан\n+57,  мал гўшт\n+28.2  мол гўшт\n___\n85,2\n6  мастава\n5+5  тушонка\n5  умакай\n3  салат\n16,3  филе\n10,6  суяк\n2,3  илик\n17  шапов\n0,340  стейк  рустам\n13,8  шашлик\n1,3  мар гарид",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.34.jpeg"
+  },
+  {
+    "date": "6 июнь",
+    "source": "Маруф",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 16,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "салатга",
+        "kg": 3.8,
+        "extra": "leading minus '-3.8'"
+      },
+      {
+        "name": "мастава",
+        "kg": 1.5,
+        "extra": "leading minus '-1,5'"
+      },
+      {
+        "name": "суяк",
+        "kg": 1,
+        "extra": "leading minus '-1'"
+      },
+      {
+        "name": "тушонка",
+        "kg": 9.7,
+        "extra": ""
+      }
+    ],
+    "raw_text": "6-июнь Маруфдан\n16 кг Мол гўшт келди\n-3.8  салатга\n-1,5  мастава\n-1  суяк\n9,7  тушонка.",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.34.jpeg"
+  },
+  {
+    "date": "8 июнь",
+    "source": "Шахзод",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 25.225,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "филе",
+        "kg": 8,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 4,
+        "extra": "тушонка"
+      },
+      {
+        "name": "суяк",
+        "kg": 4.6,
+        "extra": ""
+      },
+      {
+        "name": "шаш-к",
+        "kg": 3.05,
+        "extra": "3,050"
+      },
+      {
+        "name": "шапов",
+        "kg": 4,
+        "extra": "1+3"
+      },
+      {
+        "name": "мар-д",
+        "kg": 1.4,
+        "extra": "likely маринад"
+      }
+    ],
+    "raw_text": "8 июнь мол гўшт келди\n25,225  шахзод\n8  филе\n4  туш-а\n4,6  суяк\n3,050  шаш-к\n1+3  шапов\n1,4  мар-д",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.34.jpeg"
+  },
+  {
+    "date": "9 июнь",
+    "source": "Азим",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 62.7,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шаш-к",
+        "kg": 7.25,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 1.55,
+        "extra": "1,550"
+      },
+      {
+        "name": "шапов",
+        "kg": 7.35,
+        "extra": "4,85+2,5"
+      },
+      {
+        "name": "мусор",
+        "kg": 1.35,
+        "extra": "0,650+0,7"
+      },
+      {
+        "name": "думба",
+        "kg": 7.3,
+        "extra": "3.5+3,8"
+      },
+      {
+        "name": "суяк",
+        "kg": 6.8,
+        "extra": ""
+      },
+      {
+        "name": "вангора",
+        "kg": 15.7,
+        "extra": ""
+      },
+      {
+        "name": "казон-к",
+        "kg": 14,
+        "extra": "13+1"
+      },
+      {
+        "name": "жигар",
+        "kg": 1.85,
+        "extra": "1,850; liver"
+      }
+    ],
+    "raw_text": "9 Июнь бўй келди.\n62,7  Азимдан\n7,25  шаш-к\n1,550  корейка\n4,85+2,5  шапов\n0,650+0,7  мусор\n3.5+3,8  думба\n6,8  суяк\n15,7  Вангора\n13+1  Казон-к\n1,850  Жигар",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.34.jpeg"
+  },
+  {
+    "date": "11.06",
+    "source": "Сарвардан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "шаш-к",
+        "kg": 6.33,
+        "extra": "о (small mark before name)"
+      },
+      {
+        "name": "шапок",
+        "kg": 8.3,
+        "extra": ""
+      },
+      {
+        "name": "Ваггора",
+        "kg": 13.3,
+        "extra": ""
+      },
+      {
+        "name": "суяк",
+        "kg": 4.5,
+        "extra": ""
+      },
+      {
+        "name": "мусор",
+        "kg": 0.4,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "хорейка",
+        "kg": 1.66,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 13,
+        "extra": ""
+      }
+    ],
+    "raw_text": "11 июнь буй келди\nСарвардан\n6.330  о  шаш-к\n8.3      шапок\n13.3    Ваггора\n4.5      суяк\n0.4      мусор\n3        думба\n1.660    хорейка\n13       базон-к",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.35.jpeg"
+  },
+  {
+    "date": "12.06",
+    "source": "Азимдан",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 70.5,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "Ваггора",
+        "kg": 20.5,
+        "extra": "20.5+2.6"
+      },
+      {
+        "name": "шапок",
+        "kg": 7.5,
+        "extra": "7.5+3.850"
+      },
+      {
+        "name": "суяк",
+        "kg": 4.9,
+        "extra": "4.9+1.430"
+      },
+      {
+        "name": "думба",
+        "kg": 5.1,
+        "extra": "5.1+2"
+      },
+      {
+        "name": "мусор",
+        "kg": 0.8,
+        "extra": "0.8+0.3"
+      },
+      {
+        "name": "базон-к+бузялон",
+        "kg": 13.7,
+        "extra": "13.7+3.2"
+      },
+      {
+        "name": "шаш",
+        "kg": 5.22,
+        "extra": ""
+      }
+    ],
+    "raw_text": "12.июнь буй келди\n70.5  Азимдан\n20.5+2.6   Ваггора\n7.5+3.850  шапок\n4.9+1.430  суяк\n5.1+2      думба\n0.8+0.3    мусор\n13.7+3.2   базон-к+бузялон\n5.220      шаш",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.35.jpeg"
+  },
+  {
+    "date": "14.06",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 31,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "суннат",
+        "kg": 31,
+        "extra": ""
+      }
+    ],
+    "raw_text": "14 июнь мол келди\n31 кг суннат",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.35.jpeg"
+  },
+  {
+    "date": "06.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 28,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 11.81,
+        "extra": "ост: 11,810 + 3,8"
+      },
+      {
+        "name": "буглама",
+        "kg": 7.3,
+        "extra": "0 + 7.3"
+      },
+      {
+        "name": "базон-к",
+        "kg": 13.8,
+        "extra": "(2.5?) 7 хом + 13.8 = (struck out)"
+      },
+      {
+        "name": "филе",
+        "kg": 9.5,
+        "extra": "9.5 / 18 кг берилди"
+      },
+      {
+        "name": "ваггора",
+        "kg": 9.3,
+        "extra": "9.3 + 11.7 (name partly struck)"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 20,
+        "extra": "20 берилди"
+      },
+      {
+        "name": "бўи-ш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 16.45,
+        "extra": "Ост 16,450 берилди"
+      },
+      {
+        "name": "мар-д",
+        "kg": 2.416,
+        "extra": "0 + 2,416 бер"
+      },
+      {
+        "name": "салат",
+        "kg": 2.6,
+        "extra": "0 + 2.6 берилди"
+      },
+      {
+        "name": "шурбо",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "умалаи",
+        "kg": 3.6,
+        "extra": "пилчон хом 3,6 + 13,5 берилди (name struck)"
+      },
+      {
+        "name": "выризко",
+        "kg": 2.9,
+        "extra": "0 + 2.9 берилди"
+      },
+      {
+        "name": "чарви",
+        "kg": 2.84,
+        "extra": "2.840"
+      },
+      {
+        "name": "суяк",
+        "kg": 18.3,
+        "extra": "18.3 (small strike before number)"
+      },
+      {
+        "name": "шапок",
+        "kg": 15.4,
+        "extra": "4.4 + 9.5 + 1.5"
+      }
+    ],
+    "raw_text": "06.05.26\nфарш 28\nдумба ост: 11,810 + 3,8\nбуглама 0 + 7.3\nбазон-к ----(2.5?) 7 хом + 13.8 =\nфиле 9.5 / 18 кг берилди\nваггора (struck) 9.3 + 11.7\nмас-а\nтуш-а 20 берилди      чарви 2.840\nбўи-ш                 суяк 18.3\nмол-ш Ост 16,450 берилди\nмар-д 0 + 2,416 бер   Шапок: 4.4 + 9.5 + 1.5\nсалат 0 + 2.6 берилди\nшурбо\nумалаи (struck) пилчон хом 3,6 + 13,5 берилди\nвыризко 0 + 2.9 берилди",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.37.jpeg"
+  },
+  {
+    "date": "06.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 55,
+        "extra": "boxed list"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 1,
+        "extra": "boxed list"
+      },
+      {
+        "name": "бўи-ш",
+        "kg": 30,
+        "extra": "boxed list"
+      },
+      {
+        "name": "корейка",
+        "kg": 8,
+        "extra": "boxed list (kфейка)"
+      },
+      {
+        "name": "мар-д",
+        "kg": 31,
+        "extra": "boxed list"
+      },
+      {
+        "name": "виризка",
+        "kg": 15,
+        "extra": "boxed list"
+      },
+      {
+        "name": "тушонка шурбо",
+        "kg": 16,
+        "extra": "16.-"
+      },
+      {
+        "name": "мастава ост",
+        "kg": 18,
+        "extra": "ост 18 -"
+      }
+    ],
+    "raw_text": "[boxed list]\nфарш 55\nмол-ш 1\nбўи-ш 30\nкфейка 8\nмар-д 31\nвиризка 15\n[right] тушонка шурбо 16.-\n[right] мастава ост 18 -",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.37.jpeg"
+  },
+  {
+    "date": "06.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "салат ги гуш",
+        "kg": 0.5,
+        "extra": "0,5."
+      },
+      {
+        "name": "шапок",
+        "kg": 20.7,
+        "extra": "20.7 - кг"
+      },
+      {
+        "name": "фарш",
+        "kg": 28,
+        "extra": "28 кг"
+      },
+      {
+        "name": "думма",
+        "kg": 9.65,
+        "extra": "9,65 + 2,20"
+      },
+      {
+        "name": "суяк",
+        "kg": 7,
+        "extra": "7 кг"
+      },
+      {
+        "name": "феле бои",
+        "kg": 0.9,
+        "extra": "0,9."
+      },
+      {
+        "name": "авгонта",
+        "kg": 1,
+        "extra": "1 кг"
+      },
+      {
+        "name": "тушонка",
+        "kg": 582,
+        "extra": "- 582. кг (reads 5К2, uncertain)"
+      },
+      {
+        "name": "мастава",
+        "kg": 0,
+        "extra": "1 газон"
+      },
+      {
+        "name": "ошхона",
+        "kg": 54,
+        "extra": "54 л - кг"
+      },
+      {
+        "name": "гурда",
+        "kg": 50,
+        "extra": "гарб. 34 + 16 = 50 + 3.5. (partly struck)"
+      },
+      {
+        "name": "мор варид",
+        "kg": 0,
+        "extra": "1 порцияс."
+      }
+    ],
+    "raw_text": "салат ги гуш 0,5.\nшапок 20.7 - кг\nфарш 28 кг\nдумма 9,65 + 2,20\nсуяк 7 кг\nфеле бои 0,9.\nавгонта 1 кг\n[right]\nтушонка - 582. кг\nмастава 1 газон\nошхона 54 л - кг\nгурда гарб. 34 + 16 = 50 + 3.5.\nмор варид 1 порцияс.",
+    "confidence": "low",
+    "_file": "photo_2026-06-14 13.27.37.jpeg"
+  },
+  {
+    "date": "07.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": "[crossed out] 28-18=10 - (18-10.5)=10+80 (header equation, not a weight)"
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буғлама",
+        "kg": 7.3,
+        "extra": "берилди +7.150 ост"
+      },
+      {
+        "name": "базон-к",
+        "kg": 13.8,
+        "extra": "20.8-7 берилди = 13.8 (1.5 пишган)"
+      },
+      {
+        "name": "филе",
+        "kg": 5,
+        "extra": "5.?  (18)"
+      },
+      {
+        "name": "ваггора",
+        "kg": 11.7,
+        "extra": "11.7? +1.7"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 15,
+        "extra": "15 кг ост - [crossed out]"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 7.78,
+        "extra": "0+7.780"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 16.45,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 35,
+        "extra": "35.? +5.170"
+      },
+      {
+        "name": "умакай",
+        "kg": 8.5,
+        "extra": "13.5; ... хом - 5 берилди = ... 8.5 (overwritten)"
+      },
+      {
+        "name": "виризка",
+        "kg": 3.8,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 1.82,
+        "extra": ""
+      }
+    ],
+    "raw_text": "07.05.26\nфарш | [crossed out] 28-18=10 - (18-10.5)=10+80\nдумба |\nбуғлама | 7.3 берилди +7.150 ост\nбазон-к | 20.8-7 берилди = 13.8  (1.5 пишган)\nфиле | 5.?  (18)\nваггора | 11.7? +1.7\nмас-а |\nтуш-а | 15 кг ост - [crossed out]\nбуй-ш | 0+7.780\nмол-ш | 16.450\nмар-д |\nсалат |\nшапок | 35.? +5.170\nумакай | 13.5 ... хом - 5 берилди = ... 8.5\nвиризка | 3.8\nкорейка | 1.820",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.38.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": "21+45"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0,
+        "extra": "1+50"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 6,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 4,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "виризка",
+        "kg": 7,
+        "extra": ""
+      }
+    ],
+    "raw_text": "фарш | 21+45\nмол-ш | 1+50\nбуй-ш | 6\nкорейка | 4\nмар-д |\nвиризка | 7",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.38.jpeg"
+  },
+  {
+    "date": "8.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 80,
+        "extra": "(6,622 - 200 пакс-л = 6.422)"
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буглама",
+        "kg": 7.15,
+        "extra": "холи"
+      },
+      {
+        "name": "базон-к",
+        "kg": 6.5,
+        "extra": "6,5 + 4,? (last digit unclear)"
+      },
+      {
+        "name": "филе",
+        "kg": 23.3,
+        "extra": "23,3? (overwritten/corrected)"
+      },
+      {
+        "name": "ваггора",
+        "kg": 10.5,
+        "extra": "10,5 ? + 8,5"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 15,
+        "extra": "15 холи - 5 берилди = 10 кг - 5 кг = 5"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 10.85,
+        "extra": "10,850? - 2,380 кераксиз = 8.470 олам"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 14,
+        "extra": "14 кг ?"
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 1.9,
+        "extra": "0 + 1,9"
+      },
+      {
+        "name": "умакай",
+        "kg": 8.5,
+        "extra": "[crossed out] хом [crossed out] 8.5 (heavily corrected)"
+      },
+      {
+        "name": "вырезка",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "8.05.26\nфарш  80 (6,622 - 200 пакс-л = 6.422)\nдумба\nбуглама  7,150 холи\nбазон-к  6,5 + 4,?\nфиле  23,3 ?\nваггора  10,5 ? + 8,5\nмас-а\nтуш-а  15 холи - 5 берилди = 10 кг - 5 кг = 5\nбуй-ш  10,850? - 2,380 кераксиз = 8.470 олам\nмол-ш  14 кг ?\nмар-д\nсалат\nшапок  0 + 1,9\nумакай  [crossed] хом [crossed] 8.5\nвырезка\n\n[right-side note] ост казон-кабоб\n13.6 (underlined)\n4 кг кулинага бердим\n2 кг анга бердим\n6.6 остатка\n1 суяк",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.40.jpeg"
+  },
+  {
+    "date": "8.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": "26+50 (ост / остаток)"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0,
+        "extra": "31+50"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 0,
+        "extra": "?0+89 (leading digit struck out)"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "3+17"
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "18+50"
+      },
+      {
+        "name": "вырезка",
+        "kg": 7,
+        "extra": ""
+      }
+    ],
+    "raw_text": "ост (остаток)\nфарш  26+50\nмол-ш  31+50\nбуй-ш  ?0+89 (first digit crossed out)\nкорейка  3+17\nмар-д  18+50\nвырезка  7",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.40.jpeg"
+  },
+  {
+    "date": "09.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 70,
+        "extra": "80 + (5) = 85 - 15 = 70"
+      },
+      {
+        "name": "думба",
+        "kg": 7.5,
+        "extra": "7.5? (вопрос)"
+      },
+      {
+        "name": "буглама / базон-к (казон-к)",
+        "kg": 21.8,
+        "extra": "} 4.N + 21.8 = 5.8(зачёркнуто) = 90 ост + 7.470 — две строки в одной фигурной скобке"
+      },
+      {
+        "name": "филе",
+        "kg": 24.6,
+        "extra": "0.6 + 24.6 ?"
+      },
+      {
+        "name": "ваггора (вагора)",
+        "kg": 21.6,
+        "extra": "8 + 21.6 без мор + 2.380"
+      },
+      {
+        "name": "мас-а (мастава)",
+        "kg": 0,
+        "extra": "пусто"
+      },
+      {
+        "name": "туш-а (тушонка)",
+        "kg": 0,
+        "extra": "15 - 5 = 0"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 8.5,
+        "extra": "0 + 8.5"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 8.9,
+        "extra": ""
+      },
+      {
+        "name": "мор-д",
+        "kg": 0,
+        "extra": "1 паднос (поднос)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": "пусто"
+      },
+      {
+        "name": "шапок",
+        "kg": 2.433,
+        "extra": "1.9 + 2.433"
+      },
+      {
+        "name": "умакай",
+        "kg": 3.3,
+        "extra": "8.5 - 5.2 = 3.3"
+      },
+      {
+        "name": "вырезка",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 5.577,
+        "extra": "0 + 2.7 + 5.577"
+      }
+    ],
+    "raw_text": "09.05.26\nфарш    80 + (5) = 85 - 15 = 70\nдумба   7.5?\nбуглама  ) 4.N + 21.8 = 5.8(зачёркн) = 90 ост + 7.470\nбазон-к (казон-к)  [в той же фигурной скобке]\nфиле    0.6 + 24.6 ?\nваггора  8 + 21.6 без мор + 2.380\nмас-а   (пусто)\nтуш-а   15-5 = 0\nбуй-ш   0 + 8.5\nмол-ш   8.9\nмор-д   1 паднос\nсалат   (пусто)\nшапок   1.9 + 2.433\nумакай  8.5 - 5.2 = 3.3\nвырезка 2.9\nкорейка 0 + 2.7 + 5.577",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.42.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": "30 + 100"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 45,
+        "extra": ""
+      },
+      {
+        "name": "буй-ш",
+        "kg": 48,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 14,
+        "extra": ""
+      },
+      {
+        "name": "мор-д",
+        "kg": 46,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 7,
+        "extra": ""
+      }
+    ],
+    "raw_text": "(без даты, нижний короткий список)\nфарш    30 + 100\nмол-ш   45\nбуй-ш   48\nкорейка 14\nмор-д   46\nфиле    7",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.42.jpeg"
+  },
+  {
+    "date": "10.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 50,
+        "extra": "70-10=60-10=50"
+      },
+      {
+        "name": "думба",
+        "kg": 7.5,
+        "extra": "7,5?"
+      },
+      {
+        "name": "буглама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 27.47,
+        "extra": "27,470"
+      },
+      {
+        "name": "филе",
+        "kg": 24,
+        "extra": "24?"
+      },
+      {
+        "name": "ваггора",
+        "kg": 23,
+        "extra": "23?"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": "0"
+      },
+      {
+        "name": "туш-а",
+        "kg": 12.8,
+        "extra": "5 кг + 7,8"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 9,
+        "extra": "9?"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 19.45,
+        "extra": "8,6? + 10,850"
+      },
+      {
+        "name": "мар-д",
+        "kg": 2.7,
+        "extra": "1 поднос (2,7)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 13.733,
+        "extra": "4,333 + 9,4"
+      },
+      {
+        "name": "умакай",
+        "kg": 8.3,
+        "extra": "3,3 + 5 кг"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 2.9,
+        "extra": "2,9"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "10.05.26\nфарш  70-10=60-10=50\nдумба  7,5?\nбуглама\nбазон-к  27,470\nфиле  24?\nваггора  23?\nмас-а  0\nтуш-а  5 кг + 7,8\nбуй-ш  9?\nмол-ш  8,6? + 10,850\nмар-д  1 поднос  (2,7)\nсалат\nшапок  4,333 + 9,4\nумакай  3,3 + 5 кг\nбон-филе  2,9\nкорейка",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.44.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 98,
+        "extra": "48 +50"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 102,
+        "extra": "0+50+52"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 68,
+        "extra": "18 +50"
+      },
+      {
+        "name": "корейка",
+        "kg": 12,
+        "extra": "12"
+      },
+      {
+        "name": "мар-д",
+        "kg": 66,
+        "extra": "16+50"
+      },
+      {
+        "name": "филе",
+        "kg": 7,
+        "extra": "7"
+      }
+    ],
+    "raw_text": "фарш  48 +50\nмол-ш  0+50+52\nбуй-ш  18 +50\nкорейка  12\nмар-д  16+50\nфиле.  7",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.44.jpeg"
+  },
+  {
+    "date": "11.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 50,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 3,
+        "extra": ""
+      },
+      {
+        "name": "буғмама",
+        "kg": 0,
+        "extra": "no value written"
+      },
+      {
+        "name": "казон-к",
+        "kg": 27.47,
+        "extra": "казон кабоб"
+      },
+      {
+        "name": "филе",
+        "kg": 20.4,
+        "extra": "9,4+11"
+      },
+      {
+        "name": "ваггора",
+        "kg": 23,
+        "extra": "13+9+1"
+      },
+      {
+        "name": "мас-я",
+        "kg": 0,
+        "extra": "мастава; no value"
+      },
+      {
+        "name": "туш-я",
+        "kg": 7.8,
+        "extra": "тушонка"
+      },
+      {
+        "name": "буй-м",
+        "kg": 5,
+        "extra": "буйин"
+      },
+      {
+        "name": "шол-м",
+        "kg": 0,
+        "extra": "no value"
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "no value"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": "no value"
+      },
+      {
+        "name": "шапоқ",
+        "kg": 13.7,
+        "extra": ""
+      },
+      {
+        "name": "умакай",
+        "kg": 8.3,
+        "extra": ""
+      },
+      {
+        "name": "бон-филе",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "no value"
+      }
+    ],
+    "raw_text": "11.05.26\nфарш 50\nдумба 3\nбуғмама\nказон-к 27.470\nфиле 9,4+11\nваггора 13+9+1\nмас-я\nтуш-я 7,8\nбуй-м 5\nшол-м\nмар-д\nсалат\nшапоқ 13,7\nумакай 8,3\nбон-филе 2,9\nкорейка",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.45.jpeg"
+  },
+  {
+    "date": "11.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 7.5,
+        "extra": "ост (остаток)"
+      },
+      {
+        "name": "мол-м",
+        "kg": 82,
+        "extra": "ост; 41+41"
+      },
+      {
+        "name": "буй-м",
+        "kg": 48,
+        "extra": "ост; 10+38"
+      },
+      {
+        "name": "корейка",
+        "kg": 7,
+        "extra": "ост"
+      },
+      {
+        "name": "мар-д",
+        "kg": 48,
+        "extra": "ост"
+      },
+      {
+        "name": "филе",
+        "kg": 5,
+        "extra": "ост"
+      }
+    ],
+    "raw_text": "ост\nфарш 7,5\nмол-м 41+41\nбуй-м 10+38\nкорейка 7\nмар-д 48\nфиле 5",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.27.45.jpeg"
+  },
+  {
+    "date": "12.05.26",
+    "source": "",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 35,
+        "extra": "50-15=35"
+      },
+      {
+        "name": "думба",
+        "kg": 3,
+        "extra": "3+(0,8)"
+      },
+      {
+        "name": "буғлама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "казон-к",
+        "kg": 7.08,
+        "extra": "(7,080)"
+      },
+      {
+        "name": "филе",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "ваггора",
+        "kg": 13.1,
+        "extra": "(13,1)"
+      },
+      {
+        "name": "мас-а",
+        "kg": 8.4,
+        "extra": "(8,4)"
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 4.8,
+        "extra": "5 (4,8)"
+      },
+      {
+        "name": "мил-ш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 13.7,
+        "extra": "13,7+4,4"
+      },
+      {
+        "name": "умакаш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўй-филр",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "балозр",
+        "kg": 9.7,
+        "extra": "9,7 бўйин берилди"
+      }
+    ],
+    "raw_text": "12.05.26\nфарш  50-15=35\nдумба  3+(0,8)\nбуғлама\nказон-к  (7,080)\nфиле\nваггора  (13,1)\nмас-а  (8,4)\nтуш-а\nбўй-ш 5  (4,8)\nмил-ш\nмар-д\nсалат\nшапок  13,7+4,4\nумакаш\nбўй-филр\nкорейка\nбалозр  9,7 бўйин берилди",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.47.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 60,
+        "extra": "0+60"
+      },
+      {
+        "name": "мал-ш",
+        "kg": 27,
+        "extra": "27"
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 32,
+        "extra": "32"
+      },
+      {
+        "name": "корейка",
+        "kg": 21,
+        "extra": "13+21"
+      },
+      {
+        "name": "мар-д",
+        "kg": 46,
+        "extra": "21+46"
+      },
+      {
+        "name": "филе",
+        "kg": 7,
+        "extra": "7"
+      },
+      {
+        "name": "бахор",
+        "kg": 18,
+        "extra": "0+18"
+      }
+    ],
+    "raw_text": "фарш 0+60\nмал-ш 27\nбўй-ш 32\nкорейка 13+21\nмар-д 21+46\nфиле. 7\nбахор 0+18",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.47.jpeg"
+  },
+  {
+    "date": "13.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 35,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буғлама",
+        "kg": 0,
+        "extra": "[4 (бракет очилган, рақам ноаниқ)"
+      },
+      {
+        "name": "базон-к",
+        "kg": 7,
+        "extra": "(4,7 + 1,8 тойёр?) 7 кг"
+      },
+      {
+        "name": "филе",
+        "kg": 7.7,
+        "extra": "(7,7?)"
+      },
+      {
+        "name": "вагора",
+        "kg": 0,
+        "extra": "(9 + 16?)"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 12,
+        "extra": "12.?"
+      },
+      {
+        "name": "бўй-си",
+        "kg": 6.4,
+        "extra": "6,4?"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 1.8,
+        "extra": "(1,8)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 18.1,
+        "extra": ""
+      },
+      {
+        "name": "умакаш",
+        "kg": 3.185,
+        "extra": "3,185 (1,5 тойёр)"
+      },
+      {
+        "name": "бок-филе",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "13.05.26\nфарш 35\nдумба\nбуғлама [4\nбазон-к (4,7 + 1,8 тойёр?) 7 кг\nфиле (7,7?)\nвагора (9 + 16?)\nмас-а\nтуш-а 12.?\nбўй-си 6,4?\nмол-ш\nмар-д (1,8)\nсалат\nшапок 18,1\nумакаш 3,185 (1,5 тойёр)\nбок-филе\nкорейка",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.52.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 62,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0,
+        "extra": "brace { 84 (total/note beside this row)"
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 43,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 22,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 32,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "фарш 62\nмол-ш 0  } 84\nбўй-ш 43\nкорейка 22\nмар-д 32\nфиле",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.52.jpeg"
+  },
+  {
+    "date": "14.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 20,
+        "extra": "35-15=20 (arithmetic: 35 minus 15)"
+      },
+      {
+        "name": "думба",
+        "kg": 2,
+        "extra": "2? (author unsure)"
+      },
+      {
+        "name": "буглама",
+        "kg": 1.5,
+        "extra": ""
+      },
+      {
+        "name": "казон-к",
+        "kg": 3.5,
+        "extra": "(2.5?) 3.5 — казон кабоб; first value 2.5? in parentheses, 3.5 to the right"
+      },
+      {
+        "name": "филе",
+        "kg": 6.7,
+        "extra": "6.7?"
+      },
+      {
+        "name": "вагора",
+        "kg": 17,
+        "extra": "17? (could be вагова)"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": "0"
+      },
+      {
+        "name": "туш-а",
+        "kg": 12,
+        "extra": "12? (тушёнка?)"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 0,
+        "extra": "no value written"
+      },
+      {
+        "name": "мал-ш",
+        "kg": 4.3,
+        "extra": "4.3 кг? (label мал-ш/лах-ш unclear)"
+      },
+      {
+        "name": "фар-д",
+        "kg": 0,
+        "extra": "no value written"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": "no value written"
+      },
+      {
+        "name": "шапок",
+        "kg": 18.1,
+        "extra": "18.1"
+      },
+      {
+        "name": "у макай",
+        "kg": 3.785,
+        "extra": "note above (белиди?); 3.785 (1.X тайёр) — digit after 1. unclear"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 0,
+        "extra": "no value written"
+      },
+      {
+        "name": "корейко",
+        "kg": 0,
+        "extra": "no value written (корейка)"
+      }
+    ],
+    "raw_text": "14.05.26\nфарш  35-15=20\nдумба  2?\nбуглама  1.5\nказон-к  (2.5?)  3.5\nфиле  6.7?\nвагора  17?\nмас-а  0\nтуш-а  12?\nбуй-ш\nмал-ш  4.3 кг?\nфар-д\nсалат\nшапок  18.1\nу макай  (белиди)  3.785  (1.X тайёр)\nбон-филе\nкорейко",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.56.jpeg"
+  },
+  {
+    "date": "14.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 77,
+        "extra": "[crossed-out number] 77 | 54. to the right"
+      },
+      {
+        "name": "шал-ш",
+        "kg": 58,
+        "extra": "[crossed-out number] 58+1 (label мал-ш/шал-ш)"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 78,
+        "extra": "40+38 (=78)"
+      },
+      {
+        "name": "корейка",
+        "kg": 20,
+        "extra": "20"
+      },
+      {
+        "name": "фар-д",
+        "kg": 22,
+        "extra": "22"
+      },
+      {
+        "name": "филе",
+        "kg": 0,
+        "extra": "crossed out (struck through), no value"
+      },
+      {
+        "name": "бахор",
+        "kg": 8,
+        "extra": "8"
+      }
+    ],
+    "raw_text": "ост\nфарш  [crossed]77  |  54.\nшал-ш  [crossed]58+1\nбуй-ш  40+38\nкорейка  20\nфар-д  22\nфиле  (crossed out)\nбахор  8",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.27.56.jpeg"
+  },
+  {
+    "date": "15.05.26",
+    "source": "",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 10,
+        "extra": "20 - 10 = 10"
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буғлама",
+        "kg": 5,
+        "extra": "5 кг берилди"
+      },
+      {
+        "name": "казон-к",
+        "kg": 5,
+        "extra": "(1) +5 кг берилди"
+      },
+      {
+        "name": "филе",
+        "kg": 8.9,
+        "extra": "6.2 + 2.7"
+      },
+      {
+        "name": "Ваггора",
+        "kg": 12,
+        "extra": "12,0"
+      },
+      {
+        "name": "мас-я",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 3.2,
+        "extra": "3.2 кг берилди"
+      },
+      {
+        "name": "қўй-ш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 7.28,
+        "extra": "7.280"
+      },
+      {
+        "name": "мор-д",
+        "kg": 0,
+        "extra": "1 поднос (+1.36)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 18.1,
+        "extra": ""
+      },
+      {
+        "name": "Упакои",
+        "kg": 0,
+        "extra": "0+5 кг берилди +6.6"
+      },
+      {
+        "name": "бок-филе",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "15.05.26\nфарш  20 - 10 = 10\nдумба\nбуғлама        5 кг берилди      } ост 15шт қўй 15.9\nказон-к  (1) +5 кг берилди\nфиле  6.2 + 2.7\nВаггора  12,0\nмас-я\nтуш-а  3.2 кг берилди\nқўй-ш\nмол-ш  7.280\nмор-д  1 поднос (+1.36)\nсалат\nшапок  18.1\nУпакои  0+5 кг берилди +6.6\nбок-филе\nкорейка",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.01.jpeg"
+  },
+  {
+    "date": "15.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 73,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 40,
+        "extra": ""
+      },
+      {
+        "name": "қўй-ш",
+        "kg": 55,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 21,
+        "extra": ""
+      },
+      {
+        "name": "мор-д",
+        "kg": 21,
+        "extra": ""
+      },
+      {
+        "name": "Бихер",
+        "kg": 4,
+        "extra": "reading uncertain"
+      }
+    ],
+    "raw_text": "фарш  73\nмол-ш  40\nқўй-ш  55\nкорейка  21\nмор-д  21\nБихер  4",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.01.jpeg"
+  },
+  {
+    "date": "16.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 10,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буглама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "базен-к",
+        "kg": 5,
+        "extra": "10-5 =5+6,2"
+      },
+      {
+        "name": "филе",
+        "kg": 2.7,
+        "extra": ""
+      },
+      {
+        "name": "ваггора",
+        "kg": 18.5,
+        "extra": "ч.5? [18,5]"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": "(margin mark D)"
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бой-ш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 2.8,
+        "extra": "7-2,80"
+      },
+      {
+        "name": "мар-д",
+        "kg": 1.36,
+        "extra": "1 паднос 1,360"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 28.8,
+        "extra": "18,7+5,7+4,4"
+      },
+      {
+        "name": "умалай",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бон-филе",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "16.05.26\nфарш 10\nдумба\nбуглама\nбазен-к 10-5 =5+6,2\nфиле 2,7\nваггора ч.5? [18,5]\nмас-а      D\nтуш-а\nбой-ш\nмол-ш 7-2,80\nмар-д 1 паднос 1,360\nсалат\nшапок 18,7+5,7+4,4\nумалай\nбон-филе",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.05.jpeg"
+  },
+  {
+    "date": "16.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 54,
+        "extra": "ост"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 39,
+        "extra": "ост; 39|42"
+      },
+      {
+        "name": "бой-ш",
+        "kg": 11,
+        "extra": "ост"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "ост"
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "ост; 0|52"
+      },
+      {
+        "name": "бахор",
+        "kg": 0,
+        "extra": "ост"
+      }
+    ],
+    "raw_text": "ост\nфарш 54\nмол-ш 39 |42\nбой-ш 11\nкорейка\nмар-д 0 |52\nбахор",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.05.jpeg"
+  },
+  {
+    "date": "18.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 97,
+        "extra": "crossed-out value then '0 + 97 кг'"
+      },
+      {
+        "name": "думба",
+        "kg": 10.8,
+        "extra": ""
+      },
+      {
+        "name": "бузлама",
+        "kg": 0,
+        "extra": "no number"
+      },
+      {
+        "name": "базон-к",
+        "kg": 7.7,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 13,
+        "extra": "'13.и кг' digit after decimal unclear"
+      },
+      {
+        "name": "ваггора",
+        "kg": 6,
+        "extra": "leading value crossed out"
+      },
+      {
+        "name": "мяс-а",
+        "kg": 0,
+        "extra": "no number"
+      },
+      {
+        "name": "туш-а",
+        "kg": 13,
+        "extra": "'13 кг' digits scribbled/overwritten, unclear"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 6.458,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 13.4,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 3.365,
+        "extra": "(1 паднос"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": "no number"
+      },
+      {
+        "name": "шанов",
+        "kg": 27.6,
+        "extra": "27,6 + 17,5 + 7,7"
+      },
+      {
+        "name": "умакаи",
+        "kg": 16,
+        "extra": ""
+      },
+      {
+        "name": "бон-филе",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 2.326,
+        "extra": ""
+      }
+    ],
+    "raw_text": "18.05.26\nфарш  [crossed] 0 + 97 кг\nдумба  10,8\nбузлама\nбазон-к  7,7\nфиле  13.и кг\nваггора  [crossed] 6\nмяс-а\nтуш-а  13 кг [scribbled]\nбуй-ш  6,458\nмол-ш  13,4\nмар-д  3,365  (1 паднос\nсалат\nшанов  27,6 + 17,5 + 7,7\nумакаи  16\nбон-филе  2,9\nкорейка  2,326",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.07.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 35,
+        "extra": "leading value crossed out, then 35"
+      },
+      {
+        "name": "мол",
+        "kg": 45,
+        "extra": "leading value crossed out, then 45"
+      },
+      {
+        "name": "вуи",
+        "kg": 55,
+        "extra": "'0 +55'"
+      },
+      {
+        "name": "мар-д",
+        "kg": 52,
+        "extra": "leading value crossed out, then '0 +52'"
+      },
+      {
+        "name": "корейка",
+        "kg": 17,
+        "extra": ""
+      }
+    ],
+    "raw_text": "фарш  [crossed] 35\nмол  [crossed] 45\nвуи  0 +55\nмар-д  [crossed] 0 +52\nкорейка  17",
+    "confidence": "low",
+    "_file": "photo_2026-06-14 13.28.07.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "Фарш",
+        "kg": 83.2,
+        "extra": "27.300+28.500+21.400+6 = 83.200"
+      }
+    ],
+    "raw_text": "Фарш  27.300 + 28.500 + 21.400 + 6 = 83.200    1ч.  1300",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.12.jpeg"
+  },
+  {
+    "date": "19.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 80,
+        "extra": "97 - 1 пўсткал - 16 шаш + мар = 80"
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўглама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 7.3,
+        "extra": "берилди"
+      },
+      {
+        "name": "филе",
+        "kg": 15.5,
+        "extra": "6.5 + 9 = 15.5  (6.3) без-мар"
+      },
+      {
+        "name": "раззо/к",
+        "kg": 20,
+        "extra": "20?"
+      },
+      {
+        "name": "шас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 12,
+        "extra": ""
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 2.6,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 7.8,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 0,
+        "extra": "0"
+      },
+      {
+        "name": "умакай",
+        "kg": 2,
+        "extra": ""
+      },
+      {
+        "name": "бон-филе",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "19.05.26\nфарш 97 - 1 пўсткал - 16 шаш + мар = 80\nдумба\nбўглама\nбазон-к  7.3 берилди\nфиле  6.5 + 9 = 15.5   (6.3) без-мар\nраззо/к  20?\nшас-а\nтуш-а  12\nбўй-ш  2,6\nмол-ш  7,8\nмар-д\nсалат\nшапок  0\nумакай  2\nбон-филе  2,9\nкорейка",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.12.jpeg"
+  },
+  {
+    "date": "",
+    "source": "ост (остаток / leftover)",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 50,
+        "extra": "ост"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 18,
+        "extra": ""
+      },
+      {
+        "name": "шар-д",
+        "kg": 4,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 12,
+        "extra": ""
+      }
+    ],
+    "raw_text": "ост\nфарш | 50\nмол-ш |\nбўй-ш | 18\nшар-д | 4\nкорейка | 12",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.12.jpeg"
+  },
+  {
+    "date": "20.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 80,
+        "extra": "80-"
+      },
+      {
+        "name": "думба",
+        "kg": 11,
+        "extra": "8 + 4.9 - 1.9 = 11"
+      },
+      {
+        "name": "буғлама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "қазон-к",
+        "kg": 7,
+        "extra": "7 кг берилд (8.6)"
+      },
+      {
+        "name": "филе",
+        "kg": 11,
+        "extra": "11?"
+      },
+      {
+        "name": "Вагора",
+        "kg": 7.5,
+        "extra": "7.5? (14.7) берилди ... бутун 1.6"
+      },
+      {
+        "name": "мас-я",
+        "kg": 2.3,
+        "extra": "0 + 2.3"
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буйи-см",
+        "kg": 9,
+        "extra": "2.7 + 6.3"
+      },
+      {
+        "name": "мол-см",
+        "kg": 6.2,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "+падное (3.2 марварид түшт)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 5.5,
+        "extra": "0 + 2.6 + 2.9"
+      },
+      {
+        "name": "умакай",
+        "kg": 2.3,
+        "extra": "2.3? мантанача берилди"
+      },
+      {
+        "name": "сон-филе",
+        "kg": 2.9,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "балаза",
+        "kg": 4,
+        "extra": "4 кг берилди"
+      }
+    ],
+    "raw_text": "20.05.26\nфарш 80-\nдумба 8 + 4.9 - 1.9 = 11\nбуғлама\nқазон-к 7 кг берилд (8.6)\nфиле 11?\nВагора 7.5? (14.7) берилди ... бутун 1.6\nмас-я 0 + 2.3\nтуш-а\nбуйи-см 2.7 + 6.3\nмол-см 6.2\nмар-д +падное (3.2 марварид түшт)\nсалат\nшапок 0 + 2.6 + 2.9\nумакай 2.3? мантанача берилди\nсон-филе 2.9\nкорейка\nбалаза 4 кг берилди",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.15.jpeg"
+  },
+  {
+    "date": "20.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 24,
+        "extra": "24 | 100"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 22,
+        "extra": "22 | 70"
+      },
+      {
+        "name": "буйш",
+        "kg": 24,
+        "extra": "24"
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "| 46"
+      },
+      {
+        "name": "корейка",
+        "kg": 12,
+        "extra": "12 |"
+      }
+    ],
+    "raw_text": "фарш 24 | 100\nмол-ш 22 | 70\nбуйш 24\nмар-д | 46\nкорейка 12 |",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.15.jpeg"
+  },
+  {
+    "date": "21.05.26",
+    "source": "Сухроб",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 80,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 1.8,
+        "extra": "1.8 + 2.1 + 2.6"
+      },
+      {
+        "name": "буғлама",
+        "kg": 10.3,
+        "extra": "10.3 берилди"
+      },
+      {
+        "name": "базон-к",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "филе",
+        "kg": 1.8,
+        "extra": "1.8 кг  8.7"
+      },
+      {
+        "name": "ваггора",
+        "kg": 14.7,
+        "extra": "(14.7) ширвозга + 17,5"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 6.3,
+        "extra": "6,3 + 5,350"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 6,
+        "extra": "6 + 3.4"
+      },
+      {
+        "name": "мар-д",
+        "kg": 1.5,
+        "extra": "1,5 (+ 4 паднос)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "шапок",
+        "kg": 5.5,
+        "extra": "5,5 + 5,450"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "балаза",
+        "kg": 0,
+        "extra": "(пусто)"
+      },
+      {
+        "name": "фарш",
+        "kg": 47,
+        "extra": "ост-таблица; справа: 49 ст"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 12,
+        "extra": "ост-таблица; справа: 51 + [зачёркнуто] 27"
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 18,
+        "extra": "ост-таблица; справа: 65"
+      },
+      {
+        "name": "мар-д",
+        "kg": 19,
+        "extra": "ост-таблица"
+      },
+      {
+        "name": "корейка",
+        "kg": 80,
+        "extra": "ост-таблица"
+      }
+    ],
+    "raw_text": "21.05.26    Сухроб  90-665-19 49\nфарш      80\nдумба     1.8 + 2.1 + 2.6\nбуғлама   10.3 берилди.\nбазон-к\nфиле      1.8 кг   8.7\nваггора  (14.7) ширвозга + 17,5\nмас-а\nтуш-а\nбўй-ш     6,3 + 5,350\nмол-ш     6 + 3.4\nмар-д     1,5   (+ 4 паднос)\nсалат\nкорейка\nшапок     5,5 + 5,450\nбон-филе\nбалаза\n\n[прав. столбец расчёт]\nОст қўй  14.6\n  - 10.3 буғлама\n  ост: 4.3\nБазон + суяк = 9.9\n\nост\nфарш    47 | 49 ст\nмол-ш   12 | 51 + [зачёркн.] 27\nбўй-ш   18 | 65\nмар-д   19\nкорейка 80",
+    "confidence": "high",
+    "_file": "photo_2026-06-14 13.28.18.jpeg"
+  },
+  {
+    "date": "21.05.26",
+    "source": "Сухроб",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 14.6,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 80,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 18,
+        "extra": "18+2.1+2.6"
+      },
+      {
+        "name": "буғлама",
+        "kg": 10.3,
+        "extra": "берилди"
+      },
+      {
+        "name": "вазон-к",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "филе",
+        "kg": 1.8,
+        "extra": "1.8 кг 8.7"
+      },
+      {
+        "name": "ваггора",
+        "kg": 14.7,
+        "extra": "(14.7) ширвозча +17.5"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буй-ш",
+        "kg": 6.3,
+        "extra": "6.3+5.350"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 6,
+        "extra": "6 +3.4"
+      },
+      {
+        "name": "мар-д",
+        "kg": 1.5,
+        "extra": "(+4 паднос)"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 5.5,
+        "extra": "5.5 +5.450"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "балаза",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "ост фарш",
+        "kg": 47,
+        "extra": "47 | 49"
+      },
+      {
+        "name": "ост мол-ш",
+        "kg": 12,
+        "extra": "12 | 51+...27"
+      },
+      {
+        "name": "ост буй-ш",
+        "kg": 18,
+        "extra": "18 | 65"
+      },
+      {
+        "name": "ост мар-д",
+        "kg": 19,
+        "extra": ""
+      },
+      {
+        "name": "ост корейка",
+        "kg": 80,
+        "extra": ""
+      }
+    ],
+    "raw_text": "21.05.26\nфарш 80\nдумба 18+2.1+2.6\nбуғлама 10.3 берилди\nвазон-к\nфиле 1.8 кг 8.7\nваггора (14.7) ширвозча +17.5\nмас-а\nтуш-а\nбуй-ш 6.3+5.350\nмол-ш 6 +3.4\nмар-д 1.5 (+4 паднос)\nсалат\nкорейка\nшапок 5.5 +5.450\nбон-филе\nбалаза\n\nост\nфарш 47 | 49\nмол-ш 12 | 51+..27\nбуй-ш 18 | 65\nмар-д 19\nкорейка 80\n\n[right box] Сухроб 90-665-1949\nОст қўй 14.6 - 10.3 буғлама / Ост: 4.3\nВазон + суяк = 9.9",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.24.jpeg"
+  },
+  {
+    "date": "22.05.26",
+    "source": "",
+    "carcass_type": "qoy",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 75,
+        "extra": "80-5=75"
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўғлама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 0,
+        "extra": "тайёри 5?"
+      },
+      {
+        "name": "филе",
+        "kg": 0,
+        "extra": "9?"
+      },
+      {
+        "name": "вагора",
+        "kg": 0,
+        "extra": "5?+20?"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 0,
+        "extra": "С.110"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 3.7,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "4 паднос"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 11,
+        "extra": ""
+      },
+      {
+        "name": "умакай",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бон-филе",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "балаза",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "22.05.26\nфарш  80-5=75\nдумба\nбўғлама\nбазон-к  тайёри 5?\nфиле  9?\nвагора  5?+20?\nмас-а\nтуш-а\nбўй-ш  С.110\nмол-ш  3.7\nкорейка\nмар-д  4 паднос\nсалат\nшапок  11\nумакай\nбон-филе\nбалаза\n\n(right margin annotations) Ост бўй гўшт / 20 кг Вазон + бўғлама ; Ост мол гўшт / 2,665 кг",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.25.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 50,
+        "extra": "30 (right of brace)"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 27,
+        "extra": ""
+      },
+      {
+        "name": "бўй-ш",
+        "kg": 0,
+        "extra": "39+13+65"
+      },
+      {
+        "name": "мар-д",
+        "kg": 8,
+        "extra": "40 (right of brace)"
+      },
+      {
+        "name": "корейка",
+        "kg": 9,
+        "extra": ""
+      }
+    ],
+    "raw_text": "фарш 50            ⌉ 30\nмол-ш 27           |\nбўй-ш 39+13+65     |\nмар-д 8            ⌋ 40\nкорейка 9",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.25.jpeg"
+  },
+  {
+    "date": "23.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 65,
+        "extra": "75-10=65 (75 minus 10 = 65)"
+      },
+      {
+        "name": "думба",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "сўғлама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "казон-к",
+        "kg": 4.8,
+        "extra": "тайёр (ready) ; (20 кг) ; written '4,8?' uncertain"
+      },
+      {
+        "name": "филе",
+        "kg": 4.8,
+        "extra": "written '4,8?' uncertain"
+      },
+      {
+        "name": "вагора",
+        "kg": 21,
+        "extra": "written '21?' with a struck-out number (~16) beside it"
+      },
+      {
+        "name": "мас-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "дум-а",
+        "kg": 2.665,
+        "extra": "+ 2,665 берилди (handed over); name read as дум-а/душ-а, uncertain"
+      },
+      {
+        "name": "балоза",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "бўй-м",
+        "kg": 6.17,
+        "extra": "written 6,170"
+      },
+      {
+        "name": "мол-м",
+        "kg": 3.7,
+        "extra": "written 3,7"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 0,
+        "extra": "reads '11+38' with overwriting/strikethrough — uncertain"
+      },
+      {
+        "name": "улагай",
+        "kg": 0,
+        "extra": "name uncertain (улакай/улагай)"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "23.05.26\nфарш  75-10=65\nдумба\nсўғлама\nказон-к  тайёр  4,8?  (20 кг)\nфиле  4,8?\nвагора  21?  (16 струк-аут)\nмас-а\nдум-а + 2,665 берилди\nбалоза\nбўй-м  6,170\nмол-м  3,7\nкорейка\nмар-д\nшапок  11+38 (overwritten)\nулагай\nбон-филе\n\n[right margin] ост бўй 20 кг — казон-к га берилди\n[right margin] ост мол  2,665  берилди",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.26.jpeg"
+  },
+  {
+    "date": "",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": "blank, no number"
+      },
+      {
+        "name": "мол-м",
+        "kg": 6,
+        "extra": ""
+      },
+      {
+        "name": "бўй-м",
+        "kg": 53,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 4,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 3,
+        "extra": ""
+      }
+    ],
+    "raw_text": "фарш |\nмол-м | 6\nбўй-м | 53\nмар-д | 4\nкорейка | 3",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.26.jpeg"
+  },
+  {
+    "date": "24.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 55,
+        "extra": "65 - 10 = 55"
+      },
+      {
+        "name": "думба",
+        "kg": 7.5,
+        "extra": "4 + 3.5"
+      },
+      {
+        "name": "бузлама",
+        "kg": 1.6,
+        "extra": "1,6 кг ? (author's own question mark)"
+      },
+      {
+        "name": "казон-к",
+        "kg": 0.8,
+        "extra": "0,8 + ?.? берилди; right note: суяк 0,4 гр чиқди / 1.1.2 буғ+казон.. берилди (uncertain)"
+      },
+      {
+        "name": "филе",
+        "kg": 15.1,
+        "extra": "0 + 15,1 + [crossed-out illegible addend]"
+      },
+      {
+        "name": "ваггора",
+        "kg": 11,
+        "extra": "11 кг ? (+ 19,1)"
+      },
+      {
+        "name": "мас-а",
+        "kg": 4,
+        "extra": "0 + 4 кг; right note: ост мол 1,8 (uncertain)"
+      },
+      {
+        "name": "тушонка",
+        "kg": 5,
+        "extra": "5 берилди"
+      },
+      {
+        "name": "балаза",
+        "kg": 0,
+        "extra": "no number"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 0,
+        "extra": "0,170 - 0 (uncertain; reads ~0.170 then 0)"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0.8,
+        "extra": "0,8 ? (author's own question mark)"
+      },
+      {
+        "name": "мар-д",
+        "kg": 0,
+        "extra": "1 п (1 portion?)"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "no number"
+      },
+      {
+        "name": "умакай",
+        "kg": 5,
+        "extra": "0 + 5"
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": "0 + [crossed out]"
+      },
+      {
+        "name": "шапок",
+        "kg": 17,
+        "extra": "11 + 6"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 7.9,
+        "extra": "7,9"
+      },
+      {
+        "name": "жигор",
+        "kg": 1.8,
+        "extra": "+ 1,8"
+      },
+      {
+        "name": "фарш",
+        "kg": 12,
+        "extra": "summary table row: 12"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 41,
+        "extra": "summary table row: 41"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 32,
+        "extra": "summary table row: 32 (with 54 written to the right, possibly subtotal/unclear)"
+      },
+      {
+        "name": "мар-д",
+        "kg": 35,
+        "extra": "summary table row: [crossed out] 35"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "summary table row: blank"
+      }
+    ],
+    "raw_text": "24.05.26\nфарш  65 - 10 = 55\nдумба  4 + 3,5\nбузлама  1,6 кг ?\nказон-к  0,8 + ?,? берилди   [right margin] суяк 0,4 гр чиқди\nфиле  0 + 15,1 + [crossed out]   [right margin] 1.1.2 буғ+казон.. берилди\nваггора  11 кг ? (+ 19,1)\nмас-а  0 + 4 кг   [right margin] ост мол 1,8\nтушонка  5 берилди\nбалаза\nбуй-ш  0,170 - 0\nмол-ш  0,8 ?\nмар-д  1 п\nкорейка\nумакай  0 + 5\nсалат  0 + [crossed out]\nшапок  11 + 6\nбон-филе  7,9\nжигор  + 1,8\n\n[summary table]\nфарш    12\nмол-ш   41\nбуй-ш   32 | 54\nмар-д   [crossed out] 35\nкорейка",
+    "confidence": "low",
+    "_file": "photo_2026-06-14 13.28.27.jpeg"
+  },
+  {
+    "date": "25.05.26",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "думба",
+        "kg": 3.7,
+        "extra": ""
+      },
+      {
+        "name": "буғлама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "базон-к",
+        "kg": 0,
+        "extra": "0 + 7.9 берилди"
+      },
+      {
+        "name": "филе",
+        "kg": 16.5,
+        "extra": "? + 9.5 30% (16.5? +/9,5/30%)"
+      },
+      {
+        "name": "вагора",
+        "kg": 8.5,
+        "extra": "? + /15 30% (8.5? +/15 30%)"
+      },
+      {
+        "name": "мас-а",
+        "kg": 1.8,
+        "extra": "берилди 7.2"
+      },
+      {
+        "name": "туш-а",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "балаза",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буй-ш",
+        "kg": 3.8,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 0,
+        "extra": "0 + 4.8"
+      },
+      {
+        "name": "мар-д",
+        "kg": 1,
+        "extra": "раднос. (1 раднос)"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "умакой",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шопок",
+        "kg": 17,
+        "extra": "17 + 3.8 + 10.2"
+      },
+      {
+        "name": "бон-филе",
+        "kg": 7.9,
+        "extra": "7.9 + 1.1"
+      },
+      {
+        "name": "салот",
+        "kg": 0,
+        "extra": "0 + 4 берилди"
+      }
+    ],
+    "raw_text": "25.05.26\nфарш\nдумба 3,7\nбуғлама\nбазон-к 0 + 7.9 берилди\nфиле 16.5? +/9,5/30%)\nвагора 8.5? +/15 30%)\nмас-а 1,8 берилди 7.2\nтуш-а\nбалаза\nбуй-ш 3,8\nмол-ш 0+4,8\nмар-д 1 раднос.\nкорейка\nумакой\nшопок [crossed-out] 17 + 3,8 + 10.2\nбон-филе 7,9 + 1,1\nсалот 0 + 4 берилди\n\n(side note right column:)\nст мол 1.8\nмас-а\n1.1",
+    "confidence": "low",
+    "_file": "/Users/wer/projects/la_limonariya/docs/obvalka-tarixi/photo_2026-06-14 13.28.28.jpeg"
+  },
+  {
+    "date": "25.05.26",
+    "source": "",
+    "carcass_type": "mol",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 55,
+        "extra": ""
+      },
+      {
+        "name": "мол-ш",
+        "kg": 26,
+        "extra": ""
+      },
+      {
+        "name": "буй-ш",
+        "kg": 28,
+        "extra": ""
+      },
+      {
+        "name": "мар-д",
+        "kg": 26,
+        "extra": ""
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      }
+    ],
+    "raw_text": "(summary block, bottom of page:)\nфарш 55|\nмол-ш 26\nбуй-ш 28\nмар-д 26\nкорейка 0",
+    "confidence": "medium",
+    "_file": "/Users/wer/projects/la_limonariya/docs/obvalka-tarixi/photo_2026-06-14 13.28.28.jpeg"
+  },
+  {
+    "date": "26.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "душба",
+        "kg": 0,
+        "extra": "г"
+      },
+      {
+        "name": "буғлама",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "базон-х",
+        "kg": 8.2,
+        "extra": "0 + 8.2"
+      },
+      {
+        "name": "филе",
+        "kg": 15,
+        "extra": "15?"
+      },
+      {
+        "name": "Ваггора",
+        "kg": 18,
+        "extra": "18?"
+      },
+      {
+        "name": "мас-а",
+        "kg": 7.2,
+        "extra": "ост 7.2 кг"
+      },
+      {
+        "name": "туш-я",
+        "kg": 5,
+        "extra": "ост 5 кг"
+      },
+      {
+        "name": "балазо",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "буй-ш",
+        "kg": 4.12,
+        "extra": "/10% купайган/"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 5.4,
+        "extra": "/13% купайган/"
+      },
+      {
+        "name": "маф-д",
+        "kg": 1,
+        "extra": "1 падрох"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "умакай",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "салат",
+        "kg": 0,
+        "extra": ""
+      },
+      {
+        "name": "шапок",
+        "kg": 31,
+        "extra": "31 + 1,8"
+      },
+      {
+        "name": "шон-филе",
+        "kg": 4,
+        "extra": "4 кг"
+      }
+    ],
+    "raw_text": "26.05.26\nфарш\nдушба   г\nбуғлама\nбазон-х   0 + 8.2\nфиле   15?\nВаггора   18?\nмас-а   ост 7.2 кг\nтуш-я   ост 5 кг\nбалазо\nбуй-ш   4,120  /10% купайган/\nмол-ш   5,4  /13% купайган/\nмаф-д   1 падрох\nкорейка\nумакай\nсалат\nшапок   31 + 1,8\nшон-филе   4 кг",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.29.jpeg"
+  },
+  {
+    "date": "26.05.26",
+    "source": "",
+    "carcass_type": "unknown",
+    "carcass_weight_kg": 0,
+    "carcass_price_per_kg": 0,
+    "parts": [
+      {
+        "name": "фарш",
+        "kg": 65,
+        "extra": "ост"
+      },
+      {
+        "name": "мол-ш",
+        "kg": 30,
+        "extra": "ост"
+      },
+      {
+        "name": "буй-ш",
+        "kg": 43,
+        "extra": "ост"
+      },
+      {
+        "name": "маф-д",
+        "kg": 54,
+        "extra": "ост"
+      },
+      {
+        "name": "корейка",
+        "kg": 0,
+        "extra": "ост"
+      }
+    ],
+    "raw_text": "ост.\nфарш   65\nмол-ш   30\nбуй-ш   43\nмаф-д   54\nкорейка",
+    "confidence": "medium",
+    "_file": "photo_2026-06-14 13.28.29.jpeg"
+  }
+]
