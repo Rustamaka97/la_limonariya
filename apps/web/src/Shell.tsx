@@ -129,7 +129,7 @@ export function Shell({
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
-        {tab === "pos" && <Pos />}
+        {tab === "pos" && <Pos user={user} />}
         {tab === "harid" && <Purchases />}
         {tab === "obvalka" && <Obvalka />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}

@@ -301,7 +301,12 @@ async function revenueForWindow(start: Date, end: Date) {
         .select({ n: count() })
         .from(orders)
         .where(
-          and(eq(orders.status, "closed"), gte(orders.closedAt, start), lt(orders.closedAt, end)),
+          and(
+            eq(orders.status, "closed"),
+            eq(orders.isComp, false),
+            gte(orders.closedAt, start),
+            lt(orders.closedAt, end),
+          ),
         )
     )[0]?.n ?? 0,
   );
@@ -311,8 +316,11 @@ async function revenueForWindow(start: Date, end: Date) {
 // Orders (closed, in window) that carry a debt payment — used to keep item-level
 // revenue consistent with the rest of the app's "debt is not realized revenue"
 // convention. Qty (food actually served) still counts; revenue doesn't.
-async function debtOrderIds(start: Date, end: Date): Promise<Set<string>> {
-  const rows = await db
+// Orders that don't count as revenue: debt-financed (cash not yet received)
+// and текин/ходим comp orders (intentionally zero revenue). Qty/stock still
+// count for both — only money is excluded.
+async function nonRevenueOrderIds(start: Date, end: Date): Promise<Set<string>> {
+  const debtRows = await db
     .select({ orderId: orderPayments.orderId })
     .from(orderPayments)
     .innerJoin(orders, eq(orderPayments.orderId, orders.id))
@@ -324,7 +332,18 @@ async function debtOrderIds(start: Date, end: Date): Promise<Set<string>> {
         lt(orders.closedAt, end),
       ),
     );
-  return new Set(rows.map((r) => r.orderId));
+  const compRows = await db
+    .select({ orderId: orders.id })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.isComp, true),
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, start),
+        lt(orders.closedAt, end),
+      ),
+    );
+  return new Set([...debtRows.map((r) => r.orderId), ...compRows.map((r) => r.orderId)]);
 }
 
 async function debtTotals() {
@@ -384,6 +403,7 @@ const BREAK_EVEN_HINT = 8_900_000;
 const BLENDED_COGS_PCT = 0.526;
 const THIN_MARGIN_PCT = 60;
 const MEAT_PRICE_SPIKE_PCT = 1.15;
+const COMP_DAILY_CAP = 500_000; // owner-stated daily текин/ходим volume limit
 
 async function computeSignals() {
   const recentObv = await db
@@ -538,6 +558,26 @@ async function computeSignals() {
       .map(([productId, v]) => ({ productId, name: v.name, count: v.counts.size }));
   }
 
+  // текин/ходим daily volume — valued at menu price (the foregone revenue), not cost
+  const compRows = await db
+    .select({
+      qty: orderItems.qty,
+      price: orderItems.price,
+      reason: orders.compReason,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.isComp, true),
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, startUTC),
+        lt(orders.closedAt, endUTC),
+      ),
+    );
+  const compToday = compRows.reduce((s, r) => s + r.qty * r.price, 0);
+  const compFlag = compToday > COMP_DAILY_CAP;
+
   return {
     obvalkaFlags,
     thinDishes,
@@ -547,6 +587,8 @@ async function computeSignals() {
     priceSpikes,
     shortagePattern,
     historyPending,
+    compToday,
+    compFlag,
   };
 }
 
@@ -582,6 +624,7 @@ async function financeForWindow(start: Date, end: Date) {
         .where(
           and(
             eq(orders.status, "closed"),
+            eq(orders.isComp, false),
             gte(orders.closedAt, start),
             lt(orders.closedAt, end),
           ),
@@ -1287,6 +1330,8 @@ export const appRouter = router({
               servicePct: orders.servicePct,
               createdAt: orders.createdAt,
               closedAt: orders.closedAt,
+              isComp: orders.isComp,
+              compReason: orders.compReason,
               hall: halls.name,
               waiter: users.name,
             })
@@ -1479,9 +1524,20 @@ export const appRouter = router({
               }),
             )
             .optional(),
+          comp: z.object({ reason: z.string().trim().min(1) }).optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        const pays = (input.payments ?? []).filter((p) => p.amount > 0);
+        if (input.comp) {
+          if (!["director", "manager", "cashier"].includes(ctx.user.role))
+            throw new TRPCError({ code: "FORBIDDEN" });
+          if (pays.length)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Текин заказга тўлов қўшиб бўлмайди",
+            });
+        }
         return db.transaction(async (tx) => {
           // Idempotent: only the tx that flips open→closed writes payments + списание.
           const flipped = await tx
@@ -1490,6 +1546,7 @@ export const appRouter = router({
               status: "closed",
               closedAt: new Date(),
               closedById: ctx.user.id,
+              ...(input.comp ? { isComp: true, compReason: input.comp.reason } : {}),
             })
             .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
             .returning({ id: orders.id });
@@ -1500,8 +1557,9 @@ export const appRouter = router({
           // ("тикетсиз таом ЙЎҚ" must hold even for fast/closed-without-send orders)
           await flushKitchenTicket(tx, input.id, ctx.user.id);
 
-          const pays = (input.payments ?? []).filter((p) => p.amount > 0);
-          if (pays.length)
+          // текин/ходим: stock is still written off below (food was actually
+          // served) — only revenue (payments) is skipped.
+          if (pays.length && !input.comp)
             await tx
               .insert(orderPayments)
               .values(pays.map((p) => ({ orderId: input.id, ...p })));
@@ -2387,7 +2445,8 @@ export const appRouter = router({
         (sig.cashVariance && sig.cashVariance.variance !== 0 ? 1 : 0) +
         (sig.breakEvenFlag ? 1 : 0) +
         sig.priceSpikes.length +
-        sig.shortagePattern.length;
+        sig.shortagePattern.length +
+        (sig.compFlag ? 1 : 0);
 
       return {
         revenueToday: todayFin.revenue,
@@ -2431,7 +2490,7 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
-        const debtOrders = await debtOrderIds(startUTC, endUTC);
+        const nonRevenue = await nonRevenueOrderIds(startUTC, endUTC);
         const rows = await db
           .select({
             orderId: orderItems.orderId,
@@ -2456,7 +2515,7 @@ export const appRouter = router({
           const key = r.category ?? "Бошқа";
           const e = byCat.get(key) ?? { revenue: 0, qty: 0 };
           e.qty += r.qty; // food served counts regardless of payment status
-          if (!debtOrders.has(r.orderId)) {
+          if (!nonRevenue.has(r.orderId)) {
             // revenue = realized cash only, matching salesDaily/byWaiter convention
             const rev = r.qty * r.price;
             e.revenue += rev;
@@ -2485,7 +2544,7 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
-        const debtOrders = await debtOrderIds(startUTC, endUTC);
+        const nonRevenue = await nonRevenueOrderIds(startUTC, endUTC);
         const rows = await db
           .select({
             orderId: orderItems.orderId,
@@ -2508,7 +2567,7 @@ export const appRouter = router({
           if (!r.productId) continue;
           const e = byProduct.get(r.productId) ?? { name: r.name, qty: 0, revenue: 0 };
           e.qty += r.qty; // food served counts regardless of payment status
-          if (!debtOrders.has(r.orderId)) e.revenue += r.qty * r.price; // realized cash only
+          if (!nonRevenue.has(r.orderId)) e.revenue += r.qty * r.price; // realized cash only
           byProduct.set(r.productId, e);
         }
         const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };

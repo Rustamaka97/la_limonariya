@@ -188,6 +188,10 @@ export const orders = pgTable(
       .defaultNow(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
     closedById: uuid("closed_by_id").references(() => users.id),
+    // текин/ходим: food still served + stock still deducted, but zero revenue —
+    // distinct from debt (which is revenue expected later); comp never is.
+    isComp: boolean("is_comp").notNull().default(false),
+    compReason: text("comp_reason"),
   },
   (t) => [index("orders_status_closed_idx").on(t.status, t.closedAt)],
 );

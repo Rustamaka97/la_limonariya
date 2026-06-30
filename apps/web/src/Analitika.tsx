@@ -28,6 +28,8 @@ type Signals = {
   priceSpikes: { carcassType: string; latestPrice: number; medianPrice: number; pct: number }[];
   shortagePattern: { productId: string; name: string; count: number }[];
   historyPending: boolean;
+  compToday: number;
+  compFlag: boolean;
 };
 
 export function Analitika() {
@@ -167,6 +169,18 @@ export function Analitika() {
               ))}
             </ul>
           )}
+        </Section>
+
+        <Section title="🎁 Текин/ходим овқати" hint="бугун">
+          <div className="px-4 py-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500">Бугунги текин ҳажми</span>
+              <span className={`tabular-nums font-medium ${s.compFlag ? "text-red-600" : "text-zinc-700"}`}>
+                {fmt(s.compToday)}
+              </span>
+            </div>
+            {s.compFlag && <p className="mt-2 text-xs text-red-600">🔴 кунлик лимитдан ошди (500 000)</p>}
+          </div>
         </Section>
       </div>
     </div>
