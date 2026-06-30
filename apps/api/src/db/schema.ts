@@ -201,7 +201,44 @@ export const orderItems = pgTable("order_items", {
   name: text("name").notNull(),
   price: integer("price").notNull().default(0),
   qty: integer("qty").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// "Тикетсиз таом ЙЎҚ" control: an append-only record of what was actually sent
+// to the kitchen/station, when, and how much. Never edited — only inserted.
+// "Sent so far" for a product in an order = SUM(kitchen_ticket_items.qty) for
+// that (order, product); the unsent remainder is what the NEXT send tickets.
+export const kitchenTickets = pgTable(
+  "kitchen_tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("kt_order_idx").on(t.orderId)],
+);
+
+export const kitchenTicketItems = pgTable(
+  "kitchen_ticket_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ticketId: uuid("ticket_id")
+      .notNull()
+      .references(() => kitchenTickets.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    name: text("name").notNull(), // snapshot at send-time
+    qty: integer("qty").notNull(),
+    station: text("station"), // snapshot of products.station at send-time
+  },
+  (t) => [index("kti_ticket_idx").on(t.ticketId)],
+);
 
 export const paymentMethod = pgEnum("payment_method", [
   "cash",

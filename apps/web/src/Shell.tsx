@@ -136,7 +136,7 @@ export function Shell({
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}
         {tab === "taannarx" && <Taannarx />}
-        {tab === "catalog" && <Catalog />}
+        {tab === "catalog" && <Catalog user={user} />}
         {tab === "recipes" && <Recipes />}
         {tab === "staff" && <StaffSection />}
       </main>

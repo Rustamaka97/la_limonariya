@@ -18,6 +18,8 @@ import {
   halls,
   inventoryCounts,
   inventoryItems,
+  kitchenTicketItems,
+  kitchenTickets,
   obvalka,
   obvalkaParts,
   orderItems,
@@ -621,6 +623,115 @@ async function financeForWindow(start: Date, end: Date) {
   };
 }
 
+// "Тикетсиз таом ЙЎҚ": tickets the UNSENT remainder of an order's items to the
+// kitchen — sent-so-far is derived from kitchen_ticket_items (ledger, never
+// stored as a mutable counter). Returns null if nothing new to send. MUST be
+// called inside the caller's transaction (tx) for correctness.
+// Computes the per-product UNSENT remainder for an order. "Sent so far" only
+// counts tickets created SINCE this product's current order_items row
+// appeared — if the waiter zeroed it out (row deleted) and re-added it, that's
+// a NEW row with a fresh createdAt, so old ticket history for the deleted row
+// no longer masks the re-add as "already sent" (the codebase's append-only
+// ledger philosophy, made createdAt-scoped instead of all-time-cumulative).
+async function computeUnsentItems(
+  exec: { select: typeof db.select },
+  orderId: string,
+) {
+  const items = await exec
+    .select({
+      productId: orderItems.productId,
+      name: orderItems.name,
+      qty: orderItems.qty,
+      createdAt: orderItems.createdAt,
+      station: stations.name,
+    })
+    .from(orderItems)
+    .leftJoin(products, eq(orderItems.productId, products.id))
+    .leftJoin(stations, eq(products.stationId, stations.id))
+    .where(eq(orderItems.orderId, orderId));
+
+  // group by productId (defense: addItem upserts by orderId+productId so
+  // duplicates shouldn't occur, but don't let it corrupt the math if they do).
+  // Keep the EARLIEST createdAt per product — conservative, avoids masking.
+  const grouped = new Map<
+    string,
+    { name: string; qty: number; createdAt: Date; station: string | null }
+  >();
+  for (const it of items) {
+    if (!it.productId) continue;
+    const g = grouped.get(it.productId);
+    if (g) {
+      g.qty += it.qty;
+      if (it.createdAt < g.createdAt) g.createdAt = it.createdAt;
+    } else {
+      grouped.set(it.productId, {
+        name: it.name,
+        qty: it.qty,
+        createdAt: it.createdAt,
+        station: it.station,
+      });
+    }
+  }
+
+  const toSend: { productId: string; name: string; unsent: number; station: string | null }[] = [];
+  for (const [productId, g] of grouped) {
+    const sentRow = (
+      await exec
+        .select({ s: sql<number>`coalesce(sum(${kitchenTicketItems.qty}), 0)` })
+        .from(kitchenTicketItems)
+        .innerJoin(kitchenTickets, eq(kitchenTicketItems.ticketId, kitchenTickets.id))
+        .where(
+          and(
+            eq(kitchenTickets.orderId, orderId),
+            eq(kitchenTicketItems.productId, productId),
+            gte(kitchenTickets.createdAt, g.createdAt),
+          ),
+        )
+    )[0];
+    const unsent = g.qty - Number(sentRow?.s ?? 0);
+    if (unsent > 0) toSend.push({ productId, name: g.name, unsent, station: g.station });
+  }
+  return toSend;
+}
+
+async function flushKitchenTicket(
+  tx: { select: typeof db.select; insert: typeof db.insert; execute: typeof db.execute },
+  orderId: string,
+  createdById: string,
+) {
+  // advisory lock keyed on orderId — serializes concurrent sendToKitchen calls
+  // (and sendToKitchen racing pos.close's auto-flush) so they can't both read
+  // the same "sent so far" snapshot and double-ticket the same items.
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${orderId}))`);
+
+  const toSend = await computeUnsentItems(tx, orderId);
+  if (toSend.length === 0) return null;
+
+  const ticket = (
+    await tx.insert(kitchenTickets).values({ orderId, createdById }).returning({
+      id: kitchenTickets.id,
+      createdAt: kitchenTickets.createdAt,
+    })
+  )[0];
+  if (!ticket) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+  await tx.insert(kitchenTicketItems).values(
+    toSend.map((it) => ({
+      ticketId: ticket.id,
+      productId: it.productId,
+      name: it.name,
+      qty: it.unsent,
+      station: it.station ?? "Бошқа",
+    })),
+  );
+
+  return {
+    id: ticket.id,
+    createdAt: ticket.createdAt,
+    items: toSend.map((it) => ({ name: it.name, qty: it.unsent, station: it.station ?? "Бошқа" })),
+  };
+}
+
 export const appRouter = router({
   health: publicProcedure.query(async () => {
     await db.execute(sql`select 1`);
@@ -703,45 +814,149 @@ export const appRouter = router({
   }),
 
   catalog: router({
-    categories: protectedProcedure.query(async () => {
-      return db
-        .select({
-          id: categories.id,
-          name: categories.name,
-          position: categories.position,
-        })
-        .from(categories)
-        .where(eq(categories.active, true))
-        .orderBy(categories.position, categories.name);
+    categories: router({
+      list: protectedProcedure
+        .input(z.object({ includeInactive: z.boolean().optional() }).optional())
+        .query(async ({ input, ctx }) => {
+          const showInactive = input?.includeInactive && ctx.user.role === "director";
+          return db
+            .select({
+              id: categories.id,
+              name: categories.name,
+              position: categories.position,
+              active: categories.active,
+            })
+            .from(categories)
+            .where(showInactive ? undefined : eq(categories.active, true))
+            .orderBy(categories.position, categories.name);
+        }),
+
+      create: directorProcedure
+        .input(z.object({ name: z.string().min(1), position: z.number().int().optional() }))
+        .mutation(async ({ input }) => {
+          const row = (
+            await db
+              .insert(categories)
+              .values({ name: input.name, position: input.position ?? 0 })
+              .returning({ id: categories.id })
+          )[0];
+          return { id: row?.id };
+        }),
+
+      update: directorProcedure
+        .input(
+          z.object({
+            id: z.string().uuid(),
+            name: z.string().min(1).optional(),
+            position: z.number().int().optional(),
+            active: z.boolean().optional(),
+          }),
+        )
+        .mutation(async ({ input }) => {
+          const { id, ...patch } = input;
+          if (Object.keys(patch).length === 0) return { ok: true };
+          await db.update(categories).set(patch).where(eq(categories.id, id));
+          return { ok: true };
+        }),
     }),
 
-    products: protectedProcedure
-      .input(z.object({ categoryId: z.string().uuid().optional() }).optional())
-      .query(async ({ input }) => {
-        return db
-          .select({
-            id: products.id,
-            name: products.name,
-            type: products.type,
-            unit: products.unit,
-            price: products.price,
-            soldByWeight: products.soldByWeight,
-            category: categories.name,
-            station: stations.name,
-          })
-          .from(products)
-          .leftJoin(categories, eq(products.categoryId, categories.id))
-          .leftJoin(stations, eq(products.stationId, stations.id))
-          .where(
-            and(
-              eq(products.active, true),
-              input?.categoryId
-                ? eq(products.categoryId, input.categoryId)
-                : undefined,
-            ),
-          )
-          .orderBy(products.type, products.name);
-      }),
+    products: router({
+      list: protectedProcedure
+        .input(
+          z
+            .object({
+              categoryId: z.string().uuid().optional(),
+              includeInactive: z.boolean().optional(),
+            })
+            .optional(),
+        )
+        .query(async ({ input, ctx }) => {
+          const showInactive = input?.includeInactive && ctx.user.role === "director";
+          return db
+            .select({
+              id: products.id,
+              name: products.name,
+              type: products.type,
+              unit: products.unit,
+              price: products.price,
+              costPrice: products.costPrice,
+              soldByWeight: products.soldByWeight,
+              active: products.active,
+              categoryId: products.categoryId,
+              stationId: products.stationId,
+              category: categories.name,
+              station: stations.name,
+            })
+            .from(products)
+            .leftJoin(categories, eq(products.categoryId, categories.id))
+            .leftJoin(stations, eq(products.stationId, stations.id))
+            .where(
+              and(
+                showInactive ? undefined : eq(products.active, true),
+                input?.categoryId ? eq(products.categoryId, input.categoryId) : undefined,
+              ),
+            )
+            .orderBy(products.type, products.name);
+        }),
+
+      create: directorProcedure
+        .input(
+          z.object({
+            name: z.string().min(1),
+            type: z.enum(["ingredient", "part", "semi", "dish", "goods"]),
+            unit: z.enum(["dona", "kg", "g", "l", "ml"]),
+            price: z.number().int().nonnegative().optional(),
+            categoryId: z.string().uuid().optional(),
+            stationId: z.string().uuid().optional(),
+            soldByWeight: z.boolean().optional(),
+          }),
+        )
+        .mutation(async ({ input }) => {
+          const row = (
+            await db
+              .insert(products)
+              .values({
+                name: input.name,
+                type: input.type,
+                unit: input.unit,
+                price: input.price ?? 0,
+                categoryId: input.categoryId ?? null,
+                stationId: input.stationId ?? null,
+                soldByWeight: input.soldByWeight ?? false,
+              })
+              .returning({ id: products.id })
+          )[0];
+          return { id: row?.id };
+        }),
+
+      update: directorProcedure
+        .input(
+          z.object({
+            id: z.string().uuid(),
+            name: z.string().min(1).optional(),
+            type: z.enum(["ingredient", "part", "semi", "dish", "goods"]).optional(),
+            unit: z.enum(["dona", "kg", "g", "l", "ml"]).optional(),
+            price: z.number().int().nonnegative().optional(),
+            categoryId: z.string().uuid().nullable().optional(),
+            stationId: z.string().uuid().nullable().optional(),
+            soldByWeight: z.boolean().optional(),
+            active: z.boolean().optional(),
+          }),
+        )
+        .mutation(async ({ input }) => {
+          const { id, ...patch } = input;
+          if (Object.keys(patch).length === 0) return { ok: true };
+          await db.update(products).set(patch).where(eq(products.id, id));
+          return { ok: true };
+        }),
+    }),
+
+    stations: protectedProcedure.query(async () => {
+      return db
+        .select({ id: stations.id, name: stations.name })
+        .from(stations)
+        .orderBy(stations.name);
+    }),
 
     recipes: protectedProcedure.query(async () => {
       return db
@@ -1183,6 +1398,75 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    sendToKitchen: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+          const ticket = await flushKitchenTicket(tx, input.orderId, ctx.user.id);
+          return ticket ?? { id: null, createdAt: null, items: [] };
+        });
+      }),
+
+    unsentCount: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const toSend = await computeUnsentItems(db, input.orderId);
+        return { unsent: toSend.reduce((s, it) => s + it.unsent, 0) };
+      }),
+
+    ticketsForOrder: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const tix = await db
+          .select({ id: kitchenTickets.id, createdAt: kitchenTickets.createdAt })
+          .from(kitchenTickets)
+          .where(eq(kitchenTickets.orderId, input.orderId))
+          .orderBy(desc(kitchenTickets.createdAt));
+        const counts = await db
+          .select({
+            ticketId: kitchenTicketItems.ticketId,
+            n: sql<number>`coalesce(sum(${kitchenTicketItems.qty}), 0)`,
+          })
+          .from(kitchenTicketItems)
+          .innerJoin(kitchenTickets, eq(kitchenTicketItems.ticketId, kitchenTickets.id))
+          .where(eq(kitchenTickets.orderId, input.orderId))
+          .groupBy(kitchenTicketItems.ticketId);
+        const countMap = new Map(counts.map((c) => [c.ticketId, Number(c.n)]));
+        return tix.map((t) => ({ id: t.id, createdAt: t.createdAt, itemCount: countMap.get(t.id) ?? 0 }));
+      }),
+
+    ticket: protectedProcedure
+      .input(z.object({ ticketId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const head = (
+          await db
+            .select()
+            .from(kitchenTickets)
+            .where(eq(kitchenTickets.id, input.ticketId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        const items = await db
+          .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
+          .from(kitchenTicketItems)
+          .where(eq(kitchenTicketItems.ticketId, input.ticketId));
+        const order = (
+          await db
+            .select({ tableNo: orders.tableNo, hall: halls.name })
+            .from(orders)
+            .leftJoin(halls, eq(orders.hallId, halls.id))
+            .where(eq(orders.id, head.orderId))
+            .limit(1)
+        )[0];
+        return {
+          id: head.id,
+          createdAt: head.createdAt,
+          tableNo: order?.tableNo ?? null,
+          hall: order?.hall ?? null,
+          items,
+        };
+      }),
+
     close: protectedProcedure
       .input(
         z.object({
@@ -1211,6 +1495,10 @@ export const appRouter = router({
             .returning({ id: orders.id });
           if (flipped.length === 0)
             return { ok: true, alreadyClosed: true, deducted: 0, skipped: 0 };
+
+          // safety net: ticket anything the waiter forgot to send before closing
+          // ("тикетсиз таом ЙЎҚ" must hold even for fast/closed-without-send orders)
+          await flushKitchenTicket(tx, input.id, ctx.user.id);
 
           const pays = (input.payments ?? []).filter((p) => p.amount > 0);
           if (pays.length)

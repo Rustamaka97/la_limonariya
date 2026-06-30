@@ -179,9 +179,16 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
   const [picking, setPicking] = useState(false);
   const [paying, setPaying] = useState(false);
   const [q, setQ] = useState("");
+  const [unsent, setUnsent] = useState(0);
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [tickets, setTickets] = useState<{ id: string; createdAt: string; itemCount: number }[]>([]);
+  const [showTickets, setShowTickets] = useState(false);
 
   const refresh = useCallback(() => {
     trpc.pos.order.query({ id }).then(setOrder).catch(() => {});
+    trpc.pos.unsentCount.query({ orderId: id }).then((r) => setUnsent(r.unsent)).catch(() => {});
+    trpc.pos.ticketsForOrder.query({ orderId: id }).then(setTickets).catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -193,6 +200,19 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
     await trpc.pos.addItem.mutate({ orderId: id, productId, delta });
     refresh();
   }
+
+  async function sendToKitchen() {
+    setSending(true);
+    try {
+      const t = await trpc.pos.sendToKitchen.mutate({ orderId: id });
+      if (t.id) setTicketId(t.id);
+      refresh();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (ticketId) return <KitchenTicketView ticketId={ticketId} onBack={() => setTicketId(null)} />;
   async function pay(method: PayMethod) {
     if (!order) return;
     await trpc.pos.close.mutate({
@@ -269,6 +289,48 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
           <Row label="ЖАМИ" value={`${fmt(order.total)} so'm`} big />
         </div>
       </div>
+
+      {!paying && unsent > 0 && (
+        <button
+          onClick={sendToKitchen}
+          disabled={sending}
+          className="w-full rounded-xl bg-amber-500 py-3 font-medium text-white disabled:opacity-50"
+        >
+          🍳 Кухняга юбориш ({unsent} та янги)
+        </button>
+      )}
+
+      {tickets.length > 0 && (
+        <div className="rounded-xl border bg-white">
+          <button
+            onClick={() => setShowTickets((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-2.5 text-sm text-zinc-500"
+          >
+            <span>🧾 Тикетлар тарихи ({tickets.length})</span>
+            <span>{showTickets ? "▲" : "▼"}</span>
+          </button>
+          {showTickets && (
+            <div className="divide-y border-t">
+              {tickets.map((t) => {
+                const d = new Date(t.createdAt);
+                const p = (n: number) => String(n).padStart(2, "0");
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTicketId(t.id)}
+                    className="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-zinc-50"
+                  >
+                    <span className="text-zinc-500">
+                      {p(d.getHours())}:{p(d.getMinutes())}
+                    </span>
+                    <span className="tabular-nums text-zinc-400">{t.itemCount} дона</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {paying ? (
         <div className="space-y-3 rounded-xl border bg-white p-4">
@@ -350,6 +412,79 @@ function Line({ l, r }: { l: string; r: string }) {
     <div className="flex justify-between gap-2">
       <span className="text-zinc-500">{l}</span>
       <span className="tabular-nums">{r}</span>
+    </div>
+  );
+}
+
+type Ticket = {
+  id: string;
+  createdAt: string;
+  tableNo: string | null;
+  hall: string | null;
+  items: { name: string; qty: number; station: string | null }[];
+};
+
+function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () => void }) {
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  useEffect(() => {
+    trpc.pos.ticket.query({ ticketId }).then(setTicket).catch(() => {});
+  }, [ticketId]);
+
+  if (!ticket) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+
+  const byStation = new Map<string, { name: string; qty: number }[]>();
+  for (const it of ticket.items) {
+    const key = it.station ?? "Бошқа";
+    const a = byStation.get(key) ?? [];
+    a.push({ name: it.name, qty: it.qty });
+    byStation.set(key, a);
+  }
+  const d = new Date(ticket.createdAt);
+  const p = (n: number) => String(n).padStart(2, "0");
+  const when = `${p(d.getHours())}:${p(d.getMinutes())}`;
+
+  return (
+    <div className="space-y-3">
+      <style>{`@media print{body *{visibility:hidden}#ticket,#ticket *{visibility:visible}#ticket{position:absolute;left:0;top:0}}`}</style>
+      <button onClick={onBack} className="text-sm text-zinc-500 hover:text-zinc-900">
+        ← Заказга қайтиш
+      </button>
+      <div
+        id="ticket"
+        className="mx-auto max-w-xs space-y-3 rounded-xl border bg-white p-5 font-mono text-[13px] text-zinc-800"
+      >
+        <div className="text-center font-bold">КУХНЯ ТИКЕТИ</div>
+        <Hr />
+        <Line l="Зал" r={ticket.hall ?? "—"} />
+        {ticket.tableNo && <Line l="Стол" r={ticket.tableNo} />}
+        <Line l="Вақт" r={when} />
+        {[...byStation.entries()].map(([station, items]) => (
+          <div key={station}>
+            <Hr />
+            <div className="font-semibold tracking-wide">{station.toUpperCase()}</div>
+            {items.map((it, i) => (
+              <div key={i} className="flex justify-between gap-2 text-base">
+                <span>{it.name}</span>
+                <span className="font-bold tabular-nums">×{it.qty}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="mx-auto flex max-w-xs gap-2">
+        <button
+          onClick={() => window.print()}
+          className="flex-1 rounded-xl border py-2.5 text-sm font-medium"
+        >
+          🖨 Чоп этиш
+        </button>
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-xl bg-amber-500 py-2.5 text-sm font-medium text-white"
+        >
+          Давом этиш
+        </button>
+      </div>
     </div>
   );
 }
