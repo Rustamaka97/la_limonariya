@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+.git
+.gstack
+.playwright-mcp
+docs
+clopus_photos
+src/img
+*.pdf
+*.pptx
+.DS_Store
