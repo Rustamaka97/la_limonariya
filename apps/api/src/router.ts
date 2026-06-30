@@ -11,7 +11,7 @@ import {
 } from "./auth";
 import { SESSION_COOKIE } from "./context";
 import { db } from "./db/client";
-import { sessions, users } from "./db/schema";
+import { categories, products, sessions, stations, users } from "./db/schema";
 import { TRPCError } from "@trpc/server";
 import {
   directorProcedure,
@@ -101,6 +101,48 @@ export const appRouter = router({
           throw e;
         }
         return { ok: true };
+      }),
+  }),
+
+  catalog: router({
+    categories: protectedProcedure.query(async () => {
+      return db
+        .select({
+          id: categories.id,
+          name: categories.name,
+          position: categories.position,
+        })
+        .from(categories)
+        .where(eq(categories.active, true))
+        .orderBy(categories.position, categories.name);
+    }),
+
+    products: protectedProcedure
+      .input(z.object({ categoryId: z.string().uuid().optional() }).optional())
+      .query(async ({ input }) => {
+        return db
+          .select({
+            id: products.id,
+            name: products.name,
+            type: products.type,
+            unit: products.unit,
+            price: products.price,
+            soldByWeight: products.soldByWeight,
+            category: categories.name,
+            station: stations.name,
+          })
+          .from(products)
+          .leftJoin(categories, eq(products.categoryId, categories.id))
+          .leftJoin(stations, eq(products.stationId, stations.id))
+          .where(
+            and(
+              eq(products.active, true),
+              input?.categoryId
+                ? eq(products.categoryId, input.categoryId)
+                : undefined,
+            ),
+          )
+          .orderBy(products.type, products.name);
       }),
   }),
 });

@@ -1,0 +1,2978 @@
+{
+ "categories": [
+  {
+   "clopos_id": 1,
+   "name": "ТАОМЛАР",
+   "position": null
+  },
+  {
+   "clopos_id": 2,
+   "name": "БАЛИКЛАР",
+   "position": null
+  },
+  {
+   "clopos_id": 3,
+   "name": "САЛАТЛАР",
+   "position": null
+  },
+  {
+   "clopos_id": 4,
+   "name": "ИЧИМЛИКЛАР",
+   "position": null
+  },
+  {
+   "clopos_id": 5,
+   "name": "ШАШЛИКЛАР",
+   "position": null
+  },
+  {
+   "clopos_id": 6,
+   "name": "СПИРТЛИ ИЧИМЛИКЛАР",
+   "position": null
+  },
+  {
+   "clopos_id": 7,
+   "name": "ПРОЧЕЕ",
+   "position": null
+  },
+  {
+   "clopos_id": 10,
+   "name": "Ширинликлар",
+   "position": null
+  },
+  {
+   "clopos_id": 11,
+   "name": "Мороженое",
+   "position": null
+  },
+  {
+   "clopos_id": 12,
+   "name": "Non choy",
+   "position": null
+  }
+ ],
+ "stations": [
+  {
+   "clopos_id": 1,
+   "name": "OSHXONA",
+   "printable": true
+  },
+  {
+   "clopos_id": 2,
+   "name": "BAR",
+   "printable": true
+  },
+  {
+   "clopos_id": 3,
+   "name": "SALAT",
+   "printable": true
+  },
+  {
+   "clopos_id": 4,
+   "name": "SHASHLIK",
+   "printable": true
+  },
+  {
+   "clopos_id": 5,
+   "name": "BALIQ",
+   "printable": true
+  },
+  {
+   "clopos_id": 8,
+   "name": "NON CHOY",
+   "printable": true
+  }
+ ],
+ "products": [
+  {
+   "clopos_id": 1,
+   "name": "ЦЕЗАР",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 2,
+   "name": "ГУРМАН",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 3,
+   "name": "СМАК",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 4,
+   "name": "МУЖСКОЙ КАПРИЗ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 6,
+   "name": "ВЕСЕНИЙ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 7,
+   "name": "СВЕЖИЙ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 8,
+   "name": "СОЛЕННИЙ АССОРТИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 9,
+   "name": "ОВОЩНОЙ АССОРТИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 10,
+   "name": "МЯСНОЙ АССОРТИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 150000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 11,
+   "name": "ПЕКИН",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 12,
+   "name": "АЧЧИК-ЧУЧУК",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 13,
+   "name": "ЧИРОКЧИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 16,
+   "name": "ШУРВО (мол гушти)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 17,
+   "name": "ҚОЗОН КАБОБ (қуй гушти)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 260000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 18,
+   "name": "ОШ (лазер заказ)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 19,
+   "name": "ВАҒУРИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 260000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 20,
+   "name": "ЖИЗ феле (мол гушти)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 240000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 22,
+   "name": "КУСКОВОЙ (мол гушти) шт",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 23,
+   "name": "КУСКОВОЙ (қуй гушти)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 24,
+   "name": "ФАРШ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 23000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 25,
+   "name": "КОРЕЙКА ШАШЛИК",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 35000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 26,
+   "name": "ТОВУК СОНЧАЛАРИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 55000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 27,
+   "name": "ТОВУҚ КАНОТЧАЛАРИ",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 29,
+   "name": "ПОМИДОРЧА ШАШЛИК",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 30,
+   "name": "Сазан (соуссиз)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 2,
+   "station_clopos_id": 5,
+   "price": 80000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 31,
+   "name": "САЗАН(соуслик)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 2,
+   "station_clopos_id": 5,
+   "price": 80000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 34,
+   "name": "Балик барбеку",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 2,
+   "station_clopos_id": 5,
+   "price": 90000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 96,
+   "name": "Уйгурча жиз",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 97,
+   "name": "Мастава",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 35000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 103,
+   "name": "лапата куй",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 131,
+   "name": "Чой",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 132,
+   "name": "Чой лимон",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 133,
+   "name": "Чакка турп",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 134,
+   "name": "Чакка",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 135,
+   "name": "Лимон нарез шт",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 136,
+   "name": "Фруктовый ассорти (Катта)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 70000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 137,
+   "name": "Фруктовый ассоти (Кичик)",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 145,
+   "name": "Соус",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 8000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 151,
+   "name": "Мева кесиш",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 3,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 152,
+   "name": "Фри порс",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 154,
+   "name": "Жигар шашлик",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 159,
+   "name": "Марварид",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 172,
+   "name": "Думма шашлик",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 174,
+   "name": "Доллар шашлик",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 175,
+   "name": "Фарш кг",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 80000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 187,
+   "name": "Сарёгли жиз кг",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 194,
+   "name": "Балаза шурво",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 35000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 198,
+   "name": "Шея баранина",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 203,
+   "name": "Кавурга мол",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 220000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 208,
+   "name": "Овошной шашлик",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 217,
+   "name": "Булён",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 218,
+   "name": "Фруктовий ассорти с шоколадои",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 85000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 229,
+   "name": "Бахор шашлик",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 24000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 240,
+   "name": "Фарш кг",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 4,
+   "price": 125000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 282,
+   "name": "Туборг разлив",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 14000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 289,
+   "name": "Ковурилган канот",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 80000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 290,
+   "name": "КАВОБЧА",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 357,
+   "name": "Сора",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 358,
+   "name": "Шотланский",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 390,
+   "name": "Авгон жиз",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 391,
+   "name": "Умакай жиз",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 392,
+   "name": "Буглама",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 393,
+   "name": "Казон кабоб мол",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 399,
+   "name": "Куртоба",
+   "type": "dish",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 60000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 41,
+   "name": "Чистая 0.7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 60000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 42,
+   "name": "Медовая 0.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 70000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 43,
+   "name": "Кола 1.5л",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 104,
+   "name": "Чорток 0.7л",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 16000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 107,
+   "name": "Фамилй 1 л",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 108,
+   "name": "Е-фактор 0.7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 90000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 109,
+   "name": "Фанта 1.5л",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 117,
+   "name": "Сок",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 16000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 119,
+   "name": "Сприте 1.5л",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 121,
+   "name": "Флеш",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 124,
+   "name": "Нев узб 0.7 каробка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 125,
+   "name": "Коняк (Узбекистан) 0.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 95000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 126,
+   "name": "Сарбаст лайт 1.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 127,
+   "name": "Вино (Багизаган)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 65000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 128,
+   "name": "Собой идиш кичик",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 2,
+   "price": 1000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 129,
+   "name": "Собой идиш катта",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 2,
+   "price": 3000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 130,
+   "name": "Нон",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 138,
+   "name": "Парламент (Сигарет)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 28000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 140,
+   "name": "Палл-Малл (Сигарет)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 24000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 141,
+   "name": "Шоколад (Миллинум)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 22000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 142,
+   "name": "Шоколад (Алпен голд)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 17000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 146,
+   "name": "200 гр арок",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 147,
+   "name": "Арок 100 гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 12500,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 148,
+   "name": "флавс",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 150,
+   "name": "Сигарет (Кент микс)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 26000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 153,
+   "name": "Патир",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 155,
+   "name": "Гидролифе газ 1.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 156,
+   "name": "Нев узб каробка 0.7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 157,
+   "name": "Пшиничная арок 0.7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 158,
+   "name": "Шурдонак 100 гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 8,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 160,
+   "name": "Газета",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 11,
+   "station_clopos_id": 2,
+   "price": 7000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 162,
+   "name": "Чорток 1.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 8000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 163,
+   "name": "Тарелка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 168,
+   "name": "Стакан майда",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 169,
+   "name": "Стакан катта",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 177,
+   "name": "янги узб 0.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 85000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 179,
+   "name": "Амбарная крафт 0.7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 180,
+   "name": "нон ассорти",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 183,
+   "name": "Тушонка шурво",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 185,
+   "name": "свежий соус",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 2,
+   "station_clopos_id": 5,
+   "price": 8000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 186,
+   "name": "Амбарная 0.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 60000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 188,
+   "name": "Пиво Бутилка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 189,
+   "name": "Коняк (Александра) 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 192,
+   "name": "КУй Лапатка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 196,
+   "name": "уксус идиш",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 199,
+   "name": "Феле шашлие",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 5,
+   "station_clopos_id": 4,
+   "price": 35000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 200,
+   "name": "Туборг 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 201,
+   "name": "Семечка Туз мега 100гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 12000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 202,
+   "name": "Шоколад (Мах фун)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 22000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 206,
+   "name": "Зажигалка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 210,
+   "name": "Арахис",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 211,
+   "name": "Семечка эрмак 100 гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 213,
+   "name": "Калампир",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 221,
+   "name": "курт файз",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 223,
+   "name": "пепилница идиш",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 224,
+   "name": "Буханка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 226,
+   "name": "Мохито",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 227,
+   "name": "Кулча",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 3500,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 231,
+   "name": "Вафли",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 60000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 232,
+   "name": "Катта вафли",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 90000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 233,
+   "name": "клубника шоколад",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 55000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 234,
+   "name": "Органик 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 235,
+   "name": "Шинпинён",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 236,
+   "name": "Хортица 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 90000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 238,
+   "name": "Салат нарез",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 239,
+   "name": "Семечка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 7000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 241,
+   "name": "Кент 3",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 252,
+   "name": "Пиво Баничний",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 253,
+   "name": "Адреналин 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 254,
+   "name": "Сырные палочки",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 12000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 255,
+   "name": "Сок лимон лайм",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 257,
+   "name": "Мохито натурал",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 8,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 262,
+   "name": "Голд",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 11,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 265,
+   "name": "Курт шт",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 8,
+   "price": 1000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 266,
+   "name": "Семечка тузсиз Мега 75 гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 267,
+   "name": "Курт Мега",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 273,
+   "name": "Туздон",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 274,
+   "name": "Магнат 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 275,
+   "name": "Янги Узбекистон 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 276,
+   "name": "Талка 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 90000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 278,
+   "name": "Разлив пиво",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 12000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 280,
+   "name": "Эрмак 160 гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 281,
+   "name": "Сомса Бухороча",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 1,
+   "station_clopos_id": 1,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 283,
+   "name": "Сарбаст филтыр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 12000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 284,
+   "name": "Сарбаст без филтер",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 12000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 285,
+   "name": "Чипс",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 287,
+   "name": "ГРЕНКИ",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 288,
+   "name": "Пиво асорти",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 291,
+   "name": "Тарвуз",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 292,
+   "name": "Гарди (олма лимон)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 295,
+   "name": "Голд Узбекситан",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 230000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 296,
+   "name": "Айрон графин",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 35000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 297,
+   "name": "ТАНБУР 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 250000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 298,
+   "name": "Соус",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 8000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 299,
+   "name": "Аристакрат",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 300,
+   "name": "Керамика",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 11,
+   "station_clopos_id": 2,
+   "price": 9000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 301,
+   "name": "Aristokrat",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 302,
+   "name": "чорток бакалашка 1,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 8000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 304,
+   "name": "Чистая 0.5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 305,
+   "name": "Лайм узган штраф",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 306,
+   "name": "Тошкент ХО",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 130000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 307,
+   "name": "Медовая 0.7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 80000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 309,
+   "name": "Эссе Ченч (Сигарет)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 310,
+   "name": "Флавис Мохито",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 13000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 311,
+   "name": "Греческий",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 312,
+   "name": "Бакалажан с мясом",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 317,
+   "name": "Wawel шоколад",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 318,
+   "name": "Эссе оригинал",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 319,
+   "name": "ЛЁД",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 320,
+   "name": "Рич 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 322,
+   "name": "кук чой",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 323,
+   "name": "кора чой",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 324,
+   "name": "кийик ути чой",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 327,
+   "name": "Куза 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 329,
+   "name": "bodiring narez",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 330,
+   "name": "Буханка нон",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 331,
+   "name": "Сигарет Кастер",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 334,
+   "name": "Гоод гоосе 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 335,
+   "name": "Казак 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 55000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 336,
+   "name": "Эссе голд",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 32000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 337,
+   "name": "Казакстан (шоколад)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 338,
+   "name": "Алёнка (шоколад)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 339,
+   "name": "Кит Кат (шоколад)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 340,
+   "name": "Блис (Ананас)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 341,
+   "name": "Блис (Апелсин)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 342,
+   "name": "Халодес",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 343,
+   "name": "Горелла",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 15000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 344,
+   "name": "Блис (Анор)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 345,
+   "name": "селедка асорти",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 3,
+   "station_clopos_id": 3,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 346,
+   "name": "Лвофф 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 55000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 347,
+   "name": "Лвофф 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 348,
+   "name": "Гарди (Апелсин)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 349,
+   "name": "Гарди (Ананас)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 350,
+   "name": "Гарди (Олма лимон)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 351,
+   "name": "Гарди (олма лимон)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 352,
+   "name": "Триллиат 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 60000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 353,
+   "name": "Тбилисоба 0.7 (Вино)",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 85000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 354,
+   "name": "Жатескй гус 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 18000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 359,
+   "name": "Ред Булл",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 30000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 360,
+   "name": "Казак 0,5",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 362,
+   "name": "кулча нон",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 12,
+   "station_clopos_id": 8,
+   "price": 4000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 366,
+   "name": "Напалеон",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 367,
+   "name": "Выпечка",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 368,
+   "name": "Меренгивый",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 369,
+   "name": "Три шоколад",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 370,
+   "name": "Орео",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 371,
+   "name": "Чизкейк",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 372,
+   "name": "Бенто торт",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 373,
+   "name": "Рулет сникерс",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 50000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 374,
+   "name": "Матилда",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 35000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 375,
+   "name": "Опера фист",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 376,
+   "name": "Опера смородина",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 25000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 377,
+   "name": "Сан-себястан",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 2,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 378,
+   "name": "Мороженое 100гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 8,
+   "price": 20000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 379,
+   "name": "Мороженое 50гр",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 8,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 380,
+   "name": "сарбаст филтр 0,45",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 381,
+   "name": "сарбаст без филтр0,45",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 385,
+   "name": "Жиггерман 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 95000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 386,
+   "name": "Айс Теа",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 10000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 387,
+   "name": "Шур балик",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 8,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 389,
+   "name": "КЛУБНИКА ШОКОЛАД",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 10,
+   "station_clopos_id": 8,
+   "price": 12000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 394,
+   "name": "Вачач 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 45000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 395,
+   "name": "Повар услуги",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 200000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 397,
+   "name": "Байкал 0,7",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 6,
+   "station_clopos_id": 2,
+   "price": 90000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 398,
+   "name": "Фамилй 1,0 Л",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 4,
+   "station_clopos_id": 2,
+   "price": 5000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 400,
+   "name": "Чак-чук",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 401,
+   "name": "yashil tarelka",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 100000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 402,
+   "name": "yashil piyola",
+   "type": "goods",
+   "unit": "dona",
+   "category_clopos_id": 7,
+   "station_clopos_id": 2,
+   "price": 40000,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 44,
+   "name": "Гушт куй",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 45,
+   "name": "Мол гушти",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 46,
+   "name": "Думма",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 47,
+   "name": "Помидорча черрй",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 48,
+   "name": "майонез",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 49,
+   "name": "тухум",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 50,
+   "name": "помидор",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 51,
+   "name": "бодринг",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 52,
+   "name": "салат лист",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 53,
+   "name": "сухарик",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 54,
+   "name": "чеснок",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 55,
+   "name": "индейка",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 56,
+   "name": "копченая колбаса",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 57,
+   "name": "салатний масло",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 58,
+   "name": "сабзи",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 59,
+   "name": "карам ок",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 60,
+   "name": "карам кизил",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 61,
+   "name": "сыр",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 62,
+   "name": "бодринг солёний",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 63,
+   "name": "картошка",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 64,
+   "name": "товук гушти",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 65,
+   "name": "грибы",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 66,
+   "name": "укроп",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 67,
+   "name": "редиска",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 68,
+   "name": "турп",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 69,
+   "name": "кенза",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 70,
+   "name": "чеснок кукат",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 71,
+   "name": "пиёз кукат",
+   "type": "ingredient",
+   "unit": "dona",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 72,
+   "name": "чакка",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 73,
+   "name": "лавлаги",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 74,
+   "name": "олибки зелёний",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 75,
+   "name": "оливки маслиний",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 76,
+   "name": "кукуруз",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 77,
+   "name": "нухот яшил",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 78,
+   "name": "нухот",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 79,
+   "name": "банан",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 80,
+   "name": "апелсин",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 81,
+   "name": "олма кизил",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 82,
+   "name": "олма яшил",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 83,
+   "name": "нок",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 84,
+   "name": "киви",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 85,
+   "name": "мандарин",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 86,
+   "name": "узум",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 87,
+   "name": "пиёз оддий",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 88,
+   "name": "солёний бодринг",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 89,
+   "name": "солёний помидор",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 90,
+   "name": "солёний карам",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 91,
+   "name": "лимон",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 92,
+   "name": "курыний рулет",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 93,
+   "name": "мясной рулет",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 94,
+   "name": "шампинион мар",
+   "type": "ingredient",
+   "unit": "l",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 95,
+   "name": "карам пикен",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 356,
+   "name": "КОЛБАСА В",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 383,
+   "name": "туз",
+   "type": "ingredient",
+   "unit": "g",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 384,
+   "name": "Китайский туз",
+   "type": "ingredient",
+   "unit": "g",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 388,
+   "name": "Помидор",
+   "type": "ingredient",
+   "unit": "kg",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  },
+  {
+   "clopos_id": 396,
+   "name": "лимоный сок",
+   "type": "ingredient",
+   "unit": "g",
+   "category_clopos_id": null,
+   "station_clopos_id": null,
+   "price": 0,
+   "sold_by_weight": false
+  }
+ ]
+}

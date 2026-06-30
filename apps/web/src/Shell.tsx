@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
+import { Catalog } from "./Catalog";
 import { trpc } from "./trpc";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -10,13 +11,7 @@ const ROLE_LABEL: Record<string, string> = {
   waiter: "Официант",
 };
 
-type Staff = {
-  id: string;
-  name: string;
-  role: string;
-  active: boolean;
-  hasPin: boolean;
-};
+type Tab = "catalog" | "staff";
 
 export function Shell({
   user,
@@ -25,31 +20,43 @@ export function Shell({
   user: SessionUser;
   onLogout: () => void;
 }) {
-  const [staff, setStaff] = useState<Staff[] | null>(null);
-  const [editing, setEditing] = useState<Staff | null>(null);
-
-  const refresh = useCallback(() => {
-    trpc.users.list
-      .query()
-      .then(setStaff)
-      .catch(() => setStaff(null));
-  }, []);
-
-  useEffect(() => {
-    if (user.role === "director") refresh();
-  }, [user.role, refresh]);
+  const [tab, setTab] = useState<Tab>("catalog");
 
   async function logout() {
     await trpc.auth.logout.mutate().catch(() => {});
     onLogout();
   }
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "catalog", label: "Каталог" },
+    ...(user.role === "director"
+      ? [{ key: "staff" as Tab, label: "Ходимлар" }]
+      : []),
+  ];
+
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-900">
       <header className="flex items-center justify-between border-b bg-white px-5 py-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold">La Limonariya</span>
-          <span className="text-xs text-zinc-400">Навоий</span>
+        <div className="flex items-center gap-5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-bold">La Limonariya</span>
+            <span className="text-xs text-zinc-400">Навоий</span>
+          </div>
+          <nav className="flex gap-1">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                  tab === t.key
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-500 hover:bg-zinc-100"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <span className="font-medium">{user.name}</span>
@@ -62,45 +69,65 @@ export function Shell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl p-5">
-        {user.role === "director" ? (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-zinc-500">
-              Ходимлар ({staff?.length ?? "…"})
-            </h2>
-            <div className="divide-y rounded-xl border bg-white">
-              {staff?.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between px-4 py-2.5"
-                >
-                  <span>{s.name}</span>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-zinc-400">
-                      {ROLE_LABEL[s.role] ?? s.role}
-                    </span>
-                    <span
-                      className={s.hasPin ? "text-green-600" : "text-amber-500"}
-                    >
-                      {s.hasPin ? "PIN ✓" : "PIN йўқ"}
-                    </span>
-                    <button
-                      onClick={() => setEditing(s)}
-                      className="rounded-lg bg-zinc-100 px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-200"
-                    >
-                      {s.hasPin ? "ўзгартир" : "PIN бер"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : (
-          <div className="rounded-xl border bg-white p-8 text-center text-zinc-400">
-            Бўлимлар тез орада (POS, омбор, обвалка...)
-          </div>
-        )}
+      <main className="mx-auto max-w-4xl p-5">
+        {tab === "catalog" ? <Catalog /> : <StaffSection />}
       </main>
+    </div>
+  );
+}
+
+type Staff = {
+  id: string;
+  name: string;
+  role: string;
+  active: boolean;
+  hasPin: boolean;
+};
+
+function StaffSection() {
+  const [staff, setStaff] = useState<Staff[] | null>(null);
+  const [editing, setEditing] = useState<Staff | null>(null);
+
+  const refresh = useCallback(() => {
+    trpc.users.list
+      .query()
+      .then(setStaff)
+      .catch(() => setStaff(null));
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return (
+    <section>
+      <h2 className="mb-3 text-sm font-semibold text-zinc-500">
+        Ходимлар ({staff?.length ?? "…"})
+      </h2>
+      <div className="divide-y rounded-xl border bg-white">
+        {staff?.map((s) => (
+          <div
+            key={s.id}
+            className="flex items-center justify-between px-4 py-2.5"
+          >
+            <span>{s.name}</span>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-zinc-400">
+                {ROLE_LABEL[s.role] ?? s.role}
+              </span>
+              <span className={s.hasPin ? "text-green-600" : "text-amber-500"}>
+                {s.hasPin ? "PIN ✓" : "PIN йўқ"}
+              </span>
+              <button
+                onClick={() => setEditing(s)}
+                className="rounded-lg bg-zinc-100 px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-200"
+              >
+                {s.hasPin ? "ўзгартир" : "PIN бер"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {editing && (
         <SetPinModal
@@ -112,7 +139,7 @@ export function Shell({
           }}
         />
       )}
-    </div>
+    </section>
   );
 }
 
