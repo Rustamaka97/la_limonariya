@@ -197,3 +197,20 @@ export const orderItems = pgTable("order_items", {
   price: integer("price").notNull().default(0),
   qty: integer("qty").notNull().default(1),
 });
+
+export const paymentMethod = pgEnum("payment_method", [
+  "cash",
+  "card",
+  "click",
+  "payme",
+  "debt",
+]);
+
+export const orderPayments = pgTable("order_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  method: paymentMethod("method").notNull(),
+  amount: integer("amount").notNull(),
+});

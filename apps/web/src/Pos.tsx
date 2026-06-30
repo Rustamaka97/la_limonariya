@@ -16,13 +16,16 @@ type OpenOrder = {
   qty: number;
   total: number;
 };
+type PayMethod = "cash" | "card" | "click" | "payme" | "debt";
 type Order = {
   id: string;
+  checkNo: string;
   tableNo: string | null;
   status: string;
   servicePct: number;
   hall: string | null;
   waiter: string | null;
+  createdAt: string;
   items: {
     id: string;
     productId: string | null;
@@ -30,9 +33,18 @@ type Order = {
     price: number;
     qty: number;
   }[];
+  payments: { method: string; amount: number }[];
   subtotal: number;
   service: number;
   total: number;
+};
+
+const PAY_LABEL: Record<string, string> = {
+  cash: "Нақд",
+  card: "Карта",
+  click: "Click",
+  payme: "Payme",
+  debt: "Қарз",
 };
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
@@ -164,6 +176,7 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [picking, setPicking] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [q, setQ] = useState("");
 
   const refresh = useCallback(() => {
@@ -179,13 +192,19 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
     await trpc.pos.addItem.mutate({ orderId: id, productId, delta });
     refresh();
   }
-  async function close() {
-    await trpc.pos.close.mutate({ id });
+  async function pay(method: PayMethod) {
+    if (!order) return;
+    await trpc.pos.close.mutate({
+      id,
+      payments: [{ method, amount: order.total }],
+    });
+    setPaying(false);
     refresh();
   }
 
   if (!order) return <div className="p-6 text-center text-zinc-400">⏳</div>;
-  const closed = order.status === "closed";
+  if (order.status === "closed")
+    return <Chek order={order} onBack={onBack} />;
   const filtered = q
     ? menu.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
     : menu;
@@ -199,7 +218,6 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
         <span className="text-sm">
           <b>{order.hall}</b>
           {order.tableNo && ` · стол ${order.tableNo}`}
-          {closed && <span className="ml-2 text-green-600">🧾 ёпилди</span>}
         </span>
       </div>
 
@@ -218,7 +236,7 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
                     {fmt(it.price)}
                   </td>
                   <td className="px-2 py-2">
-                    {!closed && it.productId ? (
+                    {it.productId ? (
                       <div className="flex items-center justify-center gap-2">
                         <Step onClick={() => add(it.productId!, -1)}>−</Step>
                         <span className="w-6 text-center tabular-nums">
@@ -251,7 +269,32 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
       </div>
 
-      {!closed && (
+      {paying ? (
+        <div className="space-y-3 rounded-xl border bg-white p-4">
+          <p className="text-sm text-zinc-500">
+            Тўлов усули — <b className="text-zinc-900">{fmt(order.total)} so'm</b>
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {(["cash", "card", "click", "payme", "debt"] as PayMethod[]).map(
+              (m) => (
+                <button
+                  key={m}
+                  onClick={() => pay(m)}
+                  className="rounded-lg bg-zinc-100 py-2.5 text-sm font-medium hover:bg-green-100"
+                >
+                  {PAY_LABEL[m]}
+                </button>
+              ),
+            )}
+          </div>
+          <button
+            onClick={() => setPaying(false)}
+            className="w-full py-1 text-xs text-zinc-400"
+          >
+            Бекор
+          </button>
+        </div>
+      ) : (
         <>
           <button
             onClick={() => setPicking((v) => !v)}
@@ -286,7 +329,7 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
           )}
 
           <button
-            onClick={close}
+            onClick={() => setPaying(true)}
             disabled={order.items.length === 0}
             className="w-full rounded-xl bg-zinc-900 py-3 font-medium text-white disabled:opacity-40"
           >
@@ -294,15 +337,92 @@ function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
           </button>
         </>
       )}
+    </div>
+  );
+}
 
-      {closed && (
+function Hr() {
+  return <div className="my-2 border-t border-dashed border-zinc-300" />;
+}
+function Line({ l, r }: { l: string; r: string }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-zinc-500">{l}</span>
+      <span className="tabular-nums">{r}</span>
+    </div>
+  );
+}
+
+function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
+  const d = new Date(order.createdAt);
+  const p = (n: number) => String(n).padStart(2, "0");
+  const when = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return (
+    <div className="space-y-3">
+      <style>{`@media print{body *{visibility:hidden}#chek,#chek *{visibility:visible}#chek{position:absolute;left:0;top:0}}`}</style>
+      <button
+        onClick={onBack}
+        className="text-sm text-zinc-500 hover:text-zinc-900"
+      >
+        ← Заказлар
+      </button>
+      <div
+        id="chek"
+        className="mx-auto max-w-xs rounded-xl border bg-white p-5 font-mono text-[13px] text-zinc-800"
+      >
+        <div className="text-center">
+          <div className="text-base font-bold">La Limonariya</div>
+          <div className="text-xs text-zinc-500">Навоий · (78) 113-77-74</div>
+        </div>
+        <Hr />
+        <div className="text-center font-semibold tracking-wide">
+          ГОСТЕВОЙ СЧЕТ
+        </div>
+        <Hr />
+        <Line l="Зал" r={order.hall ?? "—"} />
+        {order.tableNo && <Line l="Стол" r={order.tableNo} />}
+        <Line l="Заказ №" r={order.checkNo} />
+        <Line l="Очилди" r={when} />
+        <Line l="Официант" r={order.waiter ?? "—"} />
+        <Hr />
+        {order.items.map((it, i) => (
+          <div key={i} className="flex justify-between gap-2">
+            <span className="truncate">{it.name}</span>
+            <span className="whitespace-nowrap tabular-nums">
+              {it.qty}×{fmt(it.price)}
+            </span>
+          </div>
+        ))}
+        <Hr />
+        <Line l="Полная сумма" r={fmt(order.subtotal)} />
+        <Line l={`Плата за услугу ${order.servicePct}%`} r={fmt(order.service)} />
+        <div className="my-1 flex justify-between text-base font-bold">
+          <span>ИТОГО</span>
+          <span className="tabular-nums">{fmt(order.total)}</span>
+        </div>
+        <Hr />
+        {order.payments.map((pm, i) => (
+          <Line key={i} l={PAY_LABEL[pm.method] ?? pm.method} r={fmt(pm.amount)} />
+        ))}
+        <Hr />
+        <div className="text-center text-xs text-zinc-500">
+          СПАСИБО! ЖДЕМ ВАС СНОВА!
+        </div>
+      </div>
+      <div className="mx-auto flex max-w-xs gap-2">
+        <button
+          onClick={() => window.print()}
+          className="flex-1 rounded-xl border py-2.5 text-sm font-medium"
+        >
+          🖨 Чоп этиш
+        </button>
         <button
           onClick={onBack}
-          className="w-full rounded-xl bg-green-600 py-3 font-medium text-white"
+          className="flex-1 rounded-xl bg-green-600 py-2.5 text-sm font-medium text-white"
         >
           Янги заказ
         </button>
-      )}
+      </div>
     </div>
   );
 }

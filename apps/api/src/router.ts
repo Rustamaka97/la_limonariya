@@ -17,6 +17,7 @@ import {
   obvalka,
   obvalkaParts,
   orderItems,
+  orderPayments,
   orders,
   partTypes,
   products,
@@ -587,9 +588,21 @@ export const appRouter = router({
           })
           .from(orderItems)
           .where(eq(orderItems.orderId, input.id));
+        const payments = await db
+          .select({ method: orderPayments.method, amount: orderPayments.amount })
+          .from(orderPayments)
+          .where(eq(orderPayments.orderId, input.id));
         const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
         const service = Math.round((subtotal * head.servicePct) / 100);
-        return { ...head, items, subtotal, service, total: subtotal + service };
+        return {
+          ...head,
+          checkNo: input.id.slice(0, 5).toUpperCase(),
+          items,
+          payments,
+          subtotal,
+          service,
+          total: subtotal + service,
+        };
       }),
 
     create: protectedProcedure
@@ -667,7 +680,19 @@ export const appRouter = router({
       }),
 
     close: protectedProcedure
-      .input(z.object({ id: z.string().uuid() }))
+      .input(
+        z.object({
+          id: z.string().uuid(),
+          payments: z
+            .array(
+              z.object({
+                method: z.enum(["cash", "card", "click", "payme", "debt"]),
+                amount: z.number().int().nonnegative(),
+              }),
+            )
+            .optional(),
+        }),
+      )
       .mutation(async ({ input, ctx }) => {
         await db
           .update(orders)
@@ -677,6 +702,11 @@ export const appRouter = router({
             closedById: ctx.user.id,
           })
           .where(eq(orders.id, input.id));
+        const pays = (input.payments ?? []).filter((p) => p.amount > 0);
+        if (pays.length)
+          await db
+            .insert(orderPayments)
+            .values(pays.map((p) => ({ orderId: input.id, ...p })));
         return { ok: true };
       }),
   }),
