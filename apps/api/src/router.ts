@@ -89,10 +89,17 @@ export const appRouter = router({
     setPin: directorProcedure
       .input(z.object({ userId: z.string().uuid(), pin: pinSchema }))
       .mutation(async ({ input }) => {
-        await db
-          .update(users)
-          .set({ pinHash: hashPin(input.pin), pinLookup: pinLookup(input.pin) })
-          .where(eq(users.id, input.userId));
+        try {
+          await db
+            .update(users)
+            .set({ pinHash: hashPin(input.pin), pinLookup: pinLookup(input.pin) })
+            .where(eq(users.id, input.userId));
+        } catch (e) {
+          if (e && typeof e === "object" && "code" in e && e.code === "23505") {
+            throw new TRPCError({ code: "CONFLICT", message: "Бу PIN банд" });
+          }
+          throw e;
+        }
         return { ok: true };
       }),
   }),

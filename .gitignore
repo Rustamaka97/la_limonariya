@@ -4,6 +4,7 @@
 node_modules/
 dist/
 .env
+docker-compose.override.yml
 
 # Raw Clopos API harvest — contains secrets (terminal tokens, admin_password,
 # device password 11111) + customer/staff PII. Local seed source only, do NOT commit.
