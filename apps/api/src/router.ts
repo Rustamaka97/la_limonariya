@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
@@ -13,6 +13,9 @@ import { SESSION_COOKIE } from "./context";
 import { db } from "./db/client";
 import {
   categories,
+  obvalka,
+  obvalkaParts,
+  partTypes,
   products,
   recipeItems,
   recipes,
@@ -20,6 +23,7 @@ import {
   stations,
   users,
 } from "./db/schema";
+import { computeObvalka } from "./obvalka-calc";
 import { TRPCError } from "@trpc/server";
 import {
   directorProcedure,
@@ -181,6 +185,130 @@ export const appRouter = router({
           .leftJoin(products, eq(recipeItems.componentId, products.id))
           .where(eq(recipeItems.recipeId, input.recipeId))
           .orderBy(recipeItems.sort);
+      }),
+  }),
+
+  obvalka: router({
+    partTypes: protectedProcedure
+      .input(z.object({ carcassType: z.enum(["qoy", "mol"]) }))
+      .query(async ({ input }) => {
+        return db
+          .select({
+            id: partTypes.id,
+            name: partTypes.name,
+            normMinPct: partTypes.normMinPct,
+            normMaxPct: partTypes.normMaxPct,
+            isWaste: partTypes.isWaste,
+          })
+          .from(partTypes)
+          .where(eq(partTypes.carcassType, input.carcassType))
+          .orderBy(partTypes.sort);
+      }),
+
+    list: protectedProcedure.query(async () => {
+      return db
+        .select({
+          id: obvalka.id,
+          carcassType: obvalka.carcassType,
+          weightG: obvalka.weightG,
+          pricePerKg: obvalka.pricePerKg,
+          supplier: obvalka.supplier,
+          createdAt: obvalka.createdAt,
+        })
+        .from(obvalka)
+        .orderBy(desc(obvalka.createdAt))
+        .limit(50);
+    }),
+
+    get: protectedProcedure
+      .input(z.object({ id: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const head = (
+          await db.select().from(obvalka).where(eq(obvalka.id, input.id)).limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        const parts = await db
+          .select({
+            name: obvalkaParts.name,
+            weightG: obvalkaParts.weightG,
+            isWaste: partTypes.isWaste,
+            normMinPct: partTypes.normMinPct,
+            normMaxPct: partTypes.normMaxPct,
+          })
+          .from(obvalkaParts)
+          .leftJoin(partTypes, eq(obvalkaParts.partTypeId, partTypes.id))
+          .where(eq(obvalkaParts.obvalkaId, input.id));
+        const computed = computeObvalka(
+          head.weightG,
+          head.pricePerKg,
+          parts.map((p) => ({
+            name: p.name,
+            weightG: p.weightG,
+            isWaste: p.isWaste ?? false,
+            normMinPct: p.normMinPct,
+            normMaxPct: p.normMaxPct,
+          })),
+        );
+        return {
+          id: head.id,
+          carcassType: head.carcassType,
+          weightG: head.weightG,
+          pricePerKg: head.pricePerKg,
+          supplier: head.supplier,
+          createdAt: head.createdAt,
+          ...computed,
+        };
+      }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          carcassType: z.enum(["qoy", "mol"]),
+          weightG: z.number().int().positive(),
+          pricePerKg: z.number().int().nonnegative(),
+          supplier: z.string().optional(),
+          note: z.string().optional(),
+          parts: z
+            .array(
+              z.object({
+                partTypeId: z.string().uuid(),
+                weightG: z.number().int().nonnegative(),
+              }),
+            )
+            .min(1),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const row = (
+          await db
+            .insert(obvalka)
+            .values({
+              carcassType: input.carcassType,
+              weightG: input.weightG,
+              pricePerKg: input.pricePerKg,
+              supplier: input.supplier ?? null,
+              note: input.note ?? null,
+              createdById: ctx.user.id,
+            })
+            .returning()
+        )[0];
+        if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const ptList = await db
+          .select()
+          .from(partTypes)
+          .where(eq(partTypes.carcassType, input.carcassType));
+        const ptMap = new Map(ptList.map((p) => [p.id, p]));
+        const toInsert = input.parts
+          .filter((p) => p.weightG > 0)
+          .map((p) => ({
+            obvalkaId: row.id,
+            partTypeId: p.partTypeId,
+            name: ptMap.get(p.partTypeId)?.name ?? "?",
+            weightG: p.weightG,
+          }));
+        if (toInsert.length) await db.insert(obvalkaParts).values(toInsert);
+        return { id: row.id };
       }),
   }),
 });

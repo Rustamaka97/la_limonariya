@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -118,4 +119,44 @@ export const recipeItems = pgTable("recipe_items", {
   qtyG: integer("qty_g"),
   stockHint: text("stock_hint"),
   sort: integer("sort").notNull().default(0),
+});
+
+export const carcassType = pgEnum("carcass_type", ["qoy", "mol"]);
+
+export const partTypes = pgTable(
+  "part_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    carcassType: carcassType("carcass_type").notNull(),
+    name: text("name").notNull(),
+    normMinPct: integer("norm_min_pct"),
+    normMaxPct: integer("norm_max_pct"),
+    isWaste: boolean("is_waste").notNull().default(false),
+    sort: integer("sort").notNull().default(0),
+  },
+  (t) => [unique().on(t.carcassType, t.name)],
+);
+
+export const obvalka = pgTable("obvalka", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  carcassType: carcassType("carcass_type").notNull(),
+  weightG: integer("weight_g").notNull(),
+  pricePerKg: integer("price_per_kg").notNull().default(0),
+  supplier: text("supplier"),
+  note: text("note"),
+  branchId: uuid("branch_id").references(() => branches.id),
+  createdById: uuid("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const obvalkaParts = pgTable("obvalka_parts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  obvalkaId: uuid("obvalka_id")
+    .notNull()
+    .references(() => obvalka.id, { onDelete: "cascade" }),
+  partTypeId: uuid("part_type_id").references(() => partTypes.id),
+  name: text("name").notNull(),
+  weightG: integer("weight_g").notNull(),
 });

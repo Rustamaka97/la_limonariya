@@ -36,6 +36,13 @@
       "when": 1782823132528,
       "tag": "0004_living_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782823990188,
+      "tag": "0005_flowery_human_cannonball",
+      "breakpoints": true
     }
   ]
 }

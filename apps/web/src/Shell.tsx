@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
 import { Catalog } from "./Catalog";
+import { Obvalka } from "./Obvalka";
 import { Recipes } from "./Recipes";
 import { trpc } from "./trpc";
 
@@ -12,7 +13,7 @@ const ROLE_LABEL: Record<string, string> = {
   waiter: "Официант",
 };
 
-type Tab = "catalog" | "recipes" | "staff";
+type Tab = "obvalka" | "catalog" | "recipes" | "staff";
 
 export function Shell({
   user,
@@ -21,7 +22,8 @@ export function Shell({
   user: SessionUser;
   onLogout: () => void;
 }) {
-  const [tab, setTab] = useState<Tab>("catalog");
+  const canObvalka = ["director", "manager", "buyer"].includes(user.role);
+  const [tab, setTab] = useState<Tab>(canObvalka ? "obvalka" : "catalog");
 
   async function logout() {
     await trpc.auth.logout.mutate().catch(() => {});
@@ -29,6 +31,7 @@ export function Shell({
   }
 
   const tabs: { key: Tab; label: string }[] = [
+    ...(canObvalka ? [{ key: "obvalka" as Tab, label: "Обвалка" }] : []),
     { key: "catalog", label: "Каталог" },
     { key: "recipes", label: "Рецептлар" },
     ...(user.role === "director"
@@ -72,6 +75,7 @@ export function Shell({
       </header>
 
       <main className="mx-auto max-w-4xl p-5">
+        {tab === "obvalka" && <Obvalka />}
         {tab === "catalog" && <Catalog />}
         {tab === "recipes" && <Recipes />}
         {tab === "staff" && <StaffSection />}
