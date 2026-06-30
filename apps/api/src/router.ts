@@ -35,6 +35,42 @@ import {
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 const pinSchema = z.string().regex(/^\d{4}$/, "PIN — 4 ta raqam");
 
+// Real per-kg meat cost = cost of the latest recorded carcass of this type.
+async function latestMeatCost(ct: "qoy" | "mol"): Promise<number | null> {
+  const head = (
+    await db
+      .select()
+      .from(obvalka)
+      .where(eq(obvalka.carcassType, ct))
+      .orderBy(desc(obvalka.createdAt))
+      .limit(1)
+  )[0];
+  if (!head) return null;
+  const parts = await db
+    .select({
+      name: obvalkaParts.name,
+      weightG: obvalkaParts.weightG,
+      isWaste: partTypes.isWaste,
+      normMinPct: partTypes.normMinPct,
+      normMaxPct: partTypes.normMaxPct,
+    })
+    .from(obvalkaParts)
+    .leftJoin(partTypes, eq(obvalkaParts.partTypeId, partTypes.id))
+    .where(eq(obvalkaParts.obvalkaId, head.id));
+  const c = computeObvalka(
+    head.weightG,
+    head.pricePerKg,
+    parts.map((p) => ({
+      name: p.name,
+      weightG: p.weightG,
+      isWaste: p.isWaste ?? false,
+      normMinPct: p.normMinPct,
+      normMaxPct: p.normMaxPct,
+    })),
+  );
+  return c.costPerKg || null;
+}
+
 export const appRouter = router({
   health: publicProcedure.query(async () => {
     await db.execute(sql`select 1`);
@@ -310,6 +346,82 @@ export const appRouter = router({
         if (toInsert.length) await db.insert(obvalkaParts).values(toInsert);
         return { id: row.id };
       }),
+  }),
+
+  taannarx: router({
+    list: directorProcedure.query(async () => {
+      const meatCost = {
+        qoy: await latestMeatCost("qoy"),
+        mol: await latestMeatCost("mol"),
+      };
+
+      const recs = await db
+        .select({
+          id: recipes.id,
+          name: recipes.name,
+          kind: recipes.kind,
+          category: recipes.category,
+          salePrice: products.price,
+        })
+        .from(recipes)
+        .leftJoin(products, eq(recipes.productId, products.id))
+        .orderBy(recipes.kind, recipes.name);
+
+      const items = await db
+        .select({
+          recipeId: recipeItems.recipeId,
+          qtyG: recipeItems.qtyG,
+          stockHint: recipeItems.stockHint,
+        })
+        .from(recipeItems);
+      const byRecipe = new Map<
+        string,
+        { qtyG: number | null; stockHint: string | null }[]
+      >();
+      for (const it of items) {
+        const a = byRecipe.get(it.recipeId) ?? [];
+        a.push(it);
+        byRecipe.set(it.recipeId, a);
+      }
+
+      const carcassOf = (
+        hint: string | null,
+        category: string | null,
+      ): "qoy" | "mol" | null => {
+        const s = `${hint ?? ""} ${category ?? ""}`;
+        if (!/обвалка|лаҳм|гўшт|гушт/i.test(`${hint ?? ""}`)) return null;
+        if (/мол/i.test(s)) return "mol";
+        if (/қўй|қуй|куй/i.test(s)) return "qoy";
+        return null;
+      };
+
+      const dishes = recs.map((r) => {
+        let meatCostTotal = 0;
+        let meatG = 0;
+        for (const it of byRecipe.get(r.id) ?? []) {
+          const c = carcassOf(it.stockHint, r.category);
+          const cost = c ? meatCost[c] : null;
+          if (c && cost && it.qtyG) {
+            meatCostTotal += (it.qtyG / 1000) * cost;
+            meatG += it.qtyG;
+          }
+        }
+        meatCostTotal = Math.round(meatCostTotal);
+        const salePrice = r.salePrice ?? 0;
+        return {
+          id: r.id,
+          name: r.name,
+          kind: r.kind,
+          salePrice,
+          meatCostTotal,
+          meatG,
+          meatPct:
+            salePrice > 0 ? Math.round((meatCostTotal / salePrice) * 100) : null,
+        };
+      });
+
+      return { meatCost, dishes };
+    }),
   }),
 });
 
