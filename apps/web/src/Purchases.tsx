@@ -122,7 +122,7 @@ export function Purchases() {
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
             placeholder="Етказувчи (ихтиёрий)"
-            className="rounded-lg border px-3 py-1.5 text-sm outline-none focus:border-green-500"
+            className="rounded-lg border px-3 py-1.5 text-sm outline-none focus:border-brand"
           />
         </div>
 
@@ -131,7 +131,7 @@ export function Purchases() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Маҳсулот қидириш… (масло, пиёз, кола…)"
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-green-500"
+            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
           {filtered.length > 0 && (
             <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-white shadow-lg">
@@ -167,7 +167,7 @@ export function Purchases() {
                       setLine(i, { qty: e.target.value.replace(/[^\d.]/g, "") })
                     }
                     placeholder="0"
-                    className="w-16 rounded-lg border px-2 py-1 text-right text-sm outline-none focus:border-green-500"
+                    className="w-16 rounded-lg border px-2 py-1 text-right text-sm outline-none focus:border-brand"
                   />
                   <span className="w-9 text-xs text-zinc-400">
                     {UNIT_LABEL[l.unit] ?? l.unit}
@@ -181,7 +181,7 @@ export function Purchases() {
                       setLine(i, { price: e.target.value.replace(/\D/g, "") })
                     }
                     placeholder="нарх"
-                    className="w-28 rounded-lg border px-2 py-1 text-right text-sm outline-none focus:border-green-500"
+                    className="w-28 rounded-lg border px-2 py-1 text-right text-sm outline-none focus:border-brand"
                   />
                   <span className="text-xs text-zinc-400">сўм</span>
                 </div>
@@ -208,7 +208,7 @@ export function Purchases() {
           <button
             onClick={save}
             disabled={busy || lines.length === 0}
-            className="rounded-lg bg-green-600 px-5 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white disabled:opacity-40"
           >
             {busy ? "…" : "Сақлаш"}
           </button>

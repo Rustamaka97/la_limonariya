@@ -163,7 +163,7 @@ export function Obvalka() {
                   setPw((s) => ({ ...s, [p.id]: e.target.value }))
                 }
                 placeholder="0"
-                className="w-16 rounded-md border px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-green-500"
+                className="w-16 rounded-md border px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-brand"
               />
             </label>
           ))}
@@ -187,7 +187,7 @@ export function Obvalka() {
       <button
         onClick={submit}
         disabled={busy || !wKg || sumKg === 0}
-        className="w-full rounded-xl bg-green-600 py-3 font-medium text-white disabled:opacity-40"
+        className="w-full rounded-xl bg-brand py-3 font-medium text-white disabled:opacity-40"
       >
         Ҳисоблаш ва сақлаш
       </button>

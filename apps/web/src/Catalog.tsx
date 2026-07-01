@@ -114,7 +114,7 @@ export function Catalog({ user }: { user: SessionUser }) {
             </label>
             <button
               onClick={() => setEditing("new")}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white"
+              className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white"
             >
               ＋ Янги маҳсулот
             </button>
@@ -287,7 +287,7 @@ function ProductModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Номи"
-          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
         />
         <div className="flex flex-wrap gap-1.5">
           {TYPES.map((t) => (
@@ -306,12 +306,12 @@ function ProductModal({
             value={price}
             onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))}
             placeholder="Нарх (so'm)"
-            className="flex-1 rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:border-emerald-500"
+            className="flex-1 rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:border-brand"
           />
           <select
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
-            className="rounded-lg border px-2 py-2 text-sm outline-none focus:border-emerald-500"
+            className="rounded-lg border px-2 py-2 text-sm outline-none focus:border-brand"
           >
             {UNITS.map((u) => (
               <option key={u.v} value={u.v}>
@@ -323,7 +323,7 @@ function ProductModal({
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
         >
           <option value="">Категория йўқ</option>
           {categories.map((c) => (
@@ -335,7 +335,7 @@ function ProductModal({
         <select
           value={stationId}
           onChange={(e) => setStationId(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
         >
           <option value="">Станция йўқ</option>
           {stations.map((s) => (
@@ -362,7 +362,7 @@ function ProductModal({
           <button
             onClick={save}
             disabled={busy}
-            className="flex-1 rounded-xl bg-emerald-600 py-2.5 font-medium text-white disabled:opacity-40"
+            className="flex-1 rounded-xl bg-brand py-2.5 font-medium text-white disabled:opacity-40"
           >
             Сақлаш
           </button>
@@ -416,7 +416,7 @@ function CategoryModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Номи"
-          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
         />
         {category && (
           <label className="flex items-center gap-2 text-sm text-zinc-600">
@@ -432,7 +432,7 @@ function CategoryModal({
           <button
             onClick={save}
             disabled={busy}
-            className="flex-1 rounded-xl bg-emerald-600 py-2.5 font-medium text-white disabled:opacity-40"
+            className="flex-1 rounded-xl bg-brand py-2.5 font-medium text-white disabled:opacity-40"
           >
             Сақлаш
           </button>

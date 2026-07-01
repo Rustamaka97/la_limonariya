@@ -89,40 +89,40 @@ export function Shell({
 
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-900">
-      <header className="flex items-center justify-between border-b bg-white px-5 py-3">
-        <div className="flex items-center gap-5">
+      <header className="sticky top-0 z-10 border-b bg-white">
+        <div className="flex items-center justify-between px-4 py-2.5 sm:px-5">
           <div className="flex items-center gap-2">
-            <img src={BRAND.logoSmall} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <img src={BRAND.logoSmall} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold">{BRAND.name}</span>
-              <span className="text-xs text-zinc-400">{BRAND.city}</span>
+              <span className="text-base font-bold sm:text-lg">{BRAND.name}</span>
+              <span className="hidden text-xs text-zinc-400 sm:inline">{BRAND.city}</span>
             </div>
           </div>
-          <nav className="flex flex-wrap gap-1">
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                  tab === t.key
-                    ? "bg-zinc-900 text-white"
-                    : "text-zinc-500 hover:bg-zinc-100"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center gap-2 text-sm sm:gap-3">
+            <span className="hidden font-medium sm:inline">{user.name}</span>
+            <span className="rounded-full bg-brand-cream px-2 py-0.5 text-xs text-brand">
+              {ROLE_LABEL[user.role] ?? user.role}
+            </span>
+            <button onClick={logout} className="text-zinc-400 hover:text-red-500">
+              Чиқиш
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="font-medium">{user.name}</span>
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-            {ROLE_LABEL[user.role] ?? user.role}
-          </span>
-          <button onClick={logout} className="text-zinc-400 hover:text-red-500">
-            Чиқиш
-          </button>
-        </div>
+        <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-t px-4 py-1.5 sm:px-5">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                tab === t.key
+                  ? "bg-brand text-white"
+                  : "text-zinc-500 hover:bg-zinc-100"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
       <main className="mx-auto max-w-4xl p-5">
@@ -264,7 +264,7 @@ function SetPinModal({
           }}
           onKeyDown={(e) => e.key === "Enter" && save()}
           placeholder="••••"
-          className="w-full rounded-xl border px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-green-500"
+          className="w-full rounded-xl border px-4 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-brand"
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
         <div className="flex gap-2">
@@ -277,7 +277,7 @@ function SetPinModal({
           <button
             onClick={save}
             disabled={busy || pin.length !== 4}
-            className="flex-1 rounded-xl bg-green-600 py-2.5 font-medium text-white disabled:opacity-40"
+            className="flex-1 rounded-xl bg-brand py-2.5 font-medium text-white disabled:opacity-40"
           >
             Сақлаш
           </button>

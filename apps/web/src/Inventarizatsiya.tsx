@@ -88,7 +88,7 @@ export function Inventarizatsiya({ user }: { user: SessionUser }) {
             key={s}
             onClick={() => start(s)}
             disabled={starting === s}
-            className="rounded-xl border bg-white p-5 text-left hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-50"
+            className="rounded-xl border bg-white p-5 text-left hover:border-brand hover:bg-brand-cream disabled:opacity-50"
           >
             <div className="text-sm text-zinc-400">Янги санаш</div>
             <div className="text-lg font-semibold">{s}</div>
@@ -311,7 +311,7 @@ function CountView({
                         value={e?.countedQty ?? ""}
                         onChange={(ev) => setEdit(it.id, { countedQty: ev.target.value.replace(/\D/g, "") })}
                         placeholder="—"
-                        className="w-24 rounded-lg border px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-emerald-500"
+                        className="w-24 rounded-lg border px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-brand"
                       />
                     ) : (
                       <span className="tabular-nums">{it.countedQty != null ? fmtQty(it.countedQty, it.unit) : "—"}</span>
@@ -336,7 +336,7 @@ function CountView({
                         value={e?.reason ?? ""}
                         onChange={(ev) => setEdit(it.id, { reason: ev.target.value })}
                         placeholder={needsReason ? "сабаб (мажбурий)" : "изоҳ"}
-                        className={`w-full rounded-lg border px-2 py-1 text-sm outline-none focus:border-emerald-500 ${needsReason ? "border-red-300" : ""}`}
+                        className={`w-full rounded-lg border px-2 py-1 text-sm outline-none focus:border-brand ${needsReason ? "border-red-300" : ""}`}
                       />
                     ) : (
                       <span className="text-xs text-zinc-500">{it.reason ?? "—"}</span>
@@ -357,13 +357,13 @@ function CountView({
             <button onClick={save} disabled={busy} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-40">
               Сақлаш
             </button>
-            <button onClick={submit} disabled={busy} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">
+            <button onClick={submit} disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-40">
               Директорга юбориш
             </button>
           </>
         )}
         {canApprove && (
-          <button onClick={approve} disabled={busy} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">
+          <button onClick={approve} disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-40">
             Тасдиқлаш ва ёзиш
           </button>
         )}

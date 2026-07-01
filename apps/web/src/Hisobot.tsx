@@ -45,7 +45,7 @@ export function Hisobot() {
             key={t.k}
             onClick={() => setSub(t.k)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              sub === t.k ? "bg-emerald-600 text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
+              sub === t.k ? "bg-brand text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
             }`}
           >
             {t.label}
@@ -57,9 +57,9 @@ export function Hisobot() {
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => quick(7)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">7 кун</button>
           <button onClick={() => quick(30)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">30 кун</button>
-          <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-emerald-500" />
+          <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
           <span className="text-zinc-400">—</span>
-          <input type="date" value={to} max={todayBiz()} onChange={(e) => e.target.value && setTo(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-emerald-500" />
+          <input type="date" value={to} max={todayBiz()} onChange={(e) => e.target.value && setTo(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
         </div>
       )}
 

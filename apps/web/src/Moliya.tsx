@@ -63,7 +63,7 @@ export function Moliya() {
             key={t.k}
             onClick={() => setSub(t.k)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              sub === t.k ? "bg-emerald-600 text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
+              sub === t.k ? "bg-brand text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
             }`}
           >
             {t.label}
@@ -113,7 +113,7 @@ function DayPicker({ day, setDay }: { day: string; setDay: (d: string) => void }
         value={day}
         max={todayBiz()}
         onChange={(e) => e.target.value && setDay(e.target.value)}
-        className="rounded-lg border px-3 py-1.5 text-sm outline-none focus:border-emerald-500"
+        className="rounded-lg border px-3 py-1.5 text-sm outline-none focus:border-brand"
       />
       <button onClick={() => setDay(shiftDay(day, 1))} disabled={day >= todayBiz()} className="rounded-lg border px-2.5 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-30">›</button>
       <button onClick={() => setDay(todayBiz())} className="rounded-lg border px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Бугун</button>
@@ -295,9 +295,9 @@ function TillCount({ day }: { day: string }) {
           value={counted}
           onChange={(e) => setCounted(e.target.value.replace(/\D/g, ""))}
           placeholder="реал санаб чиқилган"
-          className="w-44 rounded-lg border px-3 py-1.5 text-sm tabular-nums outline-none focus:border-emerald-500"
+          className="w-44 rounded-lg border px-3 py-1.5 text-sm tabular-nums outline-none focus:border-brand"
         />
-        <button onClick={save} disabled={busy || !counted} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40">Сақлаш</button>
+        <button onClick={save} disabled={busy || !counted} className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40">Сақлаш</button>
         {t.variance != null && (
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${t.variance === 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
             {t.variance === 0 ? "тенг ✓" : `камомад ${t.variance > 0 ? "+" : ""}${fmt(t.variance)}`}
@@ -427,13 +427,13 @@ function ExpenseForm({ day, onSaved }: { day: string; onSaved: () => void }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
           placeholder="сумма (so'm)"
-          className="w-40 rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:border-emerald-500"
+          className="w-40 rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:border-brand"
         />
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="изоҳ (ихтиёрий)"
-          className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
         />
         <label className="flex items-center gap-1.5 text-sm text-zinc-500">
           <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
@@ -442,7 +442,7 @@ function ExpenseForm({ day, onSaved }: { day: string; onSaved: () => void }) {
         <button
           onClick={save}
           disabled={busy || !amount}
-          className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white disabled:opacity-40"
+          className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white disabled:opacity-40"
         >
           Сақлаш
         </button>
@@ -483,9 +483,9 @@ function Pnl() {
         <button onClick={() => quick(1)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">Бугун</button>
         <button onClick={() => quick(7)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">7 кун</button>
         <button onClick={() => quick(30)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">30 кун</button>
-        <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-emerald-500" />
+        <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
         <span className="text-zinc-400">—</span>
-        <input type="date" value={to} max={todayBiz()} onChange={(e) => e.target.value && setTo(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-emerald-500" />
+        <input type="date" value={to} max={todayBiz()} onChange={(e) => e.target.value && setTo(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
       </div>
 
       {err ? (
@@ -568,7 +568,7 @@ function Debts() {
                         },
                       })
                     }
-                    className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white"
+                    className="rounded-lg bg-brand px-3 py-1 text-xs font-medium text-white"
                   >
                     Тўлов
                   </button>
@@ -610,7 +610,7 @@ function Debts() {
                         },
                       })
                     }
-                    className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white"
+                    className="rounded-lg bg-brand px-3 py-1 text-xs font-medium text-white"
                   >
                     Тўлов
                   </button>
@@ -669,7 +669,7 @@ function PayModal({
           inputMode="numeric"
           value={amount}
           onChange={(e) => { setErr(null); setAmount(e.target.value.replace(/\D/g, "")); }}
-          className="w-full rounded-xl border px-4 py-3 text-right text-lg tabular-nums outline-none focus:border-emerald-500"
+          className="w-full rounded-xl border px-4 py-3 text-right text-lg tabular-nums outline-none focus:border-brand"
         />
         {target.showMethod && (
           <div className="flex gap-1.5">
@@ -687,7 +687,7 @@ function PayModal({
         {err && <p className="text-sm text-red-500">{err}</p>}
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 rounded-xl border py-2.5 text-zinc-600">Бекор</button>
-          <button onClick={pay} disabled={busy || !amount} className="flex-1 rounded-xl bg-emerald-600 py-2.5 font-medium text-white disabled:opacity-40">Тўлаш</button>
+          <button onClick={pay} disabled={busy || !amount} className="flex-1 rounded-xl bg-brand py-2.5 font-medium text-white disabled:opacity-40">Тўлаш</button>
         </div>
       </div>
     </div>

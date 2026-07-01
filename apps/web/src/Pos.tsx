@@ -88,7 +88,7 @@ function OrderList({
     <div className="space-y-4">
       <button
         onClick={() => setCreating((v) => !v)}
-        className="w-full rounded-xl bg-green-600 py-3 font-medium text-white"
+        className="w-full rounded-xl bg-brand py-3 font-medium text-white"
       >
         ＋ Янги заказ
       </button>
@@ -109,7 +109,7 @@ function OrderList({
               <button
                 key={o.id}
                 onClick={() => onOpen(o.id)}
-                className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 text-left hover:border-green-400"
+                className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 text-left hover:border-brand"
               >
                 <span>
                   <span className="font-medium">{o.hall}</span>
@@ -162,12 +162,12 @@ function NewOrder({
           value={table}
           onChange={(e) => setTable(e.target.value)}
           placeholder="Стол №"
-          className="w-28 rounded-lg border px-3 py-2 text-sm outline-none focus:border-green-500"
+          className="w-28 rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
         />
         <button
           onClick={() => hallId && onCreate(hallId, table)}
           disabled={!hallId}
-          className="flex-1 rounded-lg bg-green-600 py-2 text-sm font-medium text-white disabled:opacity-40"
+          className="flex-1 rounded-lg bg-brand py-2 text-sm font-medium text-white disabled:opacity-40"
         >
           Очиш
         </button>
@@ -187,6 +187,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [menuCat, setMenuCat] = useState<string | null>(null);
   const [unsent, setUnsent] = useState(0);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -258,9 +259,10 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   if (!order) return <div className="p-6 text-center text-zinc-400">⏳</div>;
   if (order.status === "closed")
     return <Chek order={order} onBack={onBack} />;
-  const filtered = q
-    ? menu.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
-    : menu;
+  const menuCats = [...new Set(menu.map((m) => m.category).filter((c): c is string => !!c))];
+  const filtered = menu
+    .filter((m) => !menuCat || m.category === menuCat)
+    .filter((m) => !q || m.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div className="space-y-4">
@@ -280,36 +282,28 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             Таом қўшинг
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <tbody className="divide-y">
-              {order.items.map((it) => (
-                <tr key={it.id}>
-                  <td className="px-4 py-2">{it.name}</td>
-                  <td className="px-2 py-2 text-right tabular-nums text-zinc-400">
-                    {fmt(it.price)}
-                  </td>
-                  <td className="px-2 py-2">
-                    {it.productId ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <Step onClick={() => add(it.productId!, -1)}>−</Step>
-                        <span className="w-6 text-center tabular-nums">
-                          {it.qty}
-                        </span>
-                        <Step onClick={() => add(it.productId!, 1)}>＋</Step>
-                      </div>
-                    ) : (
-                      <span className="block text-center tabular-nums">
-                        ×{it.qty}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right font-medium tabular-nums">
-                    {fmt(it.price * it.qty)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="divide-y">
+            {order.items.map((it) => (
+              <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">{it.name}</div>
+                  <div className="text-xs text-zinc-400 tabular-nums">{fmt(it.price)}</div>
+                </div>
+                {it.productId ? (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Step onClick={() => add(it.productId!, -1)}>−</Step>
+                    <span className="w-6 text-center tabular-nums">{it.qty}</span>
+                    <Step onClick={() => add(it.productId!, 1)}>＋</Step>
+                  </div>
+                ) : (
+                  <span className="shrink-0 tabular-nums text-zinc-500">×{it.qty}</span>
+                )}
+                <span className="w-20 shrink-0 text-right font-medium tabular-nums">
+                  {fmt(it.price * it.qty)}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
         <div className="space-y-1 border-t bg-zinc-50 px-4 py-3 text-sm">
           <Row label="Оралиқ сумма" value={fmt(order.subtotal)} />
@@ -377,7 +371,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                     key={m}
                     onClick={() => pay(m)}
                     disabled={closing}
-                    className="rounded-lg bg-zinc-100 py-2.5 text-sm font-medium hover:bg-green-100 disabled:opacity-40"
+                    className="rounded-lg bg-zinc-100 py-2.5 text-sm font-medium hover:bg-brand-cream disabled:opacity-40"
                   >
                     {PAY_LABEL[m]}
                   </button>
@@ -451,12 +445,33 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 placeholder="Қидириш..."
                 className="w-full border-b px-4 py-2 text-sm outline-none"
               />
+              <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap border-b px-3 py-2">
+                <button
+                  onClick={() => setMenuCat(null)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+                    menuCat === null ? "bg-brand text-white" : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  Барчаси
+                </button>
+                {menuCats.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setMenuCat(c)}
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+                      menuCat === c ? "bg-brand text-white" : "bg-zinc-100 text-zinc-600"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
               <div className="max-h-72 overflow-auto divide-y">
                 {filtered.slice(0, 80).map((m) => (
                   <button
                     key={m.id}
                     onClick={() => add(m.id, 1)}
-                    className="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-green-50"
+                    className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-brand-cream active:bg-brand-cream"
                   >
                     <span>{m.name}</span>
                     <span className="tabular-nums text-zinc-500">
@@ -464,6 +479,9 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                     </span>
                   </button>
                 ))}
+                {filtered.length === 0 && (
+                  <div className="px-4 py-6 text-center text-sm text-zinc-400">топилмади</div>
+                )}
               </div>
             </div>
           )}
@@ -634,7 +652,7 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
         </button>
         <button
           onClick={onBack}
-          className="flex-1 rounded-xl bg-green-600 py-2.5 text-sm font-medium text-white"
+          className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-medium text-white"
         >
           Янги заказ
         </button>
@@ -653,7 +671,7 @@ function Step({
   return (
     <button
       onClick={onClick}
-      className="grid h-7 w-7 place-items-center rounded-md bg-zinc-100 font-bold text-zinc-700 hover:bg-zinc-200"
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-zinc-100 text-lg font-bold text-zinc-700 active:bg-zinc-200"
     >
       {children}
     </button>
