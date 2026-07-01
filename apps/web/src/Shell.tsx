@@ -125,7 +125,7 @@ export function Shell({
         </nav>
       </header>
 
-      <main className="mx-auto max-w-4xl p-5">
+      <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : "max-w-4xl"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
@@ -155,6 +155,7 @@ type Staff = {
 function StaffSection() {
   const [staff, setStaff] = useState<Staff[] | null>(null);
   const [editing, setEditing] = useState<Staff | null>(null);
+  const [editInfo, setEditInfo] = useState<Staff | "new" | null>(null);
 
   const refresh = useCallback(() => {
     trpc.users.list
@@ -169,17 +170,25 @@ function StaffSection() {
 
   return (
     <section>
-      <h2 className="mb-3 text-sm font-semibold text-zinc-500">
-        Ходимлар ({staff?.length ?? "…"})
-      </h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-zinc-500">
+          Ходимлар ({staff?.length ?? "…"})
+        </h2>
+        <button
+          onClick={() => setEditInfo("new")}
+          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-deep"
+        >
+          ＋ Ходим
+        </button>
+      </div>
       <div className="divide-y rounded-xl border bg-white">
         {staff?.map((s) => (
           <div
             key={s.id}
-            className="flex items-center justify-between px-4 py-2.5"
+            className={`flex items-center justify-between px-4 py-2.5 ${s.active ? "" : "opacity-40"}`}
           >
             <span>{s.name}</span>
-            <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-2 text-xs">
               <span className="text-zinc-400">
                 {ROLE_LABEL[s.role] ?? s.role}
               </span>
@@ -187,10 +196,17 @@ function StaffSection() {
                 {s.hasPin ? "PIN ✓" : "PIN йўқ"}
               </span>
               <button
+                onClick={() => setEditInfo(s)}
+                className="rounded-lg bg-zinc-100 px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-200"
+                title="Исм/рол"
+              >
+                ✎
+              </button>
+              <button
                 onClick={() => setEditing(s)}
                 className="rounded-lg bg-zinc-100 px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-200"
               >
-                {s.hasPin ? "ўзгартир" : "PIN бер"}
+                {s.hasPin ? "PIN" : "PIN бер"}
               </button>
             </div>
           </div>
@@ -207,7 +223,114 @@ function StaffSection() {
           }}
         />
       )}
+      {editInfo && (
+        <StaffModal
+          staff={editInfo === "new" ? null : editInfo}
+          onClose={() => setEditInfo(null)}
+          onSaved={() => {
+            setEditInfo(null);
+            refresh();
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+const STAFF_ROLES: [string, string][] = [
+  ["waiter", "Официант"],
+  ["cashier", "Кассир"],
+  ["buyer", "Бозорчи"],
+  ["manager", "Менежер"],
+  ["director", "Директор"],
+];
+
+function StaffModal({
+  staff,
+  onClose,
+  onSaved,
+}: {
+  staff: Staff | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(staff?.name ?? "");
+  const [role, setRole] = useState(staff?.role ?? "waiter");
+  const [active, setActive] = useState(staff?.active ?? true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    if (!name.trim()) {
+      setError("Исм керак");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      if (staff) {
+        await trpc.users.update.mutate({
+          userId: staff.id,
+          name: name.trim(),
+          role: role as "waiter",
+          active,
+        });
+      } else {
+        await trpc.users.create.mutate({ name: name.trim(), role: role as "waiter" });
+      }
+      onSaved();
+    } catch (e: unknown) {
+      setError(e instanceof Error && e.message ? e.message : "Хато");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-xs space-y-3 rounded-2xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold">{staff ? "Ходимни таҳрирлаш" : "Янги ходим"}</h3>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Исм (масалан: Асадбек)"
+          className="w-full rounded-xl border px-4 py-3 outline-none focus:border-brand"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {STAFF_ROLES.map(([v, l]) => (
+            <button
+              key={v}
+              onClick={() => setRole(v)}
+              className={`rounded-lg px-2.5 py-1 text-sm font-medium ${
+                role === v ? "bg-brand text-white" : "bg-zinc-100 text-zinc-600"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        {staff && (
+          <label className="flex items-center gap-2 text-sm text-zinc-600">
+            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+            Фаол (ўчирилса — тизимга кира олмайди)
+          </label>
+        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 rounded-xl border py-2.5 text-zinc-600">
+            Бекор
+          </button>
+          <button
+            onClick={save}
+            disabled={busy || !name.trim()}
+            className="flex-1 rounded-xl bg-brand py-2.5 font-medium text-white disabled:opacity-40"
+          >
+            Сақлаш
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

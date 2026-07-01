@@ -169,6 +169,16 @@ export const halls = pgTable("halls", {
   sort: integer("sort").notNull().default(0),
 });
 
+export const tables = pgTable("tables", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hallId: uuid("hall_id")
+    .notNull()
+    .references(() => halls.id),
+  name: text("name").notNull(),
+  sort: integer("sort").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+});
+
 export const orderStatus = pgEnum("order_status", ["open", "closed"]);
 
 export const orders = pgTable(
@@ -192,6 +202,8 @@ export const orders = pgTable(
     // distinct from debt (which is revenue expected later); comp never is.
     isComp: boolean("is_comp").notNull().default(false),
     compReason: text("comp_reason"),
+    guests: integer("guests"),
+    note: text("note"),
   },
   (t) => [index("orders_status_closed_idx").on(t.status, t.closedAt)],
 );

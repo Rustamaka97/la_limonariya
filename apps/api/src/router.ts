@@ -34,6 +34,7 @@ import {
   sessions,
   stations,
   stockMovements,
+  tables,
   tillCounts,
   users,
 } from "./db/schema";
@@ -854,6 +855,39 @@ export const appRouter = router({
         }
         return { ok: true };
       }),
+
+    create: directorProcedure
+      .input(
+        z.object({
+          name: z.string().trim().min(1),
+          role: z.enum(["director", "manager", "buyer", "cashier", "waiter"]),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const row = (
+          await db
+            .insert(users)
+            .values({ name: input.name, role: input.role })
+            .returning({ id: users.id })
+        )[0];
+        return { id: row?.id };
+      }),
+
+    update: directorProcedure
+      .input(
+        z.object({
+          userId: z.string().uuid(),
+          name: z.string().trim().min(1).optional(),
+          role: z.enum(["director", "manager", "buyer", "cashier", "waiter"]).optional(),
+          active: z.boolean().optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const { userId, ...patch } = input;
+        if (Object.keys(patch).length === 0) return { ok: true };
+        await db.update(users).set(patch).where(eq(users.id, userId));
+        return { ok: true };
+      }),
   }),
 
   catalog: router({
@@ -929,6 +963,7 @@ export const appRouter = router({
               stationId: products.stationId,
               category: categories.name,
               station: stations.name,
+              hasRecipe: sql<boolean>`exists (select 1 from ${recipes} where ${recipes.productId} = ${products.id})`,
             })
             .from(products)
             .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -992,6 +1027,35 @@ export const appRouter = router({
           await db.update(products).set(patch).where(eq(products.id, id));
           return { ok: true };
         }),
+
+      get: protectedProcedure
+        .input(z.object({ id: z.string().uuid() }))
+        .query(async ({ input }) => {
+          const row = (
+            await db
+              .select({
+                id: products.id,
+                name: products.name,
+                type: products.type,
+                unit: products.unit,
+                price: products.price,
+                costPrice: products.costPrice,
+                soldByWeight: products.soldByWeight,
+                active: products.active,
+                categoryId: products.categoryId,
+                stationId: products.stationId,
+                category: categories.name,
+                station: stations.name,
+                hasRecipe: sql<boolean>`exists (select 1 from ${recipes} where ${recipes.productId} = ${products.id})`,
+              })
+              .from(products)
+              .leftJoin(categories, eq(products.categoryId, categories.id))
+              .leftJoin(stations, eq(products.stationId, stations.id))
+              .where(eq(products.id, input.id))
+              .limit(1)
+          )[0];
+          return row ?? null;
+        }),
     }),
 
     stations: protectedProcedure.query(async () => {
@@ -1001,6 +1065,116 @@ export const appRouter = router({
         .orderBy(stations.name);
     }),
 
+    // Products usable as tech-card lines: raw + carcass parts + semi-finished.
+    components: protectedProcedure.query(async () => {
+      return db
+        .select({ id: products.id, name: products.name, unit: products.unit, type: products.type })
+        .from(products)
+        .where(
+          and(eq(products.active, true), inArray(products.type, ["ingredient", "part", "semi"])),
+        )
+        .orderBy(products.type, products.name);
+    }),
+
+    recipeForProduct: protectedProcedure
+      .input(z.object({ productId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const head = (
+          await db
+            .select({ id: recipes.id, yieldG: recipes.yieldG })
+            .from(recipes)
+            .where(eq(recipes.productId, input.productId))
+            .limit(1)
+        )[0];
+        if (!head) return null;
+        const items = await db
+          .select({
+            componentId: recipeItems.componentId,
+            componentName: recipeItems.componentName,
+            qtyG: recipeItems.qtyG,
+          })
+          .from(recipeItems)
+          .where(eq(recipeItems.recipeId, head.id))
+          .orderBy(recipeItems.sort);
+        return { yieldG: head.yieldG, items };
+      }),
+
+    recipeUpsert: directorProcedure
+      .input(
+        z.object({
+          productId: z.string().uuid(),
+          yieldG: z.number().int().positive().nullable().optional(),
+          items: z
+            .array(
+              z
+                .object({
+                  componentId: z.string().uuid().optional(),
+                  componentName: z.string().trim().min(1).optional(),
+                  qtyG: z.number().int().positive(),
+                })
+                .refine((it) => !!it.componentId || !!it.componentName, {
+                  message: "component required",
+                }),
+            )
+            .min(1),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        return db.transaction(async (tx) => {
+          const p = (
+            await tx
+              .select({ id: products.id, name: products.name })
+              .from(products)
+              .where(eq(products.id, input.productId))
+              .limit(1)
+          )[0];
+          if (!p) throw new TRPCError({ code: "NOT_FOUND" });
+          const ids = input.items
+            .map((i) => i.componentId)
+            .filter((x): x is string => !!x);
+          const comps = ids.length
+            ? await tx
+                .select({ id: products.id, name: products.name })
+                .from(products)
+                .where(inArray(products.id, ids))
+            : [];
+          const nameById = new Map(comps.map((c) => [c.id, c.name]));
+          let recipeId = (
+            await tx
+              .select({ id: recipes.id })
+              .from(recipes)
+              .where(eq(recipes.productId, input.productId))
+              .limit(1)
+          )[0]?.id;
+          if (recipeId) {
+            await tx
+              .update(recipes)
+              .set({ name: p.name, yieldG: input.yieldG ?? null })
+              .where(eq(recipes.id, recipeId));
+            await tx.delete(recipeItems).where(eq(recipeItems.recipeId, recipeId));
+          } else {
+            recipeId = (
+              await tx
+                .insert(recipes)
+                .values({ productId: p.id, name: p.name, yieldG: input.yieldG ?? null })
+                .returning({ id: recipes.id })
+            )[0]!.id;
+          }
+          await tx.insert(recipeItems).values(
+            input.items.map((it, i) => ({
+              recipeId: recipeId!,
+              componentId: it.componentId ?? null,
+              componentName: it.componentId
+                ? nameById.get(it.componentId) ?? it.componentName ?? "—"
+                : it.componentName ?? "—",
+              qtyG: it.qtyG,
+              sort: i,
+            })),
+          );
+          return { ok: true };
+        });
+      }),
+
     recipes: protectedProcedure.query(async () => {
       return db
         .select({
@@ -1009,6 +1183,7 @@ export const appRouter = router({
           kind: recipes.kind,
           category: recipes.category,
           yieldG: recipes.yieldG,
+          productId: recipes.productId,
           linked: sql<boolean>`${recipes.productId} is not null`,
         })
         .from(recipes)
@@ -1283,6 +1458,19 @@ export const appRouter = router({
         .orderBy(halls.sort);
     }),
 
+    tables: protectedProcedure.query(async () => {
+      return db
+        .select({
+          id: tables.id,
+          hallId: tables.hallId,
+          name: tables.name,
+          sort: tables.sort,
+        })
+        .from(tables)
+        .where(eq(tables.active, true))
+        .orderBy(tables.sort);
+    }),
+
     menu: protectedProcedure.query(async () => {
       return db
         .select({
@@ -1302,6 +1490,8 @@ export const appRouter = router({
         .select({
           id: orders.id,
           tableNo: orders.tableNo,
+          hallId: orders.hallId,
+          guests: orders.guests,
           createdAt: orders.createdAt,
           hall: halls.name,
           waiter: users.name,
@@ -1332,6 +1522,8 @@ export const appRouter = router({
               closedAt: orders.closedAt,
               isComp: orders.isComp,
               compReason: orders.compReason,
+              guests: orders.guests,
+              note: orders.note,
               hall: halls.name,
               waiter: users.name,
             })
@@ -1371,7 +1563,12 @@ export const appRouter = router({
 
     create: protectedProcedure
       .input(
-        z.object({ hallId: z.string().uuid(), tableNo: z.string().optional() }),
+        z.object({
+          hallId: z.string().uuid(),
+          tableNo: z.string().optional(),
+          guests: z.number().int().positive().max(999).optional(),
+          note: z.string().max(500).optional(),
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const hall = (
@@ -1384,6 +1581,8 @@ export const appRouter = router({
             .values({
               hallId: hall.id,
               tableNo: input.tableNo ?? null,
+              guests: input.guests ?? null,
+              note: input.note?.trim() || null,
               waiterId: ctx.user.id,
               servicePct: hall.servicePct,
             })
@@ -1391,6 +1590,28 @@ export const appRouter = router({
         )[0];
         if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         return { id: row.id };
+      }),
+
+    updateMeta: protectedProcedure
+      .input(
+        z.object({
+          id: z.string().uuid(),
+          guests: z.number().int().nonnegative().max(999).optional(),
+          note: z.string().max(500).optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const patch: { guests?: number | null; note?: string | null } = {};
+        if (input.guests !== undefined) patch.guests = input.guests || null;
+        if (input.note !== undefined) patch.note = input.note.trim() || null;
+        if (Object.keys(patch).length === 0) return { ok: true };
+        const done = await db
+          .update(orders)
+          .set(patch)
+          .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
+          .returning({ id: orders.id });
+        if (!done.length) throw new TRPCError({ code: "NOT_FOUND" });
+        return { ok: true };
       }),
 
     addItem: protectedProcedure
@@ -1402,45 +1623,52 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input }) => {
-        const existing = (
-          await db
-            .select()
-            .from(orderItems)
-            .where(
-              and(
-                eq(orderItems.orderId, input.orderId),
-                eq(orderItems.productId, input.productId),
-              ),
-            )
-            .limit(1)
-        )[0];
-        if (existing) {
-          const qty = existing.qty + input.delta;
-          if (qty <= 0)
-            await db.delete(orderItems).where(eq(orderItems.id, existing.id));
-          else
-            await db
-              .update(orderItems)
-              .set({ qty })
-              .where(eq(orderItems.id, existing.id));
-        } else if (input.delta > 0) {
-          const p = (
-            await db
+        // Serialize concurrent adds of the SAME product to one order (rapid
+        // double-taps) so they merge into one row instead of racing two inserts.
+        return db.transaction(async (tx) => {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${`${input.orderId}:${input.productId}`}))`,
+          );
+          const existing = (
+            await tx
               .select()
-              .from(products)
-              .where(eq(products.id, input.productId))
+              .from(orderItems)
+              .where(
+                and(
+                  eq(orderItems.orderId, input.orderId),
+                  eq(orderItems.productId, input.productId),
+                ),
+              )
               .limit(1)
           )[0];
-          if (!p) throw new TRPCError({ code: "NOT_FOUND" });
-          await db.insert(orderItems).values({
-            orderId: input.orderId,
-            productId: p.id,
-            name: p.name,
-            price: p.price,
-            qty: input.delta,
-          });
-        }
-        return { ok: true };
+          if (existing) {
+            const qty = existing.qty + input.delta;
+            if (qty <= 0)
+              await tx.delete(orderItems).where(eq(orderItems.id, existing.id));
+            else
+              await tx
+                .update(orderItems)
+                .set({ qty })
+                .where(eq(orderItems.id, existing.id));
+          } else if (input.delta > 0) {
+            const p = (
+              await tx
+                .select()
+                .from(products)
+                .where(eq(products.id, input.productId))
+                .limit(1)
+            )[0];
+            if (!p) throw new TRPCError({ code: "NOT_FOUND" });
+            await tx.insert(orderItems).values({
+              orderId: input.orderId,
+              productId: p.id,
+              name: p.name,
+              price: p.price,
+              qty: input.delta,
+            });
+          }
+          return { ok: true };
+        });
       }),
 
     sendToKitchen: protectedProcedure

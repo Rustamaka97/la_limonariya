@@ -32,8 +32,8 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      "/trpc": "http://localhost:3000",
-      "/api": "http://localhost:3000",
+      "/trpc": process.env.VITE_API_TARGET || "http://localhost:3000",
+      "/api": process.env.VITE_API_TARGET || "http://localhost:3000",
     },
   },
 });

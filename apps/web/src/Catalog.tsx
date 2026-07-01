@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
 import { trpc } from "./trpc";
 
-type Category = { id: string; name: string; position: number; active: boolean };
-type Product = {
+export type Category = { id: string; name: string; position: number; active: boolean };
+export type Product = {
   id: string;
   name: string;
   type: string;
@@ -17,8 +17,10 @@ type Product = {
   stationId: string | null;
   category: string | null;
   station: string | null;
+  hasRecipe: boolean;
 };
-type Station = { id: string; name: string };
+export type Station = { id: string; name: string };
+type Component = { id: string; name: string; unit: string; type: string };
 
 const TYPE_BADGE: Record<string, { label: string; cls: string }> = {
   dish: { label: "Таом", cls: "bg-emerald-100 text-emerald-700" },
@@ -138,7 +140,14 @@ export function Catalog({ user }: { user: SessionUser }) {
               const b = TYPE_BADGE[p.type];
               return (
                 <tr key={p.id} className={!p.active ? "opacity-40" : ""}>
-                  <td className="px-4 py-2">{p.name}</td>
+                  <td className="px-4 py-2">
+                    {p.name}
+                    {(p.type === "dish" || p.type === "semi") && !p.hasRecipe && (
+                      <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                        техкарта йўқ
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`rounded px-1.5 py-0.5 text-xs ${b?.cls ?? ""}`}>
                       {b?.label ?? p.type}
@@ -211,7 +220,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
-function ProductModal({
+export function ProductModal({
   product,
   categories,
   stations,
@@ -234,6 +243,30 @@ function ProductModal({
   const [active, setActive] = useState(product?.active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [components, setComponents] = useState<Component[]>([]);
+  const [yieldG, setYieldG] = useState("");
+  const [items, setItems] = useState<{ componentId: string; componentName: string; qtyG: string }[]>([]);
+  const isRecipeType = type === "dish" || type === "semi";
+
+  useEffect(() => {
+    trpc.catalog.components.query().then(setComponents).catch(() => {});
+    if (product) {
+      trpc.catalog.recipeForProduct
+        .query({ productId: product.id })
+        .then((r) => {
+          if (!r) return;
+          setYieldG(r.yieldG ? String(r.yieldG) : "");
+          setItems(
+            r.items.map((i) => ({
+              componentId: i.componentId ?? "",
+              componentName: i.componentName ?? "",
+              qtyG: i.qtyG ? String(i.qtyG) : "",
+            })),
+          );
+        })
+        .catch(() => {});
+    }
+  }, [product]);
 
   async function save() {
     if (!name.trim()) {
@@ -244,6 +277,7 @@ function ProductModal({
     setErr(null);
     try {
       const priceNum = Math.round(Number(price) || 0);
+      let productId = product?.id;
       if (product) {
         await trpc.catalog.products.update.mutate({
           id: product.id,
@@ -257,7 +291,7 @@ function ProductModal({
           active,
         });
       } else {
-        await trpc.catalog.products.create.mutate({
+        const created = await trpc.catalog.products.create.mutate({
           name: name.trim(),
           type: type as "dish",
           unit: unit as "dona",
@@ -266,6 +300,22 @@ function ProductModal({
           stationId: stationId || undefined,
           soldByWeight,
         });
+        productId = created.id;
+      }
+      if (isRecipeType && productId) {
+        const clean = items
+          .map((i) => ({
+            componentId: i.componentId || undefined,
+            componentName: i.componentId ? undefined : i.componentName.trim() || undefined,
+            qtyG: Math.round(Number(i.qtyG) || 0),
+          }))
+          .filter((i) => (i.componentId || i.componentName) && i.qtyG > 0);
+        if (clean.length)
+          await trpc.catalog.recipeUpsert.mutate({
+            productId,
+            yieldG: yieldG ? Math.round(Number(yieldG)) : null,
+            items: clean,
+          });
       }
       onSaved();
     } catch (e: unknown) {
@@ -278,7 +328,7 @@ function ProductModal({
   return (
     <div className="fixed inset-0 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5"
+        className="max-h-[90vh] w-full max-w-sm space-y-3 overflow-auto rounded-2xl bg-white p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-semibold">{product ? "Маҳсулотни таҳрирлаш" : "Янги маҳсулот"}</h3>
@@ -348,6 +398,74 @@ function ProductModal({
           <input type="checkbox" checked={soldByWeight} onChange={(e) => setSoldByWeight(e.target.checked)} />
           Оғирлик бўйича сотилади (масалан, балиқ)
         </label>
+
+        {isRecipeType && (
+          <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-zinc-700">Техкарта (таннарх учун)</span>
+              <input
+                inputMode="numeric"
+                value={yieldG}
+                onChange={(e) => setYieldG(e.target.value.replace(/\D/g, ""))}
+                placeholder="Чиқиш, г"
+                className="w-20 rounded-lg border px-2 py-1 text-xs tabular-nums outline-none focus:border-brand"
+              />
+            </div>
+            {items.map((it, idx) => {
+              const unlinked = !it.componentId && !!it.componentName;
+              return (
+                <div key={idx} className="flex items-center gap-1.5">
+                  <select
+                    value={it.componentId}
+                    onChange={(e) =>
+                      setItems((rows) => rows.map((r, i) => (i === idx ? { ...r, componentId: e.target.value } : r)))
+                    }
+                    className={`min-w-0 flex-1 rounded-lg border bg-white px-2 py-1.5 text-sm outline-none focus:border-brand ${
+                      unlinked ? "border-amber-400 text-amber-700" : ""
+                    }`}
+                  >
+                    <option value="">{unlinked ? `⚠ ${it.componentName} — боғланг` : "Ингредиент…"}</option>
+                    {components.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    inputMode="numeric"
+                    value={it.qtyG}
+                    onChange={(e) =>
+                      setItems((rows) =>
+                        rows.map((r, i) => (i === idx ? { ...r, qtyG: e.target.value.replace(/\D/g, "") } : r)),
+                      )
+                    }
+                    placeholder="г"
+                    className="w-14 rounded-lg border px-2 py-1.5 text-sm tabular-nums outline-none focus:border-brand"
+                  />
+                  <button
+                    onClick={() => setItems((rows) => rows.filter((_, i) => i !== idx))}
+                    className="shrink-0 px-1 text-lg leading-none text-zinc-300 hover:text-red-500"
+                    title="Ўчириш"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              onClick={() => setItems((rows) => [...rows, { componentId: "", componentName: "", qtyG: "" }])}
+              className="w-full rounded-lg border border-dashed border-amber-300 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100/60"
+            >
+              ＋ Ингредиент қўшиш
+            </button>
+            {items.filter((i) => (i.componentId || i.componentName) && i.qtyG).length === 0 && (
+              <p className="text-xs text-amber-700">
+                Техкартасиз таомнинг таннархи ҳисобланмайди — «сохта фойда» (Клопусдаги хато).
+              </p>
+            )}
+          </div>
+        )}
+
         {product && (
           <label className="flex items-center gap-2 text-sm text-zinc-600">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
