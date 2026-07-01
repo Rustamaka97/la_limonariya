@@ -3,6 +3,7 @@ import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { reportError } from "./alert";
 import { createContext } from "./context";
+import { startDigestScheduler } from "./digest";
 import { appRouter } from "./router";
 
 // Failures must never be silent (see docs — pre-launch audit finding): a crash
@@ -27,5 +28,7 @@ const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`api listening on :${info.port}`);
 });
+
+startDigestScheduler();
 
 export type { AppRouter } from "./router";

@@ -93,6 +93,8 @@ export const products = pgTable("products", {
   price: integer("price").notNull().default(0),
   costPrice: integer("cost_price"),
   soldByWeight: boolean("sold_by_weight").notNull().default(false),
+  // NULL = no expiry control; set (days) → FIFO-aged stock older than this flags
+  shelfLifeDays: integer("shelf_life_days"),
   active: boolean("active").notNull().default(true),
   branchId: uuid("branch_id").references(() => branches.id),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -412,6 +414,114 @@ export const inventoryCounts = pgTable("inventory_counts", {
   approvedById: uuid("approved_by_id").references(() => users.id),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
 });
+
+// Кассир сменаси (X/Z): one row per till shift. X = live totals of the OPEN
+// shift; Z = close with a physical cash count. expectedCash is SNAPSHOTTED at
+// close (openingFloat + cash in − cash out over [openedAt, closedAt]) so later
+// edits to expenses/orders can't retro-shift a signed-off Z report.
+export const shiftStatus = pgEnum("shift_status", ["open", "closed"]);
+
+export const shifts = pgTable(
+  "shifts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    status: shiftStatus("status").notNull().default("open"),
+    openingFloat: integer("opening_float").notNull().default(0),
+    openedById: uuid("opened_by_id").references(() => users.id),
+    openedAt: timestamp("opened_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    closedById: uuid("closed_by_id").references(() => users.id),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    countedCash: integer("counted_cash"),
+    expectedCash: integer("expected_cash"),
+    note: text("note"),
+    branchId: uuid("branch_id").references(() => branches.id),
+  },
+  (t) => [index("shifts_status_idx").on(t.status, t.openedAt)],
+);
+
+// Кун ичи кассадан пул олиш (инкассация) — тешик №15: every mid-shift cash
+// withdrawal is a written, attributed action; expected-cash math subtracts it.
+export const cashOuts = pgTable(
+  "cash_outs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shiftId: uuid("shift_id")
+      .notNull()
+      .references(() => shifts.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    reason: text("reason").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("co_shift_idx").on(t.shiftId)],
+);
+
+// POS audit journal — тешик №13/№22: append-only record of order edits that
+// destroy information (item removals). Who removed what, when, from which order.
+export const orderEvents = pgTable(
+  "order_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(), // 'item_removed' (qty>0 removed) — future: 'reprint', ...
+    productId: uuid("product_id").references(() => products.id),
+    name: text("name"),
+    qty: integer("qty"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("oe_created_idx").on(t.kind, t.createdAt)],
+);
+
+// Сихлаш батчи — 3-босқич занжирнинг ўрта бўғини (тешик №4): kitchen states
+// "N g meat → M skewers of dish X". CONTROL record only — no stock movement
+// (carcass meat is deducted at sale via recipes; double-writing here would
+// double-deduct). normG is snapshotted from the recipe at creation time.
+export const skewerBatches = pgTable(
+  "skewer_batches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    meatG: integer("meat_g").notNull(),
+    skewerCount: integer("skewer_count").notNull(),
+    normG: integer("norm_g"), // recipe meat grams per skewer at creation; NULL = recipe unknown
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("sb_created_idx").on(t.createdAt)],
+);
+
+// Витрина қолдиғи — тешик №5/№8: end-of-day physical count per шашлик product.
+// Expected = yesterday's count + today skewered − today sold; mismatch flags.
+export const vitrinaCounts = pgTable(
+  "vitrina_counts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dayKey: text("day_key").notNull(), // businessDayBounds.dayKey
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    countedQty: integer("counted_qty").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.dayKey, t.productId)],
+);
 
 // theoreticalQty is a SNAPSHOT taken at startCount (base units: g/ml/dona) so
 // later sales during counting don't retro-shift it. countedQty filled by manager.

@@ -12,6 +12,7 @@ type Product = {
   price: number;
   costPrice: number | null;
   soldByWeight: boolean;
+  shelfLifeDays: number | null;
   active: boolean;
   categoryId: string | null;
   stationId: string | null;
@@ -231,6 +232,9 @@ function ProductModal({
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [stationId, setStationId] = useState(product?.stationId ?? "");
   const [soldByWeight, setSoldByWeight] = useState(product?.soldByWeight ?? false);
+  const [shelfLife, setShelfLife] = useState(
+    product?.shelfLifeDays ? String(product.shelfLifeDays) : "",
+  );
   const [active, setActive] = useState(product?.active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -254,6 +258,7 @@ function ProductModal({
           categoryId: categoryId || null,
           stationId: stationId || null,
           soldByWeight,
+          shelfLifeDays: Number(shelfLife) > 0 ? Number(shelfLife) : null,
           active,
         });
       } else {
@@ -348,6 +353,18 @@ function ProductModal({
           <input type="checkbox" checked={soldByWeight} onChange={(e) => setSoldByWeight(e.target.checked)} />
           Оғирлик бўйича сотилади (масалан, балиқ)
         </label>
+        {product && ["ingredient", "part", "goods"].includes(type) && (
+          <div className="flex items-center gap-2 text-sm text-zinc-600">
+            <span className="flex-1">Сақлаш муддати (кун, бўш = назорат йўқ)</span>
+            <input
+              inputMode="numeric"
+              value={shelfLife}
+              onChange={(e) => setShelfLife(e.target.value.replace(/\D/g, "").slice(0, 3))}
+              placeholder="—"
+              className="w-16 rounded-lg border px-2 py-1.5 text-center tabular-nums outline-none focus:border-brand"
+            />
+          </div>
+        )}
         {product && (
           <label className="flex items-center gap-2 text-sm text-zinc-600">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />

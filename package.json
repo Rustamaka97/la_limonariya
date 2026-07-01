@@ -2,7 +2,9 @@
   "name": "la-limonariya",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "pnpm --parallel -r --stream dev",
@@ -12,5 +14,10 @@
     "db:migrate": "pnpm --filter @limon/api db:migrate",
     "up": "docker compose up -d --build",
     "down": "docker compose down"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

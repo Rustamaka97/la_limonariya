@@ -15,6 +15,7 @@ import {
 import { SESSION_COOKIE } from "./context";
 import { db } from "./db/client";
 import {
+  cashOuts,
   categories,
   debtPayments,
   expenses,
@@ -25,6 +26,7 @@ import {
   kitchenTickets,
   obvalka,
   obvalkaParts,
+  orderEvents,
   orderItems,
   orderPayments,
   orders,
@@ -35,10 +37,13 @@ import {
   recipeItems,
   recipes,
   sessions,
+  shifts,
+  skewerBatches,
   stations,
   stockMovements,
   tillCounts,
   users,
+  vitrinaCounts,
 } from "./db/schema";
 import { computeObvalka } from "./obvalka-calc";
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
@@ -233,7 +238,9 @@ async function cogsForWindow(start: Date, end: Date) {
 // Shared revenue/COGS/OPEX aggregation over a UTC window — used by dayClose + pnl.
 const TILL_FLOAT = 50_000; // owner-confirmed start-of-shift register float
 
-async function expectedCashForWindow(start: Date, end: Date) {
+// Raw cash in/out over a window (no float) — shared by the day-level till count
+// and the shift-level X/Z math, which add their own opening float on top.
+async function cashFlowForWindow(start: Date, end: Date) {
   const cashRevenue = Number(
     (
       await db
@@ -278,8 +285,56 @@ async function expectedCashForWindow(start: Date, end: Date) {
         )
     )[0]?.s ?? 0,
   );
-  const expectedCash = TILL_FLOAT + cashRevenue + cashDebtRepaid - cashExpenses;
-  return { cashRevenue, cashDebtRepaid, cashExpenses, expectedCash };
+  return { cashRevenue, cashDebtRepaid, cashExpenses };
+}
+
+async function expectedCashForWindow(start: Date, end: Date) {
+  const flow = await cashFlowForWindow(start, end);
+  return {
+    ...flow,
+    expectedCash:
+      TILL_FLOAT + flow.cashRevenue + flow.cashDebtRepaid - flow.cashExpenses,
+  };
+}
+
+// Live X-report numbers for one shift: cash flow since openedAt (+ that shift's
+// own opening float − recorded cash-outs) plus the non-cash payment breakdown.
+async function shiftTotals(shift: {
+  id: string;
+  openedAt: Date;
+  closedAt: Date | null;
+  openingFloat: number;
+}) {
+  const end = shift.closedAt ?? new Date();
+  const flow = await cashFlowForWindow(shift.openedAt, end);
+  const outs = await db
+    .select({
+      id: cashOuts.id,
+      amount: cashOuts.amount,
+      reason: cashOuts.reason,
+      createdAt: cashOuts.createdAt,
+      by: users.name,
+    })
+    .from(cashOuts)
+    .leftJoin(users, eq(cashOuts.createdById, users.id))
+    .where(eq(cashOuts.shiftId, shift.id))
+    .orderBy(desc(cashOuts.createdAt));
+  const cashOutTotal = outs.reduce((s, o) => s + o.amount, 0);
+  const rev = await revenueForWindow(shift.openedAt, end);
+  return {
+    ...flow,
+    cashOutTotal,
+    cashOutList: outs,
+    expectedCash:
+      shift.openingFloat +
+      flow.cashRevenue +
+      flow.cashDebtRepaid -
+      flow.cashExpenses -
+      cashOutTotal,
+    revenue: rev.revenue,
+    byMethod: rev.byMethod,
+    checks: rev.checks,
+  };
 }
 
 // Lightweight revenue-only aggregation (no COGS) for trend/report views where
@@ -349,7 +404,7 @@ async function nonRevenueOrderIds(start: Date, end: Date): Promise<Set<string>> 
   return new Set([...debtRows.map((r) => r.orderId), ...compRows.map((r) => r.orderId)]);
 }
 
-async function debtTotals() {
+export async function debtTotals() {
   const supplierTotal = Number(
     (
       await db
@@ -378,7 +433,7 @@ async function debtTotals() {
 
 // Stockable products (what a physical count covers) — LEFT JOIN so zero-movement
 // products still appear with onHand=0 (stock.onHand's INNER JOIN would omit them).
-async function stockableOnHand(exec: { select: typeof db.select } = db) {
+export async function stockableOnHand(exec: { select: typeof db.select } = db) {
   const rows = await exec
     .select({
       id: products.id,
@@ -407,8 +462,233 @@ const BLENDED_COGS_PCT = 0.526;
 const THIN_MARGIN_PCT = 60;
 const MEAT_PRICE_SPIKE_PCT = 1.15;
 const COMP_DAILY_CAP = 500_000; // owner-stated daily текин/ходим volume limit
+const STALE_ORDER_MS = 2 * 60 * 60 * 1000; // тешик №14: стол 2 соатдан бери ёпилмаган
+const REMOVAL_WEEK_FLAG = 10; // тешик №13: шунчадан кўп ўчириш/ҳафта = тренд
+const SKEWER_NORM_TOLERANCE = 0.1; // тешик №4: норма граммдан ±10% четлашиш
 
-async function computeSignals() {
+// Тешик №14: очиқ стол сигнали — мижоз тўламай кетган бўлиши мумкин.
+async function staleOpenOrders() {
+  const cutoff = new Date(Date.now() - STALE_ORDER_MS);
+  const rows = await db
+    .select({
+      id: orders.id,
+      tableNo: orders.tableNo,
+      createdAt: orders.createdAt,
+      hall: halls.name,
+      waiter: users.name,
+      total: sql<number>`coalesce(sum(${orderItems.qty} * ${orderItems.price}), 0)`,
+    })
+    .from(orders)
+    .leftJoin(halls, eq(orders.hallId, halls.id))
+    .leftJoin(users, eq(orders.waiterId, users.id))
+    .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .where(and(eq(orders.status, "open"), lt(orders.createdAt, cutoff)))
+    .groupBy(orders.id, halls.name, users.name)
+    .orderBy(orders.createdAt);
+  return rows.map((r) => ({
+    ...r,
+    total: Number(r.total),
+    ageMin: Math.round((Date.now() - r.createdAt.getTime()) / 60000),
+  }));
+}
+
+// Тешик №13/№22: ким кўп ўчиряпти (сохта возврат тренди) — сўнгги 7 кун.
+async function removalTrend() {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      userId: orderEvents.createdById,
+      name: users.name,
+      removals: count(),
+      qty: sql<number>`coalesce(sum(${orderEvents.qty}), 0)`,
+    })
+    .from(orderEvents)
+    .leftJoin(users, eq(orderEvents.createdById, users.id))
+    .where(and(eq(orderEvents.kind, "item_removed"), gte(orderEvents.createdAt, since)))
+    .groupBy(orderEvents.createdById, users.name)
+    .orderBy(desc(count()));
+  return rows.slice(0, 8).map((r) => ({
+    userId: r.userId,
+    name: r.name ?? "Номаълум",
+    removals: Number(r.removals),
+    qty: Number(r.qty),
+    flag: Number(r.removals) >= REMOVAL_WEEK_FLAG,
+  }));
+}
+
+// Тешик №7 (муддат): FIFO ёши — қолдиқ энг эски қайси киримдан қолганини топади.
+// Walk inflows newest→oldest accumulating until the on-hand total is covered;
+// the inflow that completes it is the oldest remaining layer (FIFO consumption
+// eats old layers first, so what remains is the NEWEST inflows).
+async function expiryFlagsCompute() {
+  const tracked = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      unit: products.unit,
+      shelfLifeDays: products.shelfLifeDays,
+    })
+    .from(products)
+    .where(and(eq(products.active, true), sql`${products.shelfLifeDays} is not null`));
+  if (tracked.length === 0) return [];
+
+  const flags: {
+    productId: string;
+    name: string;
+    unit: string;
+    onHand: number;
+    ageDays: number;
+    shelfLifeDays: number;
+  }[] = [];
+  for (const p of tracked) {
+    const moves = await db
+      .select({ qty: stockMovements.qty, createdAt: stockMovements.createdAt })
+      .from(stockMovements)
+      .where(eq(stockMovements.productId, p.id))
+      .orderBy(desc(stockMovements.createdAt));
+    const onHand = moves.reduce((s, m) => s + m.qty, 0);
+    if (onHand <= 0) continue;
+    let acc = 0;
+    let oldest: Date | null = null;
+    for (const m of moves) {
+      if (m.qty <= 0) continue;
+      acc += m.qty;
+      oldest = m.createdAt;
+      if (acc >= onHand) break;
+    }
+    if (!oldest) continue;
+    const ageDays = Math.floor((Date.now() - oldest.getTime()) / (24 * 60 * 60 * 1000));
+    if (ageDays > (p.shelfLifeDays ?? 0))
+      flags.push({
+        productId: p.id,
+        name: p.name,
+        unit: p.unit,
+        onHand,
+        ageDays,
+        shelfLifeDays: p.shelfLifeDays ?? 0,
+      });
+  }
+  return flags.sort((a, b) => b.ageDays - a.ageDays);
+}
+
+// Тешик №4: сих грамм назорати — сўнгги батчларда норма ±10% дан четлашиш.
+async function skewerNormFlags() {
+  const rows = await db
+    .select({
+      id: skewerBatches.id,
+      productId: skewerBatches.productId,
+      name: products.name,
+      meatG: skewerBatches.meatG,
+      skewerCount: skewerBatches.skewerCount,
+      normG: skewerBatches.normG,
+      createdAt: skewerBatches.createdAt,
+      by: users.name,
+    })
+    .from(skewerBatches)
+    .innerJoin(products, eq(skewerBatches.productId, products.id))
+    .leftJoin(users, eq(skewerBatches.createdById, users.id))
+    .orderBy(desc(skewerBatches.createdAt))
+    .limit(15);
+  return rows
+    .map((r) => {
+      const actualG = r.skewerCount > 0 ? Math.round(r.meatG / r.skewerCount) : 0;
+      const devPct =
+        r.normG && r.normG > 0 ? Math.round(((actualG - r.normG) / r.normG) * 100) : null;
+      return { ...r, actualG, devPct };
+    })
+    .filter((r) => r.devPct != null && Math.abs(r.devPct) > SKEWER_NORM_TOLERANCE * 100);
+}
+
+// Тешик №5/№8: витрина баланси бир кун учун —
+// кутилган қолдиқ = кечаги саналган + бугун сихланган − бугун сотилган.
+export async function vitrinaReconcile(dayKey: string) {
+  const { startUTC, endUTC } = businessDayBounds(dayKey);
+  const prevKey = previousDayKey(dayKey);
+
+  const batchRows = await db
+    .select({
+      productId: skewerBatches.productId,
+      skewered: sql<number>`coalesce(sum(${skewerBatches.skewerCount}), 0)`,
+    })
+    .from(skewerBatches)
+    .where(and(gte(skewerBatches.createdAt, startUTC), lt(skewerBatches.createdAt, endUTC)))
+    .groupBy(skewerBatches.productId);
+  const skeweredMap = new Map(batchRows.map((r) => [r.productId, Number(r.skewered)]));
+
+  const countRows = await db
+    .select({
+      dayKey: vitrinaCounts.dayKey,
+      productId: vitrinaCounts.productId,
+      countedQty: vitrinaCounts.countedQty,
+    })
+    .from(vitrinaCounts)
+    .where(inArray(vitrinaCounts.dayKey, [dayKey, prevKey]));
+  const countedMap = new Map(
+    countRows.filter((r) => r.dayKey === dayKey).map((r) => [r.productId, r.countedQty]),
+  );
+  const openingMap = new Map(
+    countRows.filter((r) => r.dayKey === prevKey).map((r) => [r.productId, r.countedQty]),
+  );
+
+  // scope: every product that has EVER been skewer-batched, plus any counted today
+  const everBatched = await db
+    .select({ productId: skewerBatches.productId })
+    .from(skewerBatches)
+    .groupBy(skewerBatches.productId);
+  const scope = new Set<string>([
+    ...everBatched.map((r) => r.productId),
+    ...countedMap.keys(),
+  ]);
+  if (scope.size === 0) return [];
+
+  const soldRows = await db
+    .select({
+      productId: orderItems.productId,
+      sold: sql<number>`coalesce(sum(${orderItems.qty}), 0)`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, startUTC),
+        lt(orders.closedAt, endUTC),
+        inArray(orderItems.productId, [...scope]),
+      ),
+    )
+    .groupBy(orderItems.productId);
+  const soldMap = new Map(soldRows.map((r) => [r.productId as string, Number(r.sold)]));
+
+  const nameRows = await db
+    .select({ id: products.id, name: products.name })
+    .from(products)
+    .where(inArray(products.id, [...scope]));
+  const nameMap = new Map(nameRows.map((r) => [r.id, r.name]));
+
+  return [...scope]
+    .map((productId) => {
+      const opening = openingMap.get(productId) ?? null;
+      const skewered = skeweredMap.get(productId) ?? 0;
+      const sold = soldMap.get(productId) ?? 0;
+      const counted = countedMap.get(productId) ?? null;
+      const expected = (opening ?? 0) + skewered - sold;
+      return {
+        productId,
+        name: nameMap.get(productId) ?? "?",
+        opening,
+        openingKnown: opening != null,
+        skewered,
+        sold,
+        expected,
+        counted,
+        diff: counted != null ? counted - expected : null,
+      };
+    })
+    .filter((r) => r.skewered > 0 || r.sold > 0 || r.counted != null || (r.opening ?? 0) > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+}
+
+export async function computeSignals() {
   const recentObv = await db
     .select()
     .from(obvalka)
@@ -581,6 +861,16 @@ async function computeSignals() {
   const compToday = compRows.reduce((s, r) => s + r.qty * r.price, 0);
   const compFlag = compToday > COMP_DAILY_CAP;
 
+  const staleOrders = await staleOpenOrders();
+  const removals = await removalTrend();
+  const expiryFlags = await expiryFlagsCompute();
+  const skewerFlags = await skewerNormFlags();
+  // yesterday = complete day (honest balance); today only becomes checkable
+  // after the evening count, and then shows up on tomorrow's signal anyway
+  const vitrinaMismatch = (await vitrinaReconcile(yKey)).filter(
+    (r) => r.diff != null && r.diff !== 0,
+  );
+
   return {
     obvalkaFlags,
     thinDishes,
@@ -592,10 +882,15 @@ async function computeSignals() {
     historyPending,
     compToday,
     compFlag,
+    staleOrders,
+    removalTrend: removals,
+    expiryFlags,
+    skewerFlags,
+    vitrinaMismatch,
   };
 }
 
-async function financeForWindow(start: Date, end: Date) {
+export async function financeForWindow(start: Date, end: Date) {
   const payRows = await db
     .select({ method: orderPayments.method, amount: orderPayments.amount })
     .from(orderPayments)
@@ -950,6 +1245,7 @@ export const appRouter = router({
               price: products.price,
               costPrice: products.costPrice,
               soldByWeight: products.soldByWeight,
+              shelfLifeDays: products.shelfLifeDays,
               active: products.active,
               categoryId: products.categoryId,
               stationId: products.stationId,
@@ -1009,6 +1305,7 @@ export const appRouter = router({
             categoryId: z.string().uuid().nullable().optional(),
             stationId: z.string().uuid().nullable().optional(),
             soldByWeight: z.boolean().optional(),
+            shelfLifeDays: z.number().int().positive().max(365).nullable().optional(),
             active: z.boolean().optional(),
           }),
         )
@@ -1427,7 +1724,7 @@ export const appRouter = router({
           delta: z.number().int(),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const existing = (
           await db
             .select()
@@ -1449,6 +1746,21 @@ export const appRouter = router({
               .update(orderItems)
               .set({ qty })
               .where(eq(orderItems.id, existing.id));
+          // тешик №13/№22: removals are information-destroying — journal them.
+          // Logged per decrement (not per deleted row) so "10 → 1 → close"
+          // shows the 9 that disappeared, attributed to who pressed −.
+          if (input.delta < 0) {
+            const removed = Math.min(existing.qty, -input.delta);
+            if (removed > 0)
+              await db.insert(orderEvents).values({
+                orderId: input.orderId,
+                kind: "item_removed",
+                productId: input.productId,
+                name: existing.name,
+                qty: removed,
+                createdById: ctx.user.id,
+              });
+          }
         } else if (input.delta > 0) {
           const p = (
             await db
@@ -2196,6 +2508,339 @@ export const appRouter = router({
       }),
   }),
 
+  shift: router({
+    // Open shift + live X-report totals (till roles need it; waiter never sees till UI).
+    current: protectedProcedure.query(async () => {
+      const s = (
+        await db
+          .select()
+          .from(shifts)
+          .where(eq(shifts.status, "open"))
+          .orderBy(desc(shifts.openedAt))
+          .limit(1)
+      )[0];
+      if (!s) return null;
+      const opener = s.openedById
+        ? (
+            await db
+              .select({ name: users.name })
+              .from(users)
+              .where(eq(users.id, s.openedById))
+              .limit(1)
+          )[0]
+        : null;
+      return {
+        id: s.id,
+        openedAt: s.openedAt,
+        openingFloat: s.openingFloat,
+        openedBy: opener?.name ?? null,
+        ...(await shiftTotals(s)),
+      };
+    }),
+
+    open: protectedProcedure
+      .input(z.object({ openingFloat: z.number().int().nonnegative().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!["director", "manager", "cashier"].includes(ctx.user.role))
+          throw new TRPCError({ code: "FORBIDDEN" });
+        return db.transaction(async (tx) => {
+          // advisory lock — concurrent opens can't both pass the "none open" check
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext('shift-open'))`);
+          const existing = (
+            await tx
+              .select({ id: shifts.id })
+              .from(shifts)
+              .where(eq(shifts.status, "open"))
+              .limit(1)
+          )[0];
+          if (existing) return { id: existing.id, resumed: true };
+          const row = (
+            await tx
+              .insert(shifts)
+              .values({
+                openingFloat: input.openingFloat ?? TILL_FLOAT,
+                openedById: ctx.user.id,
+              })
+              .returning({ id: shifts.id })
+          )[0];
+          if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+          return { id: row.id, resumed: false };
+        });
+      }),
+
+    // Тешик №15: кун ичи кассадан пул олиш — изсиз бўлмайди.
+    cashOut: protectedProcedure
+      .input(
+        z.object({
+          amount: z.number().int().positive(),
+          reason: z.string().trim().min(1),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!["director", "manager", "cashier"].includes(ctx.user.role))
+          throw new TRPCError({ code: "FORBIDDEN" });
+        const s = (
+          await db
+            .select({ id: shifts.id })
+            .from(shifts)
+            .where(eq(shifts.status, "open"))
+            .limit(1)
+        )[0];
+        if (!s)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Очиқ смена йўқ" });
+        await db.insert(cashOuts).values({
+          shiftId: s.id,
+          amount: input.amount,
+          reason: input.reason,
+          createdById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    // Z-report: physical count against expected, snapshot at the close moment.
+    close: protectedProcedure
+      .input(
+        z.object({
+          countedCash: z.number().int().nonnegative(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!["director", "manager", "cashier"].includes(ctx.user.role))
+          throw new TRPCError({ code: "FORBIDDEN" });
+        return db.transaction(async (tx) => {
+          const s = (
+            await tx
+              .select()
+              .from(shifts)
+              .where(eq(shifts.status, "open"))
+              .orderBy(desc(shifts.openedAt))
+              .limit(1)
+              .for("update")
+          )[0];
+          if (!s)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Очиқ смена йўқ" });
+          const closedAt = new Date();
+          const totals = await shiftTotals({ ...s, closedAt });
+          const flipped = await tx
+            .update(shifts)
+            .set({
+              status: "closed",
+              closedAt,
+              closedById: ctx.user.id,
+              countedCash: input.countedCash,
+              expectedCash: totals.expectedCash,
+              note: input.note ?? null,
+            })
+            .where(and(eq(shifts.id, s.id), eq(shifts.status, "open")))
+            .returning({ id: shifts.id });
+          if (flipped.length === 0)
+            return { ok: true, alreadyClosed: true, variance: 0, expectedCash: 0 };
+          return {
+            ok: true,
+            alreadyClosed: false,
+            expectedCash: totals.expectedCash,
+            variance: input.countedCash - totals.expectedCash,
+          };
+        });
+      }),
+
+    list: managerProcedure.query(async () => {
+      const rows = await db
+        .select({
+          id: shifts.id,
+          status: shifts.status,
+          openingFloat: shifts.openingFloat,
+          openedAt: shifts.openedAt,
+          closedAt: shifts.closedAt,
+          countedCash: shifts.countedCash,
+          expectedCash: shifts.expectedCash,
+          note: shifts.note,
+          openedBy: users.name,
+        })
+        .from(shifts)
+        .leftJoin(users, eq(shifts.openedById, users.id))
+        .orderBy(desc(shifts.openedAt))
+        .limit(14);
+      return rows.map((r) => ({
+        ...r,
+        variance:
+          r.countedCash != null && r.expectedCash != null
+            ? r.countedCash - r.expectedCash
+            : null,
+      }));
+    }),
+  }),
+
+  vitrina: router({
+    // Meat dishes eligible for skewer batches, with the recipe's norm g/skewer.
+    products: managerProcedure.query(async () => {
+      const recs = await db
+        .select({ productId: recipes.productId, recipeId: recipes.id, name: products.name })
+        .from(recipes)
+        .innerJoin(products, eq(recipes.productId, products.id))
+        .where(and(eq(products.active, true), eq(products.type, "dish")));
+      const items = await db
+        .select({
+          recipeId: recipeItems.recipeId,
+          qtyG: recipeItems.qtyG,
+          stockHint: recipeItems.stockHint,
+        })
+        .from(recipeItems);
+      const meatByRecipe = new Map<string, number>();
+      for (const it of items) {
+        if (!it.qtyG || !/обвалка|лаҳм|гўшт|гушт/i.test(it.stockHint ?? "")) continue;
+        meatByRecipe.set(it.recipeId, (meatByRecipe.get(it.recipeId) ?? 0) + it.qtyG);
+      }
+      return recs
+        .filter((r) => r.productId && meatByRecipe.has(r.recipeId))
+        .map((r) => ({
+          productId: r.productId as string,
+          name: r.name,
+          normG: meatByRecipe.get(r.recipeId) ?? null,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    }),
+
+    batchCreate: managerProcedure
+      .input(
+        z.object({
+          productId: z.string().uuid(),
+          meatG: z.number().int().positive(),
+          skewerCount: z.number().int().positive(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        // norm snapshot from today's recipe — later recipe edits keep history honest
+        const rec = (
+          await db
+            .select({ id: recipes.id })
+            .from(recipes)
+            .where(eq(recipes.productId, input.productId))
+            .limit(1)
+        )[0];
+        let normG: number | null = null;
+        if (rec) {
+          const items = await db
+            .select({ qtyG: recipeItems.qtyG, stockHint: recipeItems.stockHint })
+            .from(recipeItems)
+            .where(eq(recipeItems.recipeId, rec.id));
+          const meat = items
+            .filter((it) => it.qtyG && /обвалка|лаҳм|гўшт|гушт/i.test(it.stockHint ?? ""))
+            .reduce((s, it) => s + (it.qtyG ?? 0), 0);
+          normG = meat > 0 ? meat : null;
+        }
+        const row = (
+          await db
+            .insert(skewerBatches)
+            .values({
+              productId: input.productId,
+              meatG: input.meatG,
+              skewerCount: input.skewerCount,
+              normG,
+              note: input.note ?? null,
+              createdById: ctx.user.id,
+            })
+            .returning({ id: skewerBatches.id })
+        )[0];
+        const actualG = Math.round(input.meatG / input.skewerCount);
+        return {
+          id: row?.id,
+          actualG,
+          normG,
+          devPct: normG ? Math.round(((actualG - normG) / normG) * 100) : null,
+        };
+      }),
+
+    batches: managerProcedure
+      .input(
+        z
+          .object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
+          .optional(),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC, dayKey } = businessDayBounds(input?.day);
+        const rows = await db
+          .select({
+            id: skewerBatches.id,
+            productId: skewerBatches.productId,
+            name: products.name,
+            meatG: skewerBatches.meatG,
+            skewerCount: skewerBatches.skewerCount,
+            normG: skewerBatches.normG,
+            note: skewerBatches.note,
+            createdAt: skewerBatches.createdAt,
+            by: users.name,
+          })
+          .from(skewerBatches)
+          .innerJoin(products, eq(skewerBatches.productId, products.id))
+          .leftJoin(users, eq(skewerBatches.createdById, users.id))
+          .where(
+            and(gte(skewerBatches.createdAt, startUTC), lt(skewerBatches.createdAt, endUTC)),
+          )
+          .orderBy(desc(skewerBatches.createdAt));
+        return {
+          dayKey,
+          rows: rows.map((r) => {
+            const actualG = r.skewerCount > 0 ? Math.round(r.meatG / r.skewerCount) : 0;
+            return {
+              ...r,
+              actualG,
+              devPct:
+                r.normG && r.normG > 0
+                  ? Math.round(((actualG - r.normG) / r.normG) * 100)
+                  : null,
+            };
+          }),
+        };
+      }),
+
+    reconcile: managerProcedure
+      .input(
+        z
+          .object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
+          .optional(),
+      )
+      .query(async ({ input }) => {
+        const { dayKey } = businessDayBounds(input?.day);
+        return { dayKey, rows: await vitrinaReconcile(dayKey) };
+      }),
+
+    setCount: managerProcedure
+      .input(
+        z.object({
+          day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          items: z
+            .array(
+              z.object({
+                productId: z.string().uuid(),
+                countedQty: z.number().int().nonnegative(),
+              }),
+            )
+            .min(1),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { dayKey } = businessDayBounds(input.day);
+        for (const it of input.items) {
+          await db
+            .insert(vitrinaCounts)
+            .values({
+              dayKey,
+              productId: it.productId,
+              countedQty: it.countedQty,
+              createdById: ctx.user.id,
+            })
+            .onConflictDoUpdate({
+              target: [vitrinaCounts.dayKey, vitrinaCounts.productId],
+              set: { countedQty: it.countedQty, createdById: ctx.user.id },
+            });
+        }
+        return { ok: true, dayKey };
+      }),
+  }),
+
   analytics: router({
     onHandAll: managerProcedure.query(() => stockableOnHand()),
 
@@ -2462,6 +3107,109 @@ export const appRouter = router({
 
     signals: directorProcedure.query(() => computeSignals()),
 
+    // Menu engineering: маржа × ҳажм квадрант. Margin is MEAT margin (the only
+    // reliably known cost today — same honest-partial convention as COGS);
+    // dishes whose meat cost is unknown are listed separately, not guessed.
+    menuEngineering: directorProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const nonRevenue = await nonRevenueOrderIds(startUTC, endUTC);
+        const sold = await db
+          .select({
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            name: orderItems.name,
+            qty: orderItems.qty,
+            price: orderItems.price,
+          })
+          .from(orderItems)
+          .innerJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(
+            and(
+              eq(orders.status, "closed"),
+              gte(orders.closedAt, startUTC),
+              lt(orders.closedAt, endUTC),
+            ),
+          );
+        const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
+        for (const r of sold) {
+          if (!r.productId) continue;
+          const e = byProduct.get(r.productId) ?? { name: r.name, qty: 0, revenue: 0 };
+          e.qty += r.qty;
+          if (!nonRevenue.has(r.orderId)) e.revenue += r.qty * r.price;
+          byProduct.set(r.productId, e);
+        }
+
+        const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+        const dishes = await computeDishTaannarx(meatCost);
+        const costPerUnit = new Map(
+          dishes
+            .filter(
+              (d) =>
+                d.productId &&
+                d.meatCostTotal > 0 &&
+                !(d.meatPct != null && d.meatPct > 100) && // batch/pot recipes excluded
+                !d.hasUnpricedMeat,
+            )
+            .map((d) => [d.productId as string, d.meatCostTotal]),
+        );
+
+        const known: {
+          productId: string;
+          name: string;
+          qty: number;
+          revenue: number;
+          unitMargin: number;
+          totalMargin: number;
+        }[] = [];
+        const unknown: { productId: string; name: string; qty: number; revenue: number }[] = [];
+        for (const [productId, v] of byProduct) {
+          const mc = costPerUnit.get(productId);
+          if (mc == null) {
+            unknown.push({ productId, ...v });
+            continue;
+          }
+          const avgPrice = v.qty > 0 ? v.revenue / v.qty : 0;
+          const unitMargin = Math.round(avgPrice - mc);
+          known.push({
+            productId,
+            ...v,
+            unitMargin,
+            totalMargin: unitMargin * v.qty,
+          });
+        }
+
+        const median = (xs: number[]) => {
+          if (xs.length === 0) return 0;
+          const s = [...xs].sort((a, b) => a - b);
+          const mid = Math.floor(s.length / 2);
+          return s.length % 2 ? (s[mid] ?? 0) : ((s[mid - 1] ?? 0) + (s[mid] ?? 0)) / 2;
+        };
+        const medQty = median(known.map((k) => k.qty));
+        const medMargin = median(known.map((k) => k.unitMargin));
+        const rows = known
+          .map((k) => ({
+            ...k,
+            quadrant:
+              k.qty >= medQty && k.unitMargin >= medMargin
+                ? ("star" as const) // юлдуз: кўп сотилади + яхши маржа
+                : k.qty >= medQty
+                  ? ("plowhorse" as const) // от: кўп сотилади, юпқа маржа
+                  : k.unitMargin >= medMargin
+                    ? ("puzzle" as const) // жумбоқ: маржа яхши, кам сотилади
+                    : ("dog" as const), // ит: иккиси ҳам паст
+          }))
+          .sort((a, b) => b.totalMargin - a.totalMargin);
+        unknown.sort((a, b) => b.revenue - a.revenue);
+        return { medQty, medMargin, rows, unknown: unknown.slice(0, 15) };
+      }),
+
     digest: directorProcedure.query(async () => {
       const { startUTC, endUTC } = businessDayBounds();
       const todayFin = await financeForWindow(startUTC, endUTC);
@@ -2480,7 +3228,12 @@ export const appRouter = router({
         (sig.breakEvenFlag ? 1 : 0) +
         sig.priceSpikes.length +
         sig.shortagePattern.length +
-        (sig.compFlag ? 1 : 0);
+        (sig.compFlag ? 1 : 0) +
+        sig.staleOrders.length +
+        sig.removalTrend.filter((r) => r.flag).length +
+        sig.expiryFlags.length +
+        sig.skewerFlags.length +
+        sig.vitrinaMismatch.length;
 
       return {
         revenueToday: todayFin.revenue,

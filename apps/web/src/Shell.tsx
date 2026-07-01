@@ -12,8 +12,10 @@ import { Ombor } from "./Ombor";
 import { Pos } from "./Pos";
 import { Purchases } from "./Purchases";
 import { Recipes } from "./Recipes";
+import { Smena } from "./Smena";
 import { Taannarx } from "./Taannarx";
 import { trpc } from "./trpc";
+import { Vitrina } from "./Vitrina";
 
 const ROLE_LABEL: Record<string, string> = {
   director: "Директор",
@@ -28,6 +30,8 @@ type Tab =
   | "analitika"
   | "moliya"
   | "pos"
+  | "smena"
+  | "vitrina"
   | "harid"
   | "obvalka"
   | "inventarizatsiya"
@@ -37,6 +41,23 @@ type Tab =
   | "catalog"
   | "recipes"
   | "staff";
+
+// Offline holati — spec "offline-first" talabining ko'rinadigan qismi: alohida
+// banner, chunki so'rovlar jim muvaffaqiyatsiz bo'lsa xodim sababini bilmaydi.
+function useOnline(): boolean {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
 
 export function Shell({
   user,
@@ -50,6 +71,8 @@ export function Shell({
   const canPos = ["director", "manager", "cashier", "waiter"].includes(
     user.role,
   );
+  const canTill = ["director", "manager", "cashier"].includes(user.role);
+  const online = useOnline();
   const [tab, setTab] = useState<Tab>(
     isDirector
       ? "dashboard"
@@ -70,6 +93,10 @@ export function Shell({
     ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика" }] : []),
     ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия" }] : []),
     ...(canPos ? [{ key: "pos" as Tab, label: "Касса" }] : []),
+    ...(canTill ? [{ key: "smena" as Tab, label: "Смена" }] : []),
+    ...(["director", "manager"].includes(user.role)
+      ? [{ key: "vitrina" as Tab, label: "Витрина" }]
+      : []),
     ...(canObvalka ? [{ key: "harid" as Tab, label: "Харид" }] : []),
     ...(canObvalka ? [{ key: "obvalka" as Tab, label: "Обвалка" }] : []),
     ...(["director", "manager"].includes(user.role)
@@ -125,11 +152,19 @@ export function Shell({
         </nav>
       </header>
 
+      {!online && (
+        <div className="bg-red-600 px-4 py-1.5 text-center text-sm font-medium text-white">
+          ⚠️ Интернет йўқ — маълумот сақланмайди, уланишни кутинг
+        </div>
+      )}
+
       <main className="mx-auto max-w-4xl p-5">
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
         {tab === "pos" && <Pos user={user} />}
+        {tab === "smena" && <Smena user={user} />}
+        {tab === "vitrina" && <Vitrina />}
         {tab === "harid" && <Purchases />}
         {tab === "obvalka" && <Obvalka />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}

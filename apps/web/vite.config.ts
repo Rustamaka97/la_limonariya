@@ -9,6 +9,27 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      workbox: {
+        // yangi build darhol nazoratni oladi — "eski kesh" muammosiga qarshi
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            // tRPC query'lar (GET) — internet uzilganda oxirgi ko'rilgan
+            // ma'lumot ochiladi (faqat KO'RISH; mutatsiyalar ataylab navbatga
+            // olinmaydi — ko'r-ko'rona replay zakazni ikki marta yozishi mumkin)
+            urlPattern: ({ url, request }) =>
+              url.pathname.startsWith("/trpc") && request.method === "GET",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trpc-queries",
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 300, maxAgeSeconds: 24 * 60 * 60 },
+            },
+          },
+        ],
+      },
       manifest: {
         name: "La Limonariya",
         short_name: "Limonariya",

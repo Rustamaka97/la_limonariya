@@ -30,9 +30,41 @@ type Signals = {
   historyPending: boolean;
   compToday: number;
   compFlag: boolean;
+  staleOrders: { id: string; tableNo: string | null; hall: string | null; waiter: string | null; total: number; ageMin: number }[];
+  removalTrend: { userId: string | null; name: string; removals: number; qty: number; flag: boolean }[];
+  expiryFlags: { productId: string; name: string; unit: string; onHand: number; ageDays: number; shelfLifeDays: number }[];
+  skewerFlags: { id: string; name: string; meatG: number; skewerCount: number; normG: number | null; actualG: number; devPct: number | null; createdAt: string; by: string | null }[];
+  vitrinaMismatch: { productId: string; name: string; expected: number; counted: number | null; diff: number | null }[];
 };
 
 export function Analitika() {
+  const [sub, setSub] = useState<"signals" | "menu">("signals");
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5">
+        {(
+          [
+            { k: "signals", label: "Сигналлар" },
+            { k: "menu", label: "Таом таҳлили" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.k}
+            onClick={() => setSub(t.k)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              sub === t.k ? "bg-brand text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {sub === "signals" ? <SignalsView /> : <MenuTahlil />}
+    </div>
+  );
+}
+
+function SignalsView() {
   const [d, setD] = useState<Digest | null>(null);
   const [s, setS] = useState<Signals | null>(null);
   const [err, setErr] = useState(false);
@@ -182,7 +214,233 @@ export function Analitika() {
             {s.compFlag && <p className="mt-2 text-xs text-red-600">🔴 кунлик лимитдан ошди (500 000)</p>}
           </div>
         </Section>
+
+        <Section title="⏰ Очиқ столлар" hint="2 соатдан ошиқ">
+          {s.staleOrders.length === 0 ? (
+            <Empty>эски очиқ заказ йўқ</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.staleOrders.map((o) => (
+                <li key={o.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>
+                    <span className="font-medium">{o.hall ?? "—"}</span>
+                    {o.tableNo && <span className="text-zinc-400"> · стол {o.tableNo}</span>}
+                    <span className="text-xs text-zinc-400"> · {o.waiter ?? "—"}</span>
+                  </span>
+                  <span className="flex items-center gap-2 text-xs">
+                    <span className="tabular-nums text-zinc-400">{fmt(o.total)}</span>
+                    <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-red-700 tabular-nums">
+                      {Math.floor(o.ageMin / 60)}с {o.ageMin % 60}д
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="🗑 Ўчириш тренди" hint="7 кун · ким кўп ўчиряпти">
+          {s.removalTrend.length === 0 ? (
+            <Empty>ўчириш йўқ</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.removalTrend.map((r) => (
+                <li key={r.userId ?? "?"} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>{r.name}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs tabular-nums ${
+                      r.flag ? "bg-red-100 text-red-700" : "bg-zinc-100 text-zinc-500"
+                    }`}
+                  >
+                    {r.removals} марта · {r.qty} дона
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="📆 Муддат назорати" hint="FIFO ёши · Каталогда муддат белгиланг">
+          {s.expiryFlags.length === 0 ? (
+            <Empty>муддати ўтган қолдиқ йўқ</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.expiryFlags.map((e) => (
+                <li key={e.productId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>{e.name}</span>
+                  <span className="flex items-center gap-2 text-xs">
+                    <span className="tabular-nums text-zinc-400">
+                      {fmt(e.onHand)} {e.unit}
+                    </span>
+                    <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-red-700 tabular-nums">
+                      {e.ageDays} кун (лимит {e.shelfLifeDays})
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="🍢 Сих грамм назорати" hint="сўнгги батчлар · ±10%">
+          {s.skewerFlags.length === 0 ? (
+            <Empty>норма доирасида</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.skewerFlags.map((b) => (
+                <li key={b.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>
+                    {b.name}
+                    <span className="text-xs text-zinc-400"> · {b.by ?? "—"}</span>
+                  </span>
+                  <span className="flex items-center gap-2 text-xs">
+                    <span className="tabular-nums text-zinc-400">
+                      {b.actualG} г (норма {b.normG})
+                    </span>
+                    <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-red-700 tabular-nums">
+                      {b.devPct != null && b.devPct > 0 ? "+" : ""}
+                      {b.devPct}%
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="🧊 Витрина фарқи" hint="кечаги баланс">
+          {s.vitrinaMismatch.length === 0 ? (
+            <Empty>фарқ йўқ</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.vitrinaMismatch.map((v) => (
+                <li key={v.productId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>{v.name}</span>
+                  <span className="flex items-center gap-2 text-xs">
+                    <span className="tabular-nums text-zinc-400">
+                      кутилган {v.expected} · саналган {v.counted}
+                    </span>
+                    <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-red-700 tabular-nums">
+                      {v.diff != null && v.diff > 0 ? "+" : ""}
+                      {v.diff}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
       </div>
+    </div>
+  );
+}
+
+const QUAD: Record<string, { label: string; desc: string; cls: string }> = {
+  star: { label: "⭐ Юлдузлар", desc: "кўп сотилади + яхши маржа — асранг, олдинга чиқаринг", cls: "text-emerald-700" },
+  plowhorse: { label: "🐴 Отлар", desc: "кўп сотилади, юпқа маржа — нарх/грамм кўриб чиқинг", cls: "text-amber-700" },
+  puzzle: { label: "🧩 Жумбоқлар", desc: "маржа яхши, кам сотилади — менюда кўтаринг, таклиф қилинг", cls: "text-sky-700" },
+  dog: { label: "🐶 Итлар", desc: "иккиси ҳам паст — олиб ташлаш ёки ўзгартириш номзоди", cls: "text-zinc-500" },
+};
+
+function MenuTahlil() {
+  const today = () => {
+    const t = new Date(Date.now() + 5 * 3600 * 1000);
+    if (t.getUTCHours() < 6) t.setUTCDate(t.getUTCDate() - 1);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())}`;
+  };
+  const back = (n: number) => {
+    const [y = 0, m = 1, d = 1] = today().split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d - n));
+    const p = (x: number) => String(x).padStart(2, "0");
+    return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
+  };
+  const [days, setDays] = useState(14);
+  const [data, setData] = useState<{
+    medQty: number;
+    medMargin: number;
+    rows: { productId: string; name: string; qty: number; revenue: number; unitMargin: number; totalMargin: number; quadrant: string }[];
+    unknown: { productId: string; name: string; qty: number; revenue: number }[];
+  } | null>(null);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    setErr(false);
+    setData(null);
+    trpc.analytics.menuEngineering
+      .query({ from: back(days - 1), to: today() })
+      .then(setData)
+      .catch(() => setErr(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days]);
+
+  if (err) return <ErrBox onRetry={() => setDays((d) => d)} />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1.5">
+        {[7, 14, 30].map((n) => (
+          <button
+            key={n}
+            onClick={() => setDays(n)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              days === n ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
+            }`}
+          >
+            {n} кун
+          </button>
+        ))}
+      </div>
+
+      {!data ? (
+        <div className="p-6 text-center text-zinc-400">⏳</div>
+      ) : data.rows.length === 0 ? (
+        <div className="rounded-xl border bg-white px-4 py-8 text-center text-sm text-zinc-400">
+          бу даврда гўшт таннархи маълум таом сотилмаган
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-zinc-400">
+            Маржа = сотув нархи − гўшт таннархи (бошқа ингредиентлар кейин қўшилади). Медиана:{" "}
+            {Math.round(data.medQty)} дона · {fmt(data.medMargin)} so'm.
+          </p>
+          {(["star", "plowhorse", "puzzle", "dog"] as const).map((q) => {
+            const rows = data.rows.filter((r) => r.quadrant === q);
+            if (rows.length === 0) return null;
+            const meta = QUAD[q]!;
+            return (
+              <Section key={q} title={meta.label} hint={meta.desc}>
+                <ul className="divide-y">
+                  {rows.map((r) => (
+                    <li key={r.productId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span>{r.name}</span>
+                      <span className="flex items-center gap-3 text-xs tabular-nums">
+                        <span className="text-zinc-400">{r.qty} дона</span>
+                        <span className="text-zinc-400">маржа {fmt(r.unitMargin)}</span>
+                        <span className={`font-medium ${meta.cls}`}>Σ {fmt(r.totalMargin)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            );
+          })}
+          {data.unknown.length > 0 && (
+            <Section title="❓ Таннарх номаълум" hint="рецепт/гўшт нархи йўқ — квадрантга кирмади">
+              <ul className="divide-y">
+                {data.unknown.map((r) => (
+                  <li key={r.productId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                    <span>{r.name}</span>
+                    <span className="text-xs tabular-nums text-zinc-400">
+                      {r.qty} дона · {fmt(r.revenue)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+        </>
+      )}
     </div>
   );
 }

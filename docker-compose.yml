@@ -29,6 +29,8 @@ services:
       # Ixtiyoriy — bo'sh bo'lsa xatolar faqat `docker compose logs api`da ko'rinadi.
       ALERT_TELEGRAM_BOT_TOKEN: ${ALERT_TELEGRAM_BOT_TOKEN:-}
       ALERT_TELEGRAM_CHAT_ID: ${ALERT_TELEGRAM_CHAT_ID:-}
+      # Kunlik digest yuborilish vaqti (Toshkent, HH:MM) — bot sozlangan bo'lsa.
+      DIGEST_TIME: ${DIGEST_TIME:-22:30}
     depends_on:
       postgres:
         condition: service_healthy

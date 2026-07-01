@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
+import { printViaAgent, type PrintLine } from "./print";
 import { trpc } from "./trpc";
 
 type Hall = { id: string; name: string; servicePct: number };
@@ -539,6 +540,21 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
   const p = (n: number) => String(n).padStart(2, "0");
   const when = `${p(d.getHours())}:${p(d.getMinutes())}`;
 
+  async function print() {
+    const lines: PrintLine[] = [
+      { text: "КУХНЯ ТИКЕТИ", align: "center", bold: true, big: true },
+      { hr: true },
+      { pair: ["Зал", ticket!.hall ?? "—"] },
+      ...(ticket!.tableNo ? [{ pair: ["Стол", ticket!.tableNo] as [string, string] }] : []),
+      { pair: ["Вақт", when] },
+    ];
+    for (const [station, items] of byStation) {
+      lines.push({ hr: true }, { text: station.toUpperCase(), bold: true });
+      for (const it of items) lines.push({ pair: [it.name, `x${it.qty}`], big: true });
+    }
+    if (!(await printViaAgent(lines))) window.print();
+  }
+
   return (
     <div className="space-y-3">
       <style>{`@media print{body *{visibility:hidden}#ticket,#ticket *{visibility:visible}#ticket{position:absolute;left:0;top:0}}`}</style>
@@ -569,7 +585,7 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
       </div>
       <div className="mx-auto flex max-w-xs gap-2">
         <button
-          onClick={() => window.print()}
+          onClick={print}
           className="flex-1 rounded-xl border py-2.5 text-sm font-medium"
         >
           🖨 Чоп этиш
@@ -589,6 +605,41 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
   const d = new Date(order.createdAt);
   const p = (n: number) => String(n).padStart(2, "0");
   const when = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+
+  async function print() {
+    const lines: PrintLine[] = [
+      { text: BRAND.name, align: "center", bold: true, big: true },
+      { text: `${BRAND.city} · ${BRAND.phone}`, align: "center" },
+      { hr: true },
+      {
+        text: order.isComp ? "ТЕКИН (ходим/гость)" : "ГОСТЕВОЙ СЧЕТ",
+        align: "center",
+        bold: true,
+      },
+      { hr: true },
+      { pair: ["Зал", order.hall ?? "—"] },
+      ...(order.tableNo ? [{ pair: ["Стол", order.tableNo] as [string, string] }] : []),
+      { pair: ["Заказ N", order.checkNo] },
+      { pair: ["Очилди", when] },
+      { pair: ["Официант", order.waiter ?? "—"] },
+      { hr: true },
+      ...order.items.map((it) => ({
+        pair: [it.name, `${it.qty}x${fmt(it.price)}`] as [string, string],
+      })),
+      { hr: true },
+      { pair: ["Полная сумма", fmt(order.subtotal)] },
+      { pair: [`Плата за услугу ${order.servicePct}%`, fmt(order.service)] },
+      { pair: ["ИТОГО", fmt(order.total)], bold: true, big: true },
+      { hr: true },
+      ...order.payments.map((pm) => ({
+        pair: [PAY_LABEL[pm.method] ?? pm.method, fmt(pm.amount)] as [string, string],
+      })),
+      { hr: true },
+      { text: "СПАСИБО! ЖДЕМ ВАС СНОВА!", align: "center" },
+    ];
+    if (!(await printViaAgent(lines))) window.print();
+  }
+
   return (
     <div className="space-y-3">
       <style>{`@media print{body *{visibility:hidden}#chek,#chek *{visibility:visible}#chek{position:absolute;left:0;top:0}}`}</style>
@@ -646,7 +697,7 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
       </div>
       <div className="mx-auto flex max-w-xs gap-2">
         <button
-          onClick={() => window.print()}
+          onClick={print}
           className="flex-1 rounded-xl border py-2.5 text-sm font-medium"
         >
           🖨 Чоп этиш
