@@ -50,14 +50,19 @@ export function Shell({
   const canPos = ["director", "manager", "cashier", "waiter"].includes(
     user.role,
   );
+  const posHost =
+    typeof window !== "undefined" &&
+    window.location.hostname.startsWith("pos");
   const [tab, setTab] = useState<Tab>(
-    isDirector
-      ? "dashboard"
-      : user.role === "cashier" || user.role === "waiter"
-        ? "pos"
-        : canObvalka
-          ? "obvalka"
-          : "catalog",
+    posHost && canPos
+      ? "pos"
+      : isDirector
+        ? "dashboard"
+        : user.role === "cashier" || user.role === "waiter"
+          ? "pos"
+          : canObvalka
+            ? "obvalka"
+            : "catalog",
   );
 
   async function logout() {
