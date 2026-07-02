@@ -631,7 +631,7 @@ function Pnl() {
 type Debt = {
   supplier: { id: string; supplier: string | null; total: number; paidTotal: number; outstanding: number; createdAt: string }[];
   supplierTotal: number;
-  guest: { orderId: string; tableNo: string | null; hall: string | null; closedAt: string | null; outstanding: number }[];
+  guest: { orderId: string; tableNo: string | null; hall: string | null; closedAt: string | null; outstanding: number; customerName: string | null; customerPhone: string | null }[];
   guestTotal: number;
 };
 
@@ -708,14 +708,16 @@ function Debts() {
             {d.guest.map((g) => (
               <div key={g.orderId} className="flex items-center justify-between px-4 py-2">
                 <span className="text-zinc-500">
-                  {g.hall ?? "—"} {g.tableNo ? `· стол ${g.tableNo}` : ""}
+                  <span className="font-medium text-zinc-700">{g.customerName ?? "Меҳмон"}</span>
+                  {g.customerPhone && <span className="text-xs"> · {g.customerPhone}</span>}
+                  <span className="text-xs"> · {g.hall ?? "—"}{g.tableNo ? ` стол ${g.tableNo}` : ""}</span>
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="tabular-nums font-medium">{fmt(g.outstanding)}</span>
                   <button
                     onClick={() =>
                       setPay({
-                        title: `${g.hall ?? "Меҳмон"}${g.tableNo ? ` · стол ${g.tableNo}` : ""} тўлови`,
+                        title: `${g.customerName ?? "Меҳмон"} тўлови`,
                         outstanding: g.outstanding,
                         showMethod: true,
                         onPay: async (amount, method) => {

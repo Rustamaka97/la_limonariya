@@ -14,6 +14,7 @@ import { db } from "./db/client";
 import {
   cashCollections,
   categories,
+  customers,
   debtPayments,
   expenses,
   halls,
@@ -1963,6 +1964,7 @@ export const appRouter = router({
               }),
             )
             .optional(),
+          customerId: z.string().uuid().optional(),
           comp: z.object({ reason: z.string().trim().min(1) }).optional(),
         }),
       )
@@ -1974,6 +1976,13 @@ export const appRouter = router({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Ҳар тўлов тури фақат бир марта",
+          });
+        // Қарз танланса мижоз МАЖБУРИЙ (kim qarzdor — running-balans uchun).
+        const hasDebt = pays.some((p) => p.method === "debt");
+        if (hasDebt && !input.customerId)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Қарзга ёпишда мижоз танланг",
           });
         if (input.comp) {
           if (!["director", "manager", "cashier"].includes(ctx.user.role))
@@ -2026,6 +2035,7 @@ export const appRouter = router({
               status: "closed",
               closedAt: new Date(),
               closedById: ctx.user.id,
+              ...(hasDebt ? { customerId: input.customerId } : {}),
               ...(input.comp ? { isComp: true, compReason: input.comp.reason } : {}),
             })
             .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
@@ -2445,10 +2455,14 @@ export const appRouter = router({
           closedAt: orders.closedAt,
           hall: halls.name,
           amount: orderPayments.amount,
+          customerId: orders.customerId,
+          customerName: customers.name,
+          customerPhone: customers.phone,
         })
         .from(orderPayments)
         .innerJoin(orders, eq(orderPayments.orderId, orders.id))
         .leftJoin(halls, eq(orders.hallId, halls.id))
+        .leftJoin(customers, eq(customers.id, orders.customerId))
         .where(eq(orderPayments.method, "debt"));
       const paidRows = await db
         .select({
@@ -2466,6 +2480,41 @@ export const appRouter = router({
       const guest = guestAll.slice(0, 50);
 
       return { supplier, supplierTotal, guest, guestTotal };
+    }),
+
+    customers: router({
+      // Қарз танлаганда мижоз танлаш/яратиш учун — исм/тел бўйича қидириш.
+      search: protectedProcedure
+        .input(z.object({ query: z.string().optional() }))
+        .query(async ({ input }) => {
+          const q = input.query?.trim();
+          const rows = await db
+            .select({ id: customers.id, name: customers.name, phone: customers.phone })
+            .from(customers)
+            .where(
+              q
+                ? sql`${customers.name} ilike ${`%${q}%`} or ${customers.phone} ilike ${`%${q}%`}`
+                : undefined,
+            )
+            .orderBy(customers.name)
+            .limit(20);
+          return rows;
+        }),
+
+      create: protectedProcedure
+        .input(z.object({ name: z.string().trim().min(1), phone: z.string().trim().optional() }))
+        .mutation(async ({ input, ctx }) => {
+          if (!["director", "manager", "cashier"].includes(ctx.user.role))
+            throw new TRPCError({ code: "FORBIDDEN" });
+          const row = (
+            await db
+              .insert(customers)
+              .values({ name: input.name, phone: input.phone || null })
+              .returning({ id: customers.id })
+          )[0];
+          if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+          return { id: row.id };
+        }),
     }),
 
     payGuestDebt: protectedProcedure

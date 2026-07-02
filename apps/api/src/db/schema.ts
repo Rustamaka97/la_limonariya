@@ -181,6 +181,17 @@ export const tables = pgTable("tables", {
 
 export const orderStatus = pgEnum("order_status", ["open", "closed", "cancelled"]);
 
+// Қарздор меҳмон: қарз танланганда МАЖБУРИЙ бириктирилади (kim qarzdor —
+// running-balans shu customer bo'yicha). Nom majburiy, telefon ixtiyoriy.
+export const customers = pgTable("customers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const orders = pgTable(
   "orders",
   {
@@ -193,6 +204,8 @@ export const orders = pgTable(
     status: orderStatus("status").notNull().default("open"),
     servicePct: integer("service_pct").notNull().default(0),
     branchId: uuid("branch_id").references(() => branches.id),
+    // debt qaytariladigan mijoz — faqat qarzli yopilgan orderlarda to'ladi.
+    customerId: uuid("customer_id").references(() => customers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

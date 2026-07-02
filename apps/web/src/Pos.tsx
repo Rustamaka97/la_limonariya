@@ -422,6 +422,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [showComp, setShowComp] = useState(false);
   const [showSplit, setShowSplit] = useState(false);
   const [splits, setSplits] = useState<Record<string, string>>({});
+  const [pendingDebt, setPendingDebt] = useState<{ method: PayMethod; amount: number }[] | null>(null);
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -489,13 +490,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
   }
 
-  async function pay(method: PayMethod) {
+  async function submitClose(payments: { method: PayMethod; amount: number }[], customerId?: string) {
     if (!order || closing) return;
     setCloseErr(null);
     setClosing(true);
     try {
-      await trpc.pos.close.mutate({ id, payments: [{ method, amount: order.total }] });
-      setPaying(false);
+      await trpc.pos.close.mutate({ id, payments, ...(customerId ? { customerId } : {}) });
+      cancelPay();
       refresh();
     } catch (e: unknown) {
       setCloseErr(e instanceof Error ? e.message : "Хато");
@@ -504,24 +505,21 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
   }
 
-  async function paySplit() {
+  function pay(method: PayMethod) {
+    if (!order || closing) return;
+    const payments = [{ method, amount: order.total }];
+    // Қарз танланса — аввал мижоз танлаш (МАЖБУРИЙ).
+    if (method === "debt") { setPendingDebt(payments); return; }
+    submitClose(payments);
+  }
+
+  function paySplit() {
     if (!order || closing) return;
     const payments = (Object.entries(splits) as [PayMethod, string][])
       .map(([method, v]) => ({ method, amount: Math.round(Number(v) || 0) }))
       .filter((p) => p.amount > 0);
-    setCloseErr(null);
-    setClosing(true);
-    try {
-      await trpc.pos.close.mutate({ id, payments });
-      setShowSplit(false);
-      setSplits({});
-      setPaying(false);
-      refresh();
-    } catch (e: unknown) {
-      setCloseErr(e instanceof Error ? e.message : "Хато");
-    } finally {
-      setClosing(false);
-    }
+    if (payments.some((p) => p.method === "debt")) { setPendingDebt(payments); return; }
+    submitClose(payments);
   }
 
   async function payComp() {
@@ -557,6 +555,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     setShowComp(false);
     setShowSplit(false);
     setSplits({});
+    setPendingDebt(null);
     setCloseErr(null);
   }
 
@@ -898,7 +897,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               </span>
             </div>
 
-            {showSplit ? (
+            {pendingDebt ? (
+              <CustomerPicker
+                closing={closing}
+                onBack={() => setPendingDebt(null)}
+                onPick={(customerId) => submitClose(pendingDebt, customerId)}
+              />
+            ) : showSplit ? (
               <div className="space-y-2 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
                 <p className="text-xs font-semibold text-brand-ink">Аралаш тўлов — ҳар турга суммани ёзинг</p>
                 {(["cash", "card", "click", "payme", "debt"] as PayMethod[]).map((m) => (
@@ -1016,6 +1021,125 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Қарзга ёпишда мижоз танлаш/яратиш — исм/тел бўйича қидириш ёки янги қўшиш.
+function CustomerPicker({
+  closing,
+  onBack,
+  onPick,
+}: {
+  closing: boolean;
+  onBack: () => void;
+  onPick: (customerId: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<{ id: string; name: string; phone: string | null }[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      trpc.finance.customers.search.query({ query: q.trim() || undefined }).then(setResults).catch(() => setResults([]));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  async function createAndPick() {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    try {
+      const { id } = await trpc.finance.customers.create.mutate({ name: name.trim(), phone: phone.trim() || undefined });
+      onPick(id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
+      <p className="text-xs font-semibold text-brand-ink">Қарздор мижозни танланг</p>
+      {!creating ? (
+        <>
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="исм ёки телефон бўйича қидириш"
+            className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+          />
+          <div className="max-h-40 divide-y overflow-auto rounded-xl border border-brand-cream-soft bg-white">
+            {results.length === 0 ? (
+              <div className="px-3 py-3 text-center text-xs text-zinc-400">топилмади</div>
+            ) : (
+              results.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => onPick(c.id)}
+                  disabled={closing}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-brand-cream/40 disabled:opacity-40"
+                >
+                  <span className="font-medium">{c.name}</span>
+                  {c.phone && <span className="text-xs text-zinc-400">{c.phone}</span>}
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onBack}
+              disabled={closing}
+              className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 disabled:opacity-40"
+            >
+              Орқага
+            </button>
+            <button
+              onClick={() => { setName(q); setCreating(true); }}
+              disabled={closing}
+              className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+            >
+              Янги мижоз
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Исм (мажбурий)"
+            className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+          />
+          <input
+            inputMode="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Телефон (ихтиёрий)"
+            className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCreating(false)}
+              disabled={busy}
+              className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 disabled:opacity-40"
+            >
+              Орқага
+            </button>
+            <button
+              onClick={createAndPick}
+              disabled={busy || !name.trim()}
+              className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+            >
+              Сақлаб танлаш
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
