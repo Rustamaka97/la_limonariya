@@ -1968,6 +1968,13 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const pays = (input.payments ?? []).filter((p) => p.amount > 0);
+        // Multi-tender: ҳар усул фақат бир марта (қарз рўйхати ва payGuestDebt
+        // бир заказда битта debt қаторни кутади — иккита бўлса ledger бузилади).
+        if (new Set(pays.map((p) => p.method)).size !== pays.length)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Ҳар тўлов тури фақат бир марта",
+          });
         if (input.comp) {
           if (!["director", "manager", "cashier"].includes(ctx.user.role))
             throw new TRPCError({ code: "FORBIDDEN" });

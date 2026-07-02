@@ -420,6 +420,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [paying, setPaying] = useState(false);
   const [compReason, setCompReason] = useState("");
   const [showComp, setShowComp] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
+  const [splits, setSplits] = useState<Record<string, string>>({});
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -502,6 +504,26 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
   }
 
+  async function paySplit() {
+    if (!order || closing) return;
+    const payments = (Object.entries(splits) as [PayMethod, string][])
+      .map(([method, v]) => ({ method, amount: Math.round(Number(v) || 0) }))
+      .filter((p) => p.amount > 0);
+    setCloseErr(null);
+    setClosing(true);
+    try {
+      await trpc.pos.close.mutate({ id, payments });
+      setShowSplit(false);
+      setSplits({});
+      setPaying(false);
+      refresh();
+    } catch (e: unknown) {
+      setCloseErr(e instanceof Error ? e.message : "Хато");
+    } finally {
+      setClosing(false);
+    }
+  }
+
   async function payComp() {
     if (!compReason.trim() || closing) return;
     setCloseErr(null);
@@ -533,8 +555,15 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   function cancelPay() {
     setPaying(false);
     setShowComp(false);
+    setShowSplit(false);
+    setSplits({});
     setCloseErr(null);
   }
+
+  const splitSum = (Object.values(splits) as string[]).reduce(
+    (s, v) => s + Math.round(Number(v) || 0),
+    0,
+  );
 
   return (
     <div className="space-y-3 pb-24 lg:pb-0">
@@ -869,7 +898,49 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               </span>
             </div>
 
-            {!showComp ? (
+            {showSplit ? (
+              <div className="space-y-2 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
+                <p className="text-xs font-semibold text-brand-ink">Аралаш тўлов — ҳар турга суммани ёзинг</p>
+                {(["cash", "card", "click", "payme", "debt"] as PayMethod[]).map((m) => (
+                  <div key={m} className="flex items-center gap-2">
+                    <span className="w-16 shrink-0 text-sm text-zinc-600">{PAY_LABEL[m]}</span>
+                    <input
+                      inputMode="numeric"
+                      value={splits[m] ?? ""}
+                      onChange={(e) =>
+                        setSplits((s) => ({ ...s, [m]: e.target.value.replace(/\D/g, "") }))
+                      }
+                      placeholder="0"
+                      className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-right text-sm tabular-nums outline-none focus:border-brand"
+                    />
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-1 text-sm">
+                  <span className="text-zinc-500">Йиғилди</span>
+                  <span
+                    className={`tabular-nums font-semibold ${splitSum === order.total ? "text-emerald-600" : "text-zinc-700"}`}
+                  >
+                    {fmt(splitSum)} / {fmt(order.total)}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowSplit(false); setSplits({}); }}
+                    disabled={closing}
+                    className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 disabled:opacity-40"
+                  >
+                    Орқага
+                  </button>
+                  <button
+                    onClick={paySplit}
+                    disabled={closing || splitSum !== order.total}
+                    className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+                  >
+                    Ёпиш
+                  </button>
+                </div>
+              </div>
+            ) : !showComp ? (
               <>
                 <div className="grid grid-cols-2 gap-2">
                   {(["cash", "card", "click", "payme", "debt"] as PayMethod[]).map((m) => {
@@ -897,6 +968,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                     </button>
                   )}
                 </div>
+                <button
+                  onClick={() => setShowSplit(true)}
+                  disabled={closing}
+                  className="w-full rounded-xl border border-brand-cream-soft py-2 text-sm font-medium text-zinc-600 transition hover:border-brand hover:text-brand disabled:opacity-40"
+                >
+                  Аралаш тўлов (бўлиб)
+                </button>
                 {closing && <p className="text-center text-xs text-zinc-400">ёпилмоқда…</p>}
               </>
             ) : (
