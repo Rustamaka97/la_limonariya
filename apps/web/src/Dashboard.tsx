@@ -91,7 +91,7 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
               {s.recentObvalka.map((o) => (
                 <li key={o.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span>
-                    <span className="font-medium">{o.carcassType === "qoy" ? "Қўй" : "Мол"}</span>{" "}
+                    <span className="font-medium">{o.carcassType === "qoy" ? "Қўй" : o.carcassType === "mol" ? "Мол" : "Товуқ"}</span>{" "}
                     <span className="text-zinc-400">{(o.weightG / 1000).toFixed(1)}кг · {fmtDate(o.createdAt)}</span>
                   </span>
                   <span className="flex items-center gap-2 text-xs">

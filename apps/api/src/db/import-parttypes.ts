@@ -28,6 +28,15 @@ const MOL: [string, number, number, boolean][] = [
   ["Суяк", 10, 16, true],
   ["Илик", 3, 10, true],
 ];
+// No historical butchering data yet (unlike QOY/MOL, which come from 50+ real
+// sessions in docs/obvalka-normalar.md) — norm % left null until data accrues.
+const TOVUQ: [string, number | null, number | null, boolean][] = [
+  ["Крылишка", null, null, false],
+  ["Бўйин", null, null, false],
+  ["Филе", null, null, false],
+  ["Сончалар", null, null, false],
+  ["Суяк", null, null, true],
+];
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
@@ -51,6 +60,14 @@ const rows = [
     isWaste: w,
     sort: i,
   })),
+  ...TOVUQ.map(([name, lo, hi, w], i) => ({
+    carcassType: "tovuq" as const,
+    name,
+    normMinPct: lo,
+    normMaxPct: hi,
+    isWaste: w,
+    sort: i,
+  })),
 ];
 
 await db
@@ -66,5 +83,7 @@ await db
     },
   });
 
-console.log(`part_types: ${rows.length} (qoy ${QOY.length}, mol ${MOL.length})`);
+console.log(
+  `part_types: ${rows.length} (qoy ${QOY.length}, mol ${MOL.length}, tovuq ${TOVUQ.length})`,
+);
 await client.end();

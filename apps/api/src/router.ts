@@ -1,5 +1,6 @@
 import { and, count, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import {
@@ -15,6 +16,8 @@ import {
 import { SESSION_COOKIE } from "./context";
 import { db } from "./db/client";
 import {
+  assetMovements,
+  assets,
   categories,
   debtPayments,
   expenses,
@@ -1060,7 +1063,7 @@ export const appRouter = router({
 
   obvalka: router({
     partTypes: protectedProcedure
-      .input(z.object({ carcassType: z.enum(["qoy", "mol"]) }))
+      .input(z.object({ carcassType: z.enum(["qoy", "mol", "tovuq"]) }))
       .query(async ({ input }) => {
         return db
           .select({
@@ -1133,7 +1136,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          carcassType: z.enum(["qoy", "mol"]),
+          carcassType: z.enum(["qoy", "mol", "tovuq"]),
           weightG: z.number().int().positive(),
           pricePerKg: z.number().int().nonnegative(),
           supplier: z.string().optional(),
@@ -1187,7 +1190,11 @@ export const appRouter = router({
             return pt && !pt.isWaste ? s + p.weightG : s;
           }, 0);
           const carcassName =
-            input.carcassType === "mol" ? "Мол лаҳм" : "Қўй лаҳм";
+            input.carcassType === "mol"
+              ? "Мол лаҳм"
+              : input.carcassType === "qoy"
+                ? "Қўй лаҳм"
+                : "Товуқ гўшти";
           const cp = (
             await tx
               .select({ id: products.id })
@@ -1209,6 +1216,107 @@ export const appRouter = router({
 
           return { id: row.id };
         });
+      }),
+  }),
+
+  // Идиш-товоқ/мебель/техника — food/COGS'дан алоҳида. Ҳозирги сон saqlanmaydi,
+  // stock_movements каби ledger'dan SUM орқали ҳисобланади (drift bo'lmasligi uchun).
+  assets: router({
+    list: managerProcedure.query(async () => {
+      return db
+        .select({
+          id: assets.id,
+          category: assets.category,
+          name: assets.name,
+          note: assets.note,
+          qty: sql<number>`coalesce(sum(${assetMovements.qty}), 0)`.mapWith(Number),
+        })
+        .from(assets)
+        .leftJoin(assetMovements, eq(assetMovements.assetId, assets.id))
+        .where(eq(assets.active, true))
+        .groupBy(assets.id)
+        .orderBy(assets.category, assets.name);
+    }),
+
+    create: managerProcedure
+      .input(
+        z.object({
+          category: z.enum(["idish", "mebel", "texnika", "boshqa"]),
+          name: z.string().trim().min(1),
+          note: z.string().optional(),
+          initialQty: z.number().int().positive().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const row = (
+          await db
+            .insert(assets)
+            .values({
+              category: input.category,
+              name: input.name,
+              note: input.note ?? null,
+            })
+            .returning()
+        )[0];
+        if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (input.initialQty)
+          await db.insert(assetMovements).values({
+            assetId: row.id,
+            qty: input.initialQty,
+            reason: "kirim",
+            createdById: ctx.user.id,
+          });
+        return { id: row.id };
+      }),
+
+    adjust: managerProcedure
+      .input(
+        z.object({
+          assetId: z.string().uuid(),
+          qty: z.number().int().refine((n) => n !== 0),
+          reason: z.enum(["kirim", "sindi", "yoqoldi", "tuzatish"]),
+          note: z.string().optional(),
+          responsibleId: z.string().uuid().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        await db.insert(assetMovements).values({
+          assetId: input.assetId,
+          qty: input.qty,
+          reason: input.reason,
+          note: input.note ?? null,
+          responsibleId: input.responsibleId ?? null,
+          createdById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    history: managerProcedure
+      .input(z.object({ assetId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const responsible = alias(users, "responsible");
+        return db
+          .select({
+            id: assetMovements.id,
+            qty: assetMovements.qty,
+            reason: assetMovements.reason,
+            note: assetMovements.note,
+            createdAt: assetMovements.createdAt,
+            createdByName: users.name,
+            responsibleName: responsible.name,
+          })
+          .from(assetMovements)
+          .leftJoin(users, eq(users.id, assetMovements.createdById))
+          .leftJoin(responsible, eq(responsible.id, assetMovements.responsibleId))
+          .where(eq(assetMovements.assetId, input.assetId))
+          .orderBy(desc(assetMovements.createdAt));
+      }),
+
+    deactivate: managerProcedure
+      .input(z.object({ assetId: z.string().uuid() }))
+      .mutation(async ({ input }) => {
+        await db.update(assets).set({ active: false }).where(eq(assets.id, input.assetId));
+        return { ok: true };
       }),
   }),
 

@@ -3,9 +3,9 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { products } from "./schema";
 
-// Two carcass-level meat balances. Recipe data only knows carcass (мол/қўй),
+// Carcass-level meat balances. Recipe data only knows carcass (мол/қўй/товуқ),
 // not cut, so meat stock is tracked here — obvalka credits, sales debit.
-const CARCASS = ["Мол лаҳм", "Қўй лаҳм"];
+const CARCASS = ["Мол лаҳм", "Қўй лаҳм", "Товуқ гўшти"];
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");

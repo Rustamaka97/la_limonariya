@@ -36,7 +36,7 @@ type Result = {
 const fmt = (n: number) => n.toLocaleString("ru-RU");
 
 export function Obvalka() {
-  const [carcass, setCarcass] = useState<"qoy" | "mol">("qoy");
+  const [carcass, setCarcass] = useState<"qoy" | "mol" | "tovuq">("qoy");
   const [weight, setWeight] = useState("");
   const [price, setPrice] = useState("");
   const [supplier, setSupplier] = useState("");
@@ -101,7 +101,7 @@ export function Obvalka() {
   return (
     <div className="space-y-4">
       <div className="inline-flex rounded-lg border bg-white p-0.5">
-        {(["qoy", "mol"] as const).map((c) => (
+        {(["qoy", "mol", "tovuq"] as const).map((c) => (
           <button
             key={c}
             onClick={() => setCarcass(c)}
@@ -109,7 +109,7 @@ export function Obvalka() {
               carcass === c ? "bg-zinc-900 text-white" : "text-zinc-500"
             }`}
           >
-            {c === "qoy" ? "Қўй" : "Мол"}
+            {c === "qoy" ? "Қўй" : c === "mol" ? "Мол" : "Товуқ"}
           </button>
         ))}
       </div>
@@ -223,7 +223,13 @@ function ResultView({ res, onBack }: { res: Result; onBack: () => void }) {
         <Stat
           label="Туша"
           value={`${(res.weightG / 1000).toFixed(1)} кг`}
-          sub={res.carcassType === "qoy" ? "Қўй" : "Мол"}
+          sub={
+            res.carcassType === "qoy"
+              ? "Қўй"
+              : res.carcassType === "mol"
+                ? "Мол"
+                : "Товуқ"
+          }
         />
         <Stat label="Умумий нарх" value={`${fmt(res.totalCost)}`} sub="so'm" />
         <Stat

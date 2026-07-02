@@ -127,6 +127,27 @@
       "when": 1782909310113,
       "tag": "0017_slow_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782937196421,
+      "tag": "0018_handy_exiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782938698186,
+      "tag": "0019_fearless_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1782939699161,
+      "tag": "0020_broad_master_chief",
+      "breakpoints": true
     }
   ]
 }

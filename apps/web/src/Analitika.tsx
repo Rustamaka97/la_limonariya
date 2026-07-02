@@ -77,7 +77,7 @@ export function Analitika() {
               {s.obvalkaFlags.map((o) => (
                 <li key={o.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span>
-                    <span className="font-medium">{o.carcassType === "qoy" ? "Қўй" : "Мол"}</span>{" "}
+                    <span className="font-medium">{o.carcassType === "qoy" ? "Қўй" : o.carcassType === "mol" ? "Мол" : "Товуқ"}</span>{" "}
                     <span className="text-zinc-400">{(o.weightG / 1000).toFixed(1)}кг · {fmtDate(o.createdAt)}</span>
                   </span>
                   <span className="flex items-center gap-2 text-xs">
@@ -145,7 +145,7 @@ export function Analitika() {
             <ul className="divide-y">
               {s.priceSpikes.map((p) => (
                 <li key={p.carcassType} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                  <span>{p.carcassType === "qoy" ? "Қўй" : "Мол"}</span>
+                  <span>{p.carcassType === "qoy" ? "Қўй" : p.carcassType === "mol" ? "Мол" : "Товуқ"}</span>
                   <span className="flex items-center gap-2 text-xs">
                     <span className="text-zinc-400 tabular-nums">{fmt(p.medianPrice)} → {fmt(p.latestPrice)}</span>
                     <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-red-700 tabular-nums">+{p.pct}%</span>
