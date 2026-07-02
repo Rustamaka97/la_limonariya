@@ -444,9 +444,16 @@ export const cashCollections = pgTable("cash_collections", {
 });
 
 // One physical cash count per operational day (директор санайди, камомад кўради).
+// Смена = business day (битта кассир, битта смена/кун). "Очиш" — кассир
+// PIN билан кириб куннинг бошланганини қайд этади (размен ҳар доим TILL_FLOAT,
+// алоҳида сақланмайди). "Ёпиш" (Z) — countedCash киритилганда. Очилмаган
+// кунда Z-ёпиш блокланади (tillCount.set'га қаранг).
 export const tillCounts = pgTable("till_counts", {
   dayKey: text("day_key").primaryKey(), // 'YYYY-MM-DD' businessDayBounds.dayKey
-  countedCash: integer("counted_cash").notNull(),
+  openedAt: timestamp("opened_at", { withTimezone: true }),
+  openedById: uuid("opened_by_id").references(() => users.id),
+  countedCash: integer("counted_cash"),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
   note: text("note"),
   createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true })

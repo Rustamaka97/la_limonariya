@@ -247,16 +247,25 @@ type TillData = {
   cashExpenses: number;
   cashCollected: number;
   expectedCash: number;
+  openedAt: string | null;
+  openedByName: string | null;
   countedCash: number | null;
+  closedAt: string | null;
   variance: number | null;
   note: string | null;
 };
 type CashCollection = { id: string; amount: number; note: string; createdAt: string; performedByName: string | null };
+const fmtTime = (s: string | null) => {
+  if (!s) return "";
+  const d = new Date(s);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
 
 function TillCount({ day }: { day: string }) {
   const [t, setT] = useState<TillData | null>(null);
   const [counted, setCounted] = useState("");
   const [busy, setBusy] = useState(false);
+  const [openBusy, setOpenBusy] = useState(false);
   const [err, setErr] = useState(false);
   const [collections, setCollections] = useState<CashCollection[]>([]);
   const [collecting, setCollecting] = useState(false);
@@ -276,6 +285,16 @@ function TillCount({ day }: { day: string }) {
     setT(null);
     refresh();
   }, [refresh]);
+
+  async function openShift() {
+    setOpenBusy(true);
+    try {
+      await trpc.finance.tillCount.open.mutate({ day });
+      refresh();
+    } finally {
+      setOpenBusy(false);
+    }
+  }
 
   async function save() {
     const c = Math.round(Number(counted) || 0);
@@ -305,9 +324,31 @@ function TillCount({ day }: { day: string }) {
 
   if (err) return <ErrBox onRetry={refresh} />;
   if (!t) return <div className="rounded-xl border bg-white p-6 text-center text-zinc-400">⏳</div>;
+
+  if (!t.openedAt)
+    return (
+      <div className="rounded-xl border bg-white p-4">
+        <div className="mb-3 text-sm font-semibold">Смена</div>
+        <p className="mb-3 text-sm text-zinc-500">Смена ҳали очилмаган — очмасдан касса ишламайди.</p>
+        <button
+          onClick={openShift}
+          disabled={openBusy}
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+        >
+          Смена очиш
+        </button>
+      </div>
+    );
+
   return (
     <div className="rounded-xl border bg-white p-4">
-      <div className="mb-3 text-sm font-semibold">Касса санаш (камомад)</div>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-sm font-semibold">Касса санаш (камомад)</div>
+        <div className="text-xs text-zinc-400">
+          Очилди {fmtTime(t.openedAt)} · {t.openedByName ?? "—"}
+          {t.closedAt && ` · Ёпилди ${fmtTime(t.closedAt)}`}
+        </div>
+      </div>
       <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-zinc-500 sm:grid-cols-5">
         <span>Размен: <b className="text-zinc-700">{fmt(t.floatAmount)}</b></span>
         <span>Нақд тушум: <b className="text-zinc-700">{fmt(t.cashRevenue)}</b></span>

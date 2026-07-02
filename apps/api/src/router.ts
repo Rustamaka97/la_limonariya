@@ -491,14 +491,15 @@ async function computeSignals() {
   const tillRow = (
     await db.select().from(tillCounts).where(eq(tillCounts.dayKey, dayKey)).limit(1)
   )[0];
-  const cashVariance = tillRow
-    ? {
-        dayKey,
-        countedCash: tillRow.countedCash,
-        expectedCash,
-        variance: tillRow.countedCash - expectedCash,
-      }
-    : null;
+  const cashVariance =
+    tillRow?.countedCash != null
+      ? {
+          dayKey,
+          countedCash: tillRow.countedCash,
+          expectedCash,
+          variance: tillRow.countedCash - expectedCash,
+        }
+      : null;
 
   // yesterday = a CLOSED, complete business day — fair break-even comparison
   // (today's still-accumulating revenue would always look "below" mid-shift).
@@ -2644,8 +2645,15 @@ export const appRouter = router({
             await expectedCashForWindow(startUTC, endUTC);
           const row = (
             await db
-              .select()
+              .select({
+                openedAt: tillCounts.openedAt,
+                openedByName: users.name,
+                countedCash: tillCounts.countedCash,
+                closedAt: tillCounts.closedAt,
+                note: tillCounts.note,
+              })
               .from(tillCounts)
+              .leftJoin(users, eq(users.id, tillCounts.openedById))
               .where(eq(tillCounts.dayKey, dayKey))
               .limit(1)
           )[0];
@@ -2657,10 +2665,28 @@ export const appRouter = router({
             cashExpenses,
             cashCollected,
             expectedCash,
+            openedAt: row?.openedAt ?? null,
+            openedByName: row?.openedByName ?? null,
             countedCash: row?.countedCash ?? null,
-            variance: row ? row.countedCash - expectedCash : null,
+            closedAt: row?.closedAt ?? null,
+            variance: row?.countedCash != null ? row.countedCash - expectedCash : null,
             note: row?.note ?? null,
           };
+        }),
+
+      // Смена очиш: кассир/директор PIN билан кириб куннинг бошланганини
+      // қайд этади. Идемпотент — аллақачон очилган бўлса ўзгармайди.
+      open: directorProcedure
+        .input(
+          z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).optional(),
+        )
+        .mutation(async ({ input, ctx }) => {
+          const { dayKey } = businessDayBounds(input?.day);
+          await db
+            .insert(tillCounts)
+            .values({ dayKey, openedAt: new Date(), openedById: ctx.user.id })
+            .onConflictDoNothing({ target: tillCounts.dayKey });
+          return { ok: true };
         }),
 
       set: directorProcedure
@@ -2673,22 +2699,27 @@ export const appRouter = router({
         )
         .mutation(async ({ input, ctx }) => {
           const { dayKey } = businessDayBounds(input.day);
+          const existing = (
+            await db
+              .select({ openedAt: tillCounts.openedAt })
+              .from(tillCounts)
+              .where(eq(tillCounts.dayKey, dayKey))
+              .limit(1)
+          )[0];
+          if (!existing?.openedAt)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Аввал сменани очинг",
+            });
           await db
-            .insert(tillCounts)
-            .values({
-              dayKey,
+            .update(tillCounts)
+            .set({
               countedCash: input.countedCash,
-              note: input.note ?? null,
+              closedAt: new Date(),
+              ...(input.note !== undefined ? { note: input.note } : {}),
               createdById: ctx.user.id,
             })
-            .onConflictDoUpdate({
-              target: tillCounts.dayKey,
-              // note omitted on a later call → keep the existing value, don't null it out
-              set: {
-                countedCash: input.countedCash,
-                ...(input.note !== undefined ? { note: input.note } : {}),
-              },
-            });
+            .where(eq(tillCounts.dayKey, dayKey));
           return { ok: true };
         }),
     }),
