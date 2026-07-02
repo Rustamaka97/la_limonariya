@@ -35,6 +35,7 @@ type Damage = { responsibleId: string | null; responsibleName: string; totalSom:
 export function Inventar() {
   const [rows, setRows] = useState<AssetRow[] | null>(null);
   const [damage, setDamage] = useState<Damage[]>([]);
+  const [unpricedDamage, setUnpricedDamage] = useState(0);
   const [err, setErr] = useState(false);
   const [openAsset, setOpenAsset] = useState<AssetRow | null>(null);
   const [adding, setAdding] = useState(false);
@@ -42,7 +43,13 @@ export function Inventar() {
   const refresh = useCallback(() => {
     setErr(false);
     trpc.assets.list.query().then(setRows).catch(() => setErr(true));
-    trpc.assets.damageByStaff.query().then(setDamage).catch(() => setDamage([]));
+    trpc.assets.damageByStaff.query().then((d) => {
+      setDamage(d.rows);
+      setUnpricedDamage(d.unpricedCount);
+    }).catch(() => {
+      setDamage([]);
+      setUnpricedDamage(0);
+    });
   }, []);
   useEffect(() => {
     refresh();
@@ -106,6 +113,18 @@ export function Inventar() {
               </div>
             ))}
           </div>
+          {unpricedDamage > 0 && (
+            <div className="border-t border-amber-200 px-4 py-2 text-xs text-amber-700">
+              ⚠️ яна {unpricedDamage} та зарар нархсиз турга тегишли — юқоридаги
+              сумма тўлиқ эмас. Тур нархини қўйсангиз, ҳисобга қўшилади.
+            </div>
+          )}
+        </div>
+      )}
+      {damage.length === 0 && unpricedDamage > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+          ⚠️ {unpricedDamage} та зарар қайд этилган, лекин турлар нархсиз —
+          нархини қўйсангиз, ходимлар бўйича ҳисоб кўринади.
         </div>
       )}
 
@@ -147,10 +166,12 @@ function AddForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function submit() {
     if (!name.trim()) return;
     setBusy(true);
+    setErr(null);
     try {
       await trpc.assets.create.mutate({
         category,
@@ -160,6 +181,8 @@ function AddForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
         initialQty: qty ? Math.round(Number(qty)) : undefined,
       });
       onDone();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Хато");
     } finally {
       setBusy(false);
     }
@@ -208,6 +231,7 @@ function AddForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
           className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand"
         />
       </div>
+      {err && <p className="text-sm text-red-500">{err}</p>}
       <div className="flex gap-2">
         <button
           onClick={submit}
@@ -404,6 +428,7 @@ function AdjustForm({
 }) {
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState<"sindi" | "yoqoldi" | "tuzatish">("sindi");
+  const [correction, setCorrection] = useState(false);
   const [responsibleId, setResponsibleId] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -416,7 +441,7 @@ function AdjustForm({
       await trpc.assets.adjust.mutate({
         assetId,
         qty: mode === "kirim" ? n : -n,
-        reason: mode === "kirim" ? "kirim" : reason,
+        reason: mode === "kirim" ? (correction ? "tuzatish" : "kirim") : reason,
         responsibleId: mode === "chiqim" && responsibleId ? responsibleId : undefined,
         note: note.trim() || undefined,
       });
@@ -449,6 +474,16 @@ function AdjustForm({
           </select>
         )}
       </div>
+      {mode === "kirim" && (
+        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <input
+            type="checkbox"
+            checked={correction}
+            onChange={(e) => setCorrection(e.target.checked)}
+          />
+          Тузатиш сифатида (қайта санашда кўпроқ топилди — янги харид эмас)
+        </label>
+      )}
       {mode === "chiqim" && (
         <select
           value={responsibleId}

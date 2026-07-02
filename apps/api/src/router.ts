@@ -1457,17 +1457,25 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
-        const row = (
-          await db
-            .insert(assets)
-            .values({
-              category: input.category,
-              name: input.name,
-              note: input.note ?? null,
-              price: input.price ?? null,
-            })
-            .returning()
-        )[0];
+        let row: (typeof assets.$inferSelect) | undefined;
+        try {
+          row = (
+            await db
+              .insert(assets)
+              .values({
+                category: input.category,
+                name: input.name,
+                note: input.note ?? null,
+                price: input.price ?? null,
+              })
+              .returning()
+          )[0];
+        } catch (e) {
+          if (e && typeof e === "object" && "code" in e && e.code === "23505") {
+            throw new TRPCError({ code: "CONFLICT", message: "Шу турдан аллақачон бор" });
+          }
+          throw e;
+        }
         if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         if (input.initialQty)
           await db.insert(assetMovements).values({
@@ -1488,13 +1496,24 @@ export const appRouter = router({
 
     adjust: managerProcedure
       .input(
-        z.object({
-          assetId: z.string().uuid(),
-          qty: z.number().int().refine((n) => n !== 0),
-          reason: z.enum(["kirim", "sindi", "yoqoldi", "tuzatish"]),
-          note: z.string().optional(),
-          responsibleId: z.string().uuid().optional(),
-        }),
+        z
+          .object({
+            assetId: z.string().uuid(),
+            qty: z.number().int().refine((n) => n !== 0),
+            reason: z.enum(["kirim", "sindi", "yoqoldi", "tuzatish"]),
+            note: z.string().optional(),
+            responsibleId: z.string().uuid().optional(),
+          })
+          // kirim is always an increase, sindi/yoqoldi always a decrease —
+          // tuzatish (recount correction) is the only reason allowed either
+          // sign. Server-side, not just UI, since qty's sign drives the
+          // drift-free SUM the whole ledger design depends on.
+          .refine((v) => v.reason !== "kirim" || v.qty > 0, {
+            message: "Кирим сони мусбат бўлиши керак",
+          })
+          .refine((v) => !["sindi", "yoqoldi"].includes(v.reason) || v.qty < 0, {
+            message: "Синди/йўқолди сони манфий бўлиши керак",
+          }),
       )
       .mutation(async ({ input, ctx }) => {
         // Зарар суммаси faqat sindi/yoqoldi'да, faqat narx maʼlum bo'lsa —
@@ -1561,7 +1580,22 @@ export const appRouter = router({
         )
         .groupBy(assetMovements.responsibleId, responsible.name)
         .orderBy(desc(sql`sum(abs(${assetMovements.qty}) * ${assetMovements.unitPrice})`));
-      return rows;
+      // Damage on assets with no price set has no unitPrice snapshot and would
+      // otherwise vanish from the report above with no signal — surface a count
+      // so the owner knows the total understates real losses (same pattern as
+      // Moliya's cogsPartial/unpricedNames for missing product prices).
+      const unpriced = (
+        await db
+          .select({ n: count() })
+          .from(assetMovements)
+          .where(
+            and(
+              inArray(assetMovements.reason, ["sindi", "yoqoldi"]),
+              sql`${assetMovements.unitPrice} is null`,
+            ),
+          )
+      )[0];
+      return { rows, unpricedCount: unpriced?.n ?? 0 };
     }),
 
     deactivate: managerProcedure
