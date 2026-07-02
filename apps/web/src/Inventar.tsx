@@ -30,7 +30,7 @@ type AssetRow = {
   price: number | null;
   qty: number;
 };
-type Damage = { responsibleId: string; responsibleName: string; totalSom: number; totalQty: number };
+type Damage = { responsibleId: string | null; responsibleName: string; totalSom: number; totalQty: number };
 
 export function Inventar() {
   const [rows, setRows] = useState<AssetRow[] | null>(null);
