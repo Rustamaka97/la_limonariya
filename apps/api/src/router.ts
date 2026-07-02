@@ -12,6 +12,7 @@ import {
 import { SESSION_COOKIE } from "./context";
 import { db } from "./db/client";
 import {
+  cashCollections,
   categories,
   debtPayments,
   expenses,
@@ -278,8 +279,19 @@ async function expectedCashForWindow(start: Date, end: Date) {
         )
     )[0]?.s ?? 0,
   );
-  const expectedCash = TILL_FLOAT + cashRevenue + cashDebtRepaid - cashExpenses;
-  return { cashRevenue, cashDebtRepaid, cashExpenses, expectedCash };
+  const cashCollected = Number(
+    (
+      await db
+        .select({ s: sql<number>`coalesce(sum(${cashCollections.amount}), 0)` })
+        .from(cashCollections)
+        .where(
+          and(gte(cashCollections.createdAt, start), lt(cashCollections.createdAt, end)),
+        )
+    )[0]?.s ?? 0,
+  );
+  const expectedCash =
+    TILL_FLOAT + cashRevenue + cashDebtRepaid - cashExpenses - cashCollected;
+  return { cashRevenue, cashDebtRepaid, cashExpenses, cashCollected, expectedCash };
 }
 
 // Lightweight revenue-only aggregation (no COGS) for trend/report views where
@@ -2628,7 +2640,7 @@ export const appRouter = router({
         )
         .query(async ({ input }) => {
           const { startUTC, endUTC, dayKey } = businessDayBounds(input?.day);
-          const { cashRevenue, cashDebtRepaid, cashExpenses, expectedCash } =
+          const { cashRevenue, cashDebtRepaid, cashExpenses, cashCollected, expectedCash } =
             await expectedCashForWindow(startUTC, endUTC);
           const row = (
             await db
@@ -2643,6 +2655,7 @@ export const appRouter = router({
             cashRevenue,
             cashDebtRepaid,
             cashExpenses,
+            cashCollected,
             expectedCash,
             countedCash: row?.countedCash ?? null,
             variance: row ? row.countedCash - expectedCash : null,
@@ -2679,6 +2692,41 @@ export const appRouter = router({
           return { ok: true };
         }),
     }),
+
+    // Инкассация: кун ичи кассадан нақд олиб сейфга ўтказиш — журнал, изоҳ
+    // мажбурий (expectedCashForWindow'дан айирилади, сохта камомад чиқмасин).
+    collectCash: protectedProcedure
+      .input(z.object({ amount: z.number().int().positive(), note: z.string().trim().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        if (!["director", "manager"].includes(ctx.user.role))
+          throw new TRPCError({ code: "FORBIDDEN" });
+        await db.insert(cashCollections).values({
+          amount: input.amount,
+          note: input.note,
+          performedById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    cashCollections: directorProcedure
+      .input(z.object({ from: z.string(), to: z.string() }))
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        return db
+          .select({
+            id: cashCollections.id,
+            amount: cashCollections.amount,
+            note: cashCollections.note,
+            createdAt: cashCollections.createdAt,
+            performedByName: users.name,
+          })
+          .from(cashCollections)
+          .leftJoin(users, eq(users.id, cashCollections.performedById))
+          .where(
+            and(gte(cashCollections.createdAt, startUTC), lt(cashCollections.createdAt, endUTC)),
+          )
+          .orderBy(desc(cashCollections.createdAt));
+      }),
 
     paySupplier: protectedProcedure
       .input(

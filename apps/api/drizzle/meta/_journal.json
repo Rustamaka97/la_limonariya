@@ -148,6 +148,13 @@
       "when": 1783009982016,
       "tag": "0020_refunds",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783011406511,
+      "tag": "0021_cash_collections",
+      "breakpoints": true
     }
   ]
 }

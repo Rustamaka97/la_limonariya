@@ -245,23 +245,32 @@ type TillData = {
   cashRevenue: number;
   cashDebtRepaid: number;
   cashExpenses: number;
+  cashCollected: number;
   expectedCash: number;
   countedCash: number | null;
   variance: number | null;
   note: string | null;
 };
+type CashCollection = { id: string; amount: number; note: string; createdAt: string; performedByName: string | null };
 
 function TillCount({ day }: { day: string }) {
   const [t, setT] = useState<TillData | null>(null);
   const [counted, setCounted] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(false);
+  const [collections, setCollections] = useState<CashCollection[]>([]);
+  const [collecting, setCollecting] = useState(false);
+  const [colAmount, setColAmount] = useState("");
+  const [colNote, setColNote] = useState("");
+  const [colBusy, setColBusy] = useState(false);
+
   const refresh = useCallback(() => {
     setErr(false);
     trpc.finance.tillCount.get
       .query({ day })
       .then((d) => { setT(d); setCounted(d.countedCash != null ? String(d.countedCash) : ""); })
       .catch(() => { setT(null); setErr(true); });
+    trpc.finance.cashCollections.query({ from: day, to: day }).then(setCollections).catch(() => setCollections([]));
   }, [day]);
   useEffect(() => {
     setT(null);
@@ -279,16 +288,32 @@ function TillCount({ day }: { day: string }) {
     }
   }
 
+  async function saveCollection() {
+    const n = Math.round(Number(colAmount));
+    if (!n || n <= 0 || !colNote.trim()) return;
+    setColBusy(true);
+    try {
+      await trpc.finance.collectCash.mutate({ amount: n, note: colNote.trim() });
+      setColAmount("");
+      setColNote("");
+      setCollecting(false);
+      refresh();
+    } finally {
+      setColBusy(false);
+    }
+  }
+
   if (err) return <ErrBox onRetry={refresh} />;
   if (!t) return <div className="rounded-xl border bg-white p-6 text-center text-zinc-400">⏳</div>;
   return (
     <div className="rounded-xl border bg-white p-4">
       <div className="mb-3 text-sm font-semibold">Касса санаш (камомад)</div>
-      <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-zinc-500 sm:grid-cols-4">
+      <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-zinc-500 sm:grid-cols-5">
         <span>Размен: <b className="text-zinc-700">{fmt(t.floatAmount)}</b></span>
         <span>Нақд тушум: <b className="text-zinc-700">{fmt(t.cashRevenue)}</b></span>
         <span>Қарз қайтган: <b className="text-zinc-700">{fmt(t.cashDebtRepaid)}</b></span>
         <span>Нақд харажат: <b className="text-zinc-700">{fmt(t.cashExpenses)}</b></span>
+        <span>Инкассация: <b className="text-zinc-700">{fmt(t.cashCollected)}</b></span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-zinc-500">Кутилган: <b className="tabular-nums">{fmt(t.expectedCash)}</b></span>
@@ -304,6 +329,55 @@ function TillCount({ day }: { day: string }) {
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${t.variance === 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
             {t.variance === 0 ? "тенг ✓" : `камомад ${t.variance > 0 ? "+" : ""}${fmt(t.variance)}`}
           </span>
+        )}
+      </div>
+
+      <div className="mt-3 border-t pt-3">
+        {collections.length > 0 && (
+          <div className="mb-2 space-y-1 text-xs text-zinc-500">
+            {collections.map((c) => (
+              <div key={c.id} className="flex items-center justify-between">
+                <span>{c.note} · {c.performedByName ?? "—"}</span>
+                <span className="tabular-nums font-medium text-zinc-700">−{fmt(c.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {!collecting ? (
+          <button
+            onClick={() => setCollecting(true)}
+            className="text-sm font-medium text-brand hover:underline"
+          >
+            + Инкассация (кассадан пул олиш)
+          </button>
+        ) : (
+          <div className="space-y-2 rounded-lg bg-zinc-50 p-3">
+            <div className="flex gap-2">
+              <input
+                inputMode="numeric"
+                value={colAmount}
+                onChange={(e) => setColAmount(e.target.value.replace(/\D/g, ""))}
+                placeholder="сумма"
+                className="w-32 rounded-lg border px-2 py-1.5 text-sm tabular-nums outline-none focus:border-brand"
+              />
+              <input
+                value={colNote}
+                onChange={(e) => setColNote(e.target.value)}
+                placeholder="изоҳ (мажбурий) — мас. сейфга ўтказилди"
+                className="min-w-0 flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none focus:border-brand"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setCollecting(false)} className="flex-1 rounded-lg border py-1.5 text-sm">Бекор</button>
+              <button
+                onClick={saveCollection}
+                disabled={colBusy || !colAmount || !colNote.trim()}
+                className="flex-1 rounded-lg bg-brand py-1.5 text-sm font-medium text-white disabled:opacity-40"
+              >
+                Сақлаш
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -429,6 +429,20 @@ export const refunds = pgTable(
   (t) => [index("rf_order_idx").on(t.orderId)],
 );
 
+// Инкассация: кун ичи кассадан нақд пул олиш (сейфга) — журнал, изоҳ
+// мажбурий. expectedCashForWindow'дан айирилади (пул касса ичида йўқ, лекин
+// харажат ҳам эмас), акс ҳолда директорнинг кунлик санашида сохта камомад
+// кўринади.
+export const cashCollections = pgTable("cash_collections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  amount: integer("amount").notNull(),
+  note: text("note").notNull(),
+  performedById: uuid("performed_by_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // One physical cash count per operational day (директор санайди, камомад кўради).
 export const tillCounts = pgTable("till_counts", {
   dayKey: text("day_key").primaryKey(), // 'YYYY-MM-DD' businessDayBounds.dayKey
