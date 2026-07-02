@@ -59,7 +59,7 @@ const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 const pinSchema = z.string().regex(/^\d{4}$/, "PIN — 4 ta raqam");
 
 // Real per-kg meat cost = cost of the latest recorded carcass of this type.
-async function latestMeatCost(ct: "qoy" | "mol"): Promise<number | null> {
+async function latestMeatCost(ct: "qoy" | "mol" | "tovuq"): Promise<number | null> {
   const head = (
     await db
       .select()
@@ -99,6 +99,7 @@ async function latestMeatCost(ct: "qoy" | "mol"): Promise<number | null> {
 async function computeDishTaannarx(meatCost: {
   qoy: number | null;
   mol: number | null;
+  tovuq: number | null;
 }) {
   const recs = await db
     .select({
@@ -133,9 +134,10 @@ async function computeDishTaannarx(meatCost: {
   const carcassOf = (
     hint: string | null,
     category: string | null,
-  ): "qoy" | "mol" | null => {
+  ): "qoy" | "mol" | "tovuq" | null => {
     if (!/обвалка|лаҳм|гўшт|гушт/i.test(`${hint ?? ""}`)) return null;
     const s = `${hint ?? ""} ${category ?? ""}`;
+    if (/товуқ|товук|тову/i.test(s)) return "tovuq";
     if (/мол/i.test(s)) return "mol";
     if (/қўй|қуй|куй/i.test(s)) return "qoy";
     return null;
@@ -195,6 +197,7 @@ async function cogsForWindow(start: Date, end: Date) {
   const meat = {
     qoy: await latestMeatCost("qoy"),
     mol: await latestMeatCost("mol"),
+    tovuq: await latestMeatCost("tovuq"),
   };
   const rows = await db
     .select({
@@ -217,7 +220,13 @@ async function cogsForWindow(start: Date, end: Date) {
   const unpriced = new Set<string>();
   for (const r of rows) {
     const carc =
-      r.name === "Мол лаҳм" ? meat.mol : r.name === "Қўй лаҳм" ? meat.qoy : null;
+      r.name === "Мол лаҳм"
+        ? meat.mol
+        : r.name === "Қўй лаҳм"
+          ? meat.qoy
+          : r.name === "Товуқ гўшти"
+            ? meat.tovuq
+            : null;
     const v = valuePortion(Math.abs(r.qty), r.unit, r.costPrice, carc);
     if (v == null) {
       unpriced.add(r.name);
@@ -463,7 +472,11 @@ async function computeSignals() {
       });
   }
 
-  const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+  const meatCost = {
+    qoy: await latestMeatCost("qoy"),
+    mol: await latestMeatCost("mol"),
+    tovuq: await latestMeatCost("tovuq"),
+  };
   const dishes = await computeDishTaannarx(meatCost);
   const thinDishes = dishes
     .filter(
@@ -499,12 +512,12 @@ async function computeSignals() {
   const breakEvenFlag = yFin.checks > 0 && yFin.revenue < BREAK_EVEN_HINT;
 
   const priceSpikes: {
-    carcassType: "qoy" | "mol";
+    carcassType: "qoy" | "mol" | "tovuq";
     latestPrice: number;
     medianPrice: number;
     pct: number;
   }[] = [];
-  for (const ct of ["qoy", "mol"] as const) {
+  for (const ct of ["qoy", "mol", "tovuq"] as const) {
     const rows = await db
       .select({ pricePerKg: obvalka.pricePerKg })
       .from(obvalka)
@@ -801,16 +814,33 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ pin: pinSchema }))
       .mutation(async ({ input, ctx }) => {
+        // cf-connecting-ip is set by Cloudflare's edge and can't be spoofed by
+        // the client. x-forwarded-for's LAST segment is the nearest hop (Caddy
+        // itself, which appends — never replaces — the header), unlike the
+        // first segment, which is attacker-controlled. Either way, IP alone is
+        // a soft signal (NAT/shared terminals), so we also rate-limit per PIN
+        // below — that's the guarantee that can't be defeated by IP spoofing.
+        const xff = ctx.c.req.header("x-forwarded-for");
         const ip =
-          ctx.c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+          ctx.c.req.header("cf-connecting-ip")?.trim() ||
+          xff
+            ?.split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .at(-1) ||
+          "unknown";
+        const ipKey = `ip:${ip}`;
+        const pinKey = `pin:${pinLookup(input.pin)}`;
 
-        const rl = checkLoginRateLimit(ip);
-        if (rl.blocked) {
-          const min = Math.ceil(rl.retryAfterMs / 60000);
-          throw new TRPCError({
-            code: "TOO_MANY_REQUESTS",
-            message: `Жуда кўп хато уриниш. ${min} дақиқадан сўнг қайта уринг.`,
-          });
+        for (const key of [ipKey, pinKey]) {
+          const rl = checkLoginRateLimit(key);
+          if (rl.blocked) {
+            const min = Math.ceil(rl.retryAfterMs / 60000);
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: `Жуда кўп хато уриниш. ${min} дақиқадан сўнг қайта уринг.`,
+            });
+          }
         }
 
         const u = (
@@ -824,10 +854,12 @@ export const appRouter = router({
         )[0];
 
         if (!u || !u.pinHash || !verifyPin(input.pin, u.pinHash)) {
-          recordFailedLogin(ip);
+          recordFailedLogin(ipKey);
+          recordFailedLogin(pinKey);
           throw new TRPCError({ code: "UNAUTHORIZED", message: "PIN noto'g'ri" });
         }
-        clearLoginAttempts(ip);
+        clearLoginAttempts(ipKey);
+        clearLoginAttempts(pinKey);
 
         const { token, tokenHash } = newSessionToken();
         const expiresAt = new Date(Date.now() + SESSION_MS);
@@ -1545,6 +1577,7 @@ export const appRouter = router({
       const meatCost = {
         qoy: await latestMeatCost("qoy"),
         mol: await latestMeatCost("mol"),
+        tovuq: await latestMeatCost("tovuq"),
       };
       return { meatCost, dishes: await computeDishTaannarx(meatCost) };
     }),
@@ -1555,6 +1588,7 @@ export const appRouter = router({
       const meatCost = {
         qoy: await latestMeatCost("qoy"),
         mol: await latestMeatCost("mol"),
+        tovuq: await latestMeatCost("tovuq"),
       };
 
       const typeRows = await db
@@ -1975,10 +2009,11 @@ export const appRouter = router({
           const carc = await tx
             .select({ id: products.id, name: products.name })
             .from(products)
-            .where(inArray(products.name, ["Мол лаҳм", "Қўй лаҳм"]))
+            .where(inArray(products.name, ["Мол лаҳм", "Қўй лаҳм", "Товуқ гўшти"]))
             .orderBy(products.createdAt);
           const molId = carc.find((c) => c.name === "Мол лаҳм")?.id ?? null;
           const qoyId = carc.find((c) => c.name === "Қўй лаҳм")?.id ?? null;
+          const tovuqId = carc.find((c) => c.name === "Товуқ гўшти")?.id ?? null;
 
           // product type/unit lookup — only deduct stock-leaf, non-dona components (in grams)
           const prodMap = new Map(
@@ -2052,13 +2087,15 @@ export const appRouter = router({
               if (ri.qtyG == null) continue;
               const hint = ri.stockHint ?? "";
               let target: string | null = null;
-              if (/обвалка|лаҳм/i.test(hint)) {
-                // carcass meat → grams against the 2 carcass products
-                target = /мол/i.test(hint)
-                  ? molId
-                  : /қўй|қуй|куй/i.test(hint)
-                    ? qoyId
-                    : null;
+              if (/обвалка|лаҳм|гўшт|гушт/i.test(hint)) {
+                // carcass meat → grams against the carcass products
+                target = /товуқ|товук|тову/i.test(hint)
+                  ? tovuqId
+                  : /мол/i.test(hint)
+                    ? molId
+                    : /қўй|қуй|куй/i.test(hint)
+                      ? qoyId
+                      : null;
               } else if (ri.componentId) {
                 // mapped ingredient: only a stock-leaf, weight-unit product (grams)
                 const c = prodMap.get(ri.componentId);
@@ -2685,7 +2722,11 @@ export const appRouter = router({
           .innerJoin(products, eq(inventoryItems.productId, products.id))
           .where(eq(inventoryItems.countId, input.countId))
           .orderBy(inventoryItems.sort);
-        const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+        const meatCost = {
+          qoy: await latestMeatCost("qoy"),
+          mol: await latestMeatCost("mol"),
+          tovuq: await latestMeatCost("tovuq"),
+        };
         const rows = items.map((it) => {
           const counted = it.countedQty != null;
           const diff = (it.countedQty ?? it.theoreticalQty) - it.theoreticalQty;
@@ -2696,7 +2737,13 @@ export const appRouter = router({
                 ? null
                 : 0;
           const carc =
-            it.name === "Мол лаҳм" ? meatCost.mol : it.name === "Қўй лаҳм" ? meatCost.qoy : null;
+            it.name === "Мол лаҳм"
+              ? meatCost.mol
+              : it.name === "Қўй лаҳм"
+                ? meatCost.qoy
+                : it.name === "Товуқ гўшти"
+                  ? meatCost.tovuq
+                  : null;
           const valueGap =
             counted && diff !== 0 ? valuePortion(Math.abs(diff), it.unit, it.costPrice, carc) : null;
           const flag =
@@ -2985,7 +3032,11 @@ export const appRouter = router({
           if (!nonRevenue.has(r.orderId)) e.revenue += r.qty * r.price; // realized cash only
           byProduct.set(r.productId, e);
         }
-        const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+        const meatCost = {
+          qoy: await latestMeatCost("qoy"),
+          mol: await latestMeatCost("mol"),
+          tovuq: await latestMeatCost("tovuq"),
+        };
         const dishes = await computeDishTaannarx(meatCost);
         const meatPerUnit = new Map(
           dishes
