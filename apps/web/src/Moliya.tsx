@@ -134,6 +134,7 @@ type Fin = {
   unpricedNames: string[];
   opex: number;
   opexByCat: Record<string, number>;
+  refundTotal: number;
   sofFoyda: number;
 };
 
@@ -164,6 +165,7 @@ function FinView({ f }: { f: Fin }) {
               ))}
             {f.cardTax > 0 && <Row l="Солиқ (4% карта)" v={`−${fmt(f.cardTax)}`} muted />}
             {f.guestDebt > 0 && <Row l="Меҳмон қарзи (олинмаган)" v={fmt(f.guestDebt)} muted />}
+            {f.refundTotal > 0 && <Row l="Возврат" v={`−${fmt(f.refundTotal)}`} muted />}
             <Row l="Чек" v={`${f.checks} та · ўрт. ${fmt(f.avgCheck)}`} muted />
           </div>
         </div>

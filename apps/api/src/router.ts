@@ -31,6 +31,7 @@ import {
   purchases,
   recipeItems,
   recipes,
+  refunds,
   sessions,
   stations,
   stockMovements,
@@ -670,7 +671,13 @@ async function financeForWindow(start: Date, end: Date) {
     opexByCat[e.category] = (opexByCat[e.category] ?? 0) + e.amount;
   }
 
-  const sofFoyda = revenue - cogsRes.cogs - opex - cardTax;
+  const refundRows = await db
+    .select({ amount: refunds.amount })
+    .from(refunds)
+    .where(and(gte(refunds.createdAt, start), lt(refunds.createdAt, end)));
+  const refundTotal = refundRows.reduce((s, r) => s + r.amount, 0);
+
+  const sofFoyda = revenue - cogsRes.cogs - opex - cardTax - refundTotal;
   return {
     revenue,
     byMethod,
@@ -687,6 +694,7 @@ async function financeForWindow(start: Date, end: Date) {
     unpricedNames: cogsRes.unpricedNames,
     opex,
     opexByCat,
+    refundTotal,
     sofFoyda,
   };
 }
@@ -2491,6 +2499,124 @@ export const appRouter = router({
           });
           return { ok: true, outstanding: outstanding - input.amount };
         });
+      }),
+
+    // №13 назорати: ёпилган чекдан қайтариш — фақат ишонган ролларга, журнал
+    // сифатида (оригинал чек ўзгармайди, финанс ойнасидан refundTotal орқали
+    // соф фойдадан чиқарилади — financeForWindow'га қаранг).
+    refund: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          amount: z.number().int().positive(),
+          reason: z.string().trim().min(1),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!["director", "manager", "cashier"].includes(ctx.user.role))
+          throw new TRPCError({ code: "FORBIDDEN" });
+        const order = (
+          await db
+            .select({ status: orders.status })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!order) throw new TRPCError({ code: "NOT_FOUND" });
+        if (order.status !== "closed")
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Фақат ёпилган чекни қайтариш мумкин",
+          });
+        await db.insert(refunds).values({
+          orderId: input.orderId,
+          amount: input.amount,
+          reason: input.reason,
+          performedById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    refunds: protectedProcedure
+      .input(z.object({ from: z.string(), to: z.string() }))
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const rows = await db
+          .select({
+            id: refunds.id,
+            orderId: refunds.orderId,
+            amount: refunds.amount,
+            reason: refunds.reason,
+            createdAt: refunds.createdAt,
+            performedByName: users.name,
+            checkNo: orders.id,
+          })
+          .from(refunds)
+          .leftJoin(users, eq(users.id, refunds.performedById))
+          .leftJoin(orders, eq(orders.id, refunds.orderId))
+          .where(and(gte(refunds.createdAt, startUTC), lt(refunds.createdAt, endUTC)))
+          .orderBy(desc(refunds.createdAt));
+        return rows.map((r) => ({
+          ...r,
+          checkNo: r.checkNo ? r.checkNo.slice(0, 5).toUpperCase() : "—",
+        }));
+      }),
+
+    // "Чек қидириш": берилган давр ичида ёпилган чеклар, checkNo/стол бўйича
+    // қидириш билан. checkNo омборда сақланмайди (id'нинг биринчи 5 белгиси),
+    // шунинг учун ҳисоблаб чиқилиб JS'да фильтрланади.
+    searchOrders: protectedProcedure
+      .input(z.object({ from: z.string(), to: z.string(), query: z.string().optional() }))
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const rows = await db
+          .select({
+            id: orders.id,
+            tableNo: orders.tableNo,
+            hall: halls.name,
+            waiter: users.name,
+            closedAt: orders.closedAt,
+            isComp: orders.isComp,
+            servicePct: orders.servicePct,
+          })
+          .from(orders)
+          .leftJoin(halls, eq(orders.hallId, halls.id))
+          .leftJoin(users, eq(orders.waiterId, users.id))
+          .where(
+            and(
+              eq(orders.status, "closed"),
+              gte(orders.closedAt, startUTC),
+              lt(orders.closedAt, endUTC),
+            ),
+          )
+          .orderBy(desc(orders.closedAt))
+          .limit(200);
+
+        const withTotal = await Promise.all(
+          rows.map(async (r) => {
+            const items = await db
+              .select({ price: orderItems.price, qty: orderItems.qty })
+              .from(orderItems)
+              .where(eq(orderItems.orderId, r.id));
+            const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+            const total = subtotal + Math.round((subtotal * r.servicePct) / 100);
+            return {
+              ...r,
+              checkNo: r.id.slice(0, 5).toUpperCase(),
+              total,
+            };
+          }),
+        );
+
+        const q = input.query?.trim().toLowerCase();
+        const filtered = q
+          ? withTotal.filter(
+              (r) =>
+                r.checkNo.toLowerCase().includes(q) ||
+                (r.tableNo ?? "").toLowerCase().includes(q),
+            )
+          : withTotal;
+        return filtered.slice(0, 100);
       }),
 
     tillCount: router({

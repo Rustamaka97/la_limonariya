@@ -3,6 +3,7 @@ import type { SessionUser } from "./App";
 import { Analitika } from "./Analitika";
 import { BRAND } from "./brand";
 import { Catalog } from "./Catalog";
+import { ChekQidirish } from "./ChekQidirish";
 import { Dashboard } from "./Dashboard";
 import { Hisobot } from "./Hisobot";
 import { Inventarizatsiya } from "./Inventarizatsiya";
@@ -28,6 +29,7 @@ type Tab =
   | "analitika"
   | "moliya"
   | "pos"
+  | "chekQidirish"
   | "harid"
   | "obvalka"
   | "inventarizatsiya"
@@ -75,6 +77,9 @@ export function Shell({
     ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика" }] : []),
     ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия" }] : []),
     ...(canPos ? [{ key: "pos" as Tab, label: "Касса" }] : []),
+    ...(["director", "manager", "cashier"].includes(user.role)
+      ? [{ key: "chekQidirish" as Tab, label: "Чек қидириш" }]
+      : []),
     ...(canObvalka ? [{ key: "harid" as Tab, label: "Харид" }] : []),
     ...(canObvalka ? [{ key: "obvalka" as Tab, label: "Обвалка" }] : []),
     ...(["director", "manager"].includes(user.role)
@@ -135,6 +140,7 @@ export function Shell({
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
         {tab === "pos" && <Pos user={user} />}
+        {tab === "chekQidirish" && <ChekQidirish />}
         {tab === "harid" && <Purchases />}
         {tab === "obvalka" && <Obvalka />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}

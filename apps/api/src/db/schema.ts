@@ -410,6 +410,25 @@ export const debtPayments = pgTable(
   (t) => [index("dp_order_idx").on(t.orderId)],
 );
 
+// Возврат: ёпилган чекдан мижозга қайтарилган пул — журнал, ёзилган order
+// ўзи ўзгармайди (тарихий чек тўғри қолади). #13 тешик назорати.
+export const refunds = pgTable(
+  "refunds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    reason: text("reason").notNull(),
+    performedById: uuid("performed_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("rf_order_idx").on(t.orderId)],
+);
+
 // One physical cash count per operational day (директор санайди, камомад кўради).
 export const tillCounts = pgTable("till_counts", {
   dayKey: text("day_key").primaryKey(), // 'YYYY-MM-DD' businessDayBounds.dayKey
