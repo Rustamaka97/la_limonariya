@@ -30,6 +30,7 @@ type Signals = {
   historyPending: boolean;
   compToday: number;
   compFlag: boolean;
+  staleOrders: { id: string; tableNo: string | null; hall: string | null; waiter: string | null; createdAt: string; minutesOpen: number }[];
 };
 
 export function Analitika() {
@@ -181,6 +182,27 @@ export function Analitika() {
             </div>
             {s.compFlag && <p className="mt-2 text-xs text-red-600">🔴 кунлик лимитдан ошди (500 000)</p>}
           </div>
+        </Section>
+
+        <Section title="⏰ Узоқ очиқ столлар" hint="90 дақиқадан кўп">
+          {s.staleOrders.length === 0 ? (
+            <Empty>ҳаммаси меъёрида</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.staleOrders.map((o) => (
+                <li key={o.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>
+                    <span className="font-medium">{o.hall ?? "—"}</span>
+                    {o.tableNo && <span className="text-zinc-400"> · стол {o.tableNo}</span>}
+                    <span className="text-zinc-400"> · {o.waiter ?? "—"}</span>
+                  </span>
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">
+                    {Math.floor(o.minutesOpen / 60)}с {o.minutesOpen % 60}м
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
       </div>
     </div>

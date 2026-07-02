@@ -406,6 +406,7 @@ const BLENDED_COGS_PCT = 0.526;
 const THIN_MARGIN_PCT = 60;
 const MEAT_PRICE_SPIKE_PCT = 1.15;
 const COMP_DAILY_CAP = 500_000; // owner-stated daily текин/ходим volume limit
+const STALE_ORDER_MINUTES = 90; // open table this long with no close → possible walked-out guest
 
 async function computeSignals() {
   const recentObv = await db
@@ -580,6 +581,27 @@ async function computeSignals() {
   const compToday = compRows.reduce((s, r) => s + r.qty * r.price, 0);
   const compFlag = compToday > COMP_DAILY_CAP;
 
+  // №14 очиқ стол сигнали: узоқ ёпилмаган стол — мижоз тўламай кетган
+  // ёки касса эсдан чиқарган бўлиши мумкин.
+  const staleCutoff = new Date(Date.now() - STALE_ORDER_MINUTES * 60_000);
+  const staleRows = await db
+    .select({
+      id: orders.id,
+      tableNo: orders.tableNo,
+      hall: halls.name,
+      waiter: users.name,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .leftJoin(halls, eq(orders.hallId, halls.id))
+    .leftJoin(users, eq(orders.waiterId, users.id))
+    .where(and(eq(orders.status, "open"), lt(orders.createdAt, staleCutoff)))
+    .orderBy(orders.createdAt);
+  const staleOrders = staleRows.map((r) => ({
+    ...r,
+    minutesOpen: Math.floor((Date.now() - r.createdAt.getTime()) / 60_000),
+  }));
+
   return {
     obvalkaFlags,
     thinDishes,
@@ -591,6 +613,7 @@ async function computeSignals() {
     historyPending,
     compToday,
     compFlag,
+    staleOrders,
   };
 }
 
@@ -2862,7 +2885,8 @@ export const appRouter = router({
         (sig.breakEvenFlag ? 1 : 0) +
         sig.priceSpikes.length +
         sig.shortagePattern.length +
-        (sig.compFlag ? 1 : 0);
+        (sig.compFlag ? 1 : 0) +
+        sig.staleOrders.length;
 
       return {
         revenueToday: todayFin.revenue,
