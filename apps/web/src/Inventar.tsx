@@ -20,11 +20,21 @@ const fmtDate = (s: string) => {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
+const fmt = (n: number) => n.toLocaleString("ru-RU");
 
-type AssetRow = { id: string; category: Category; name: string; note: string | null; qty: number };
+type AssetRow = {
+  id: string;
+  category: Category;
+  name: string;
+  note: string | null;
+  price: number | null;
+  qty: number;
+};
+type Damage = { responsibleId: string; responsibleName: string; totalSom: number; totalQty: number };
 
 export function Inventar() {
   const [rows, setRows] = useState<AssetRow[] | null>(null);
+  const [damage, setDamage] = useState<Damage[]>([]);
   const [err, setErr] = useState(false);
   const [openAsset, setOpenAsset] = useState<AssetRow | null>(null);
   const [adding, setAdding] = useState(false);
@@ -32,6 +42,7 @@ export function Inventar() {
   const refresh = useCallback(() => {
     setErr(false);
     trpc.assets.list.query().then(setRows).catch(() => setErr(true));
+    trpc.assets.damageByStaff.query().then(setDamage).catch(() => setDamage([]));
   }, []);
   useEffect(() => {
     refresh();
@@ -80,6 +91,24 @@ export function Inventar() {
         </div>
       )}
 
+      {damage.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+          <div className="border-b border-amber-200 px-4 py-2.5 text-sm font-semibold text-amber-800">
+            Ходимлар бўйича зарар (пул ундириш учун)
+          </div>
+          <div className="divide-y divide-amber-200 text-sm">
+            {damage.map((d) => (
+              <div key={d.responsibleId} className="flex items-center justify-between px-4 py-2">
+                <span>{d.responsibleName}</span>
+                <span className="tabular-nums font-medium text-amber-800">
+                  {fmt(d.totalSom)} so'm <span className="text-xs text-amber-600">({d.totalQty} дона)</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {CATEGORIES.map((cat) => {
         const items = rows.filter((r) => r.category === cat);
         if (items.length === 0) return null;
@@ -96,6 +125,9 @@ export function Inventar() {
                   <span>
                     <span className="font-medium">{it.name}</span>
                     {it.note && <span className="ml-1.5 text-xs text-zinc-400">{it.note}</span>}
+                    {it.price != null && (
+                      <span className="ml-1.5 text-xs text-zinc-400">{fmt(it.price)} so'm/дона</span>
+                    )}
                   </span>
                   <span className="tabular-nums font-medium">{it.qty} дона</span>
                 </button>
@@ -112,6 +144,7 @@ function AddForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
   const [category, setCategory] = useState<Category>("idish");
   const [name, setName] = useState("");
   const [qty, setQty] = useState("");
+  const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -123,6 +156,7 @@ function AddForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
         category,
         name: name.trim(),
         note: note.trim() || undefined,
+        price: price ? Math.round(Number(price)) : undefined,
         initialQty: qty ? Math.round(Number(qty)) : undefined,
       });
       onDone();
@@ -159,12 +193,21 @@ function AddForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => voi
           className="rounded-lg border px-2 py-1.5 text-right text-sm outline-none focus:border-brand"
         />
       </div>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="изоҳ (ихтиёрий)"
-        className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand"
-      />
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          inputMode="numeric"
+          value={price}
+          onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))}
+          placeholder="нархи so'm/дона (ихтиёрий)"
+          className="rounded-lg border px-2 py-1.5 text-right text-sm outline-none focus:border-brand"
+        />
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="изоҳ (ихтиёрий)"
+          className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand"
+        />
+      </div>
       <div className="flex gap-2">
         <button
           onClick={submit}
@@ -186,6 +229,7 @@ type Movement = {
   qty: number;
   reason: string;
   note: string | null;
+  unitPrice: number | null;
   createdAt: string;
   createdByName: string | null;
   responsibleName: string | null;
@@ -197,6 +241,10 @@ function AssetDetail({ asset, onBack }: { asset: AssetRow; onBack: () => void })
   const [staff, setStaff] = useState<Staff[]>([]);
   const [err, setErr] = useState(false);
   const [mode, setMode] = useState<"kirim" | "chiqim" | null>(null);
+  const [price, setPrice] = useState(asset.price);
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceInput, setPriceInput] = useState(asset.price != null ? String(asset.price) : "");
+  const [priceBusy, setPriceBusy] = useState(false);
 
   const load = useCallback(() => {
     setErr(false);
@@ -208,6 +256,19 @@ function AssetDetail({ asset, onBack }: { asset: AssetRow; onBack: () => void })
   useEffect(() => {
     trpc.users.list.query().then(setStaff).catch(() => setStaff([]));
   }, []);
+
+  async function savePrice() {
+    const n = Math.round(Number(priceInput));
+    if (priceInput === "" || Number.isNaN(n) || n < 0) return;
+    setPriceBusy(true);
+    try {
+      await trpc.assets.setPrice.mutate({ assetId: asset.id, price: n });
+      setPrice(n);
+      setEditingPrice(false);
+    } finally {
+      setPriceBusy(false);
+    }
+  }
 
   if (err) return <ErrBox onRetry={load} />;
 
@@ -227,9 +288,43 @@ function AssetDetail({ asset, onBack }: { asset: AssetRow; onBack: () => void })
         </p>
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
-        <div className="text-xs text-zinc-500">Ҳозирги сон</div>
-        <div className="text-2xl font-bold tabular-nums">{qty ?? "…"} дона</div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border bg-white p-4">
+          <div className="text-xs text-zinc-500">Ҳозирги сон</div>
+          <div className="text-2xl font-bold tabular-nums">{qty ?? "…"} дона</div>
+        </div>
+        <div className="rounded-xl border bg-white p-4">
+          <div className="text-xs text-zinc-500">Нархи (дона)</div>
+          {editingPrice ? (
+            <div className="mt-1 flex gap-1.5">
+              <input
+                autoFocus
+                inputMode="numeric"
+                value={priceInput}
+                onChange={(e) => setPriceInput(e.target.value.replace(/\D/g, ""))}
+                className="w-full rounded-lg border px-2 py-1 text-sm tabular-nums outline-none focus:border-brand"
+              />
+              <button
+                onClick={savePrice}
+                disabled={priceBusy}
+                className="rounded-lg bg-brand px-2.5 text-sm font-medium text-white disabled:opacity-40"
+              >
+                ✓
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setPriceInput(price != null ? String(price) : "");
+                setEditingPrice(true);
+              }}
+              className="text-left"
+            >
+              <span className="text-2xl font-bold tabular-nums">{price != null ? fmt(price) : "—"}</span>
+              <span className="ml-1 text-xs text-zinc-400">{price != null ? "so'm" : "қўйиш"}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -278,6 +373,7 @@ function AssetDetail({ asset, onBack }: { asset: AssetRow; onBack: () => void })
                   <span className="text-xs text-zinc-400">
                     {REASON_LABEL[m.reason] ?? m.reason}
                     {m.responsibleName ? ` · айбдор: ${m.responsibleName}` : ""}
+                    {m.unitPrice != null ? ` · ${fmt(Math.abs(m.qty) * m.unitPrice)} so'm` : ""}
                     {m.note ? ` · ${m.note}` : ""}
                   </span>
                 </span>

@@ -1229,6 +1229,7 @@ export const appRouter = router({
           category: assets.category,
           name: assets.name,
           note: assets.note,
+          price: assets.price,
           qty: sql<number>`coalesce(sum(${assetMovements.qty}), 0)`.mapWith(Number),
         })
         .from(assets)
@@ -1244,6 +1245,7 @@ export const appRouter = router({
           category: z.enum(["idish", "mebel", "texnika", "boshqa"]),
           name: z.string().trim().min(1),
           note: z.string().optional(),
+          price: z.number().int().nonnegative().optional(),
           initialQty: z.number().int().positive().optional(),
         }),
       )
@@ -1255,6 +1257,7 @@ export const appRouter = router({
               category: input.category,
               name: input.name,
               note: input.note ?? null,
+              price: input.price ?? null,
             })
             .returning()
         )[0];
@@ -1269,6 +1272,13 @@ export const appRouter = router({
         return { id: row.id };
       }),
 
+    setPrice: managerProcedure
+      .input(z.object({ assetId: z.string().uuid(), price: z.number().int().nonnegative() }))
+      .mutation(async ({ input }) => {
+        await db.update(assets).set({ price: input.price }).where(eq(assets.id, input.assetId));
+        return { ok: true };
+      }),
+
     adjust: managerProcedure
       .input(
         z.object({
@@ -1280,12 +1290,22 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        // Зарар суммаси faqat sindi/yoqoldi'да, faqat narx maʼlum bo'lsa —
+        // snapshot qilamiz (keyin narx o'zgarsa ham eski voqea o'zgarmasin).
+        let unitPrice: number | null = null;
+        if (input.reason === "sindi" || input.reason === "yoqoldi") {
+          const a = (
+            await db.select({ price: assets.price }).from(assets).where(eq(assets.id, input.assetId)).limit(1)
+          )[0];
+          unitPrice = a?.price ?? null;
+        }
         await db.insert(assetMovements).values({
           assetId: input.assetId,
           qty: input.qty,
           reason: input.reason,
           note: input.note ?? null,
           responsibleId: input.responsibleId ?? null,
+          unitPrice,
           createdById: ctx.user.id,
         });
         return { ok: true };
@@ -1301,6 +1321,7 @@ export const appRouter = router({
             qty: assetMovements.qty,
             reason: assetMovements.reason,
             note: assetMovements.note,
+            unitPrice: assetMovements.unitPrice,
             createdAt: assetMovements.createdAt,
             createdByName: users.name,
             responsibleName: responsible.name,
@@ -1311,6 +1332,30 @@ export const appRouter = router({
           .where(eq(assetMovements.assetId, input.assetId))
           .orderBy(desc(assetMovements.createdAt));
       }),
+
+    // "Официантга пул берадиган вақт" учун — ким қанча зарар қилгани,
+    // faqat narxi maʼlum (unitPrice snapshot qilingan) voqealardan.
+    damageByStaff: managerProcedure.query(async () => {
+      const responsible = alias(users, "responsible");
+      const rows = await db
+        .select({
+          responsibleId: assetMovements.responsibleId,
+          responsibleName: responsible.name,
+          totalSom: sql<number>`sum(abs(${assetMovements.qty}) * ${assetMovements.unitPrice})`.mapWith(Number),
+          totalQty: sql<number>`sum(abs(${assetMovements.qty}))`.mapWith(Number),
+        })
+        .from(assetMovements)
+        .innerJoin(responsible, eq(responsible.id, assetMovements.responsibleId))
+        .where(
+          and(
+            inArray(assetMovements.reason, ["sindi", "yoqoldi"]),
+            sql`${assetMovements.unitPrice} is not null`,
+          ),
+        )
+        .groupBy(assetMovements.responsibleId, responsible.name)
+        .orderBy(desc(sql`sum(abs(${assetMovements.qty}) * ${assetMovements.unitPrice})`));
+      return rows;
+    }),
 
     deactivate: managerProcedure
       .input(z.object({ assetId: z.string().uuid() }))

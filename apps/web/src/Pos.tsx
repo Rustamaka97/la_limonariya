@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
 import { trpc } from "./trpc";
 
@@ -54,10 +53,10 @@ const PAY_LABEL: Record<string, string> = {
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
 
-export function Pos({ user }: { user: SessionUser }) {
+export function Pos() {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
-    return <OrderView id={orderId} user={user} onBack={() => setOrderId(null)} />;
+    return <OrderView id={orderId} onBack={() => setOrderId(null)} />;
   return <OrderList onOpen={setOrderId} onNew={setOrderId} />;
 }
 
@@ -177,14 +176,11 @@ function NewOrder({
   );
 }
 
-function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack: () => void }) {
-  const canComp = ["director", "manager", "cashier"].includes(user.role);
+function OrderView({ id, onBack }: { id: string; onBack: () => void }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [picking, setPicking] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [compReason, setCompReason] = useState("");
-  const [showComp, setShowComp] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -232,22 +228,6 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
         id,
         payments: [{ method, amount: order.total }],
       });
-      setPaying(false);
-      refresh();
-    } catch (e: unknown) {
-      setCloseErr(e instanceof Error ? e.message : "Хато");
-    } finally {
-      setClosing(false);
-    }
-  }
-
-  async function payComp() {
-    if (!compReason.trim() || closing) return;
-    setCloseErr(null);
-    setClosing(true);
-    try {
-      await trpc.pos.close.mutate({ id, comp: { reason: compReason.trim() } });
-      setShowComp(false);
       setPaying(false);
       refresh();
     } catch (e: unknown) {
@@ -364,63 +344,24 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           <p className="text-sm text-zinc-500">
             Тўлов усули — <b className="text-zinc-900">{fmt(order.total)} so'm</b>
           </p>
-          {!showComp && (
-            <div className="grid grid-cols-3 gap-2">
-              {(["cash", "card", "click", "payme", "humo", "debt"] as PayMethod[]).map(
-                (m) => (
-                  <button
-                    key={m}
-                    onClick={() => pay(m)}
-                    disabled={closing}
-                    className="rounded-lg bg-zinc-100 py-2.5 text-sm font-medium hover:bg-brand-cream disabled:opacity-40"
-                  >
-                    {PAY_LABEL[m]}
-                  </button>
-                ),
-              )}
-              {canComp && (
+          <div className="grid grid-cols-3 gap-2">
+            {(["cash", "card", "click", "payme", "humo", "debt"] as PayMethod[]).map(
+              (m) => (
                 <button
-                  onClick={() => setShowComp(true)}
+                  key={m}
+                  onClick={() => pay(m)}
                   disabled={closing}
-                  className="rounded-lg bg-amber-50 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40"
+                  className="rounded-lg bg-zinc-100 py-2.5 text-sm font-medium hover:bg-brand-cream disabled:opacity-40"
                 >
-                  🎁 Текин
+                  {PAY_LABEL[m]}
                 </button>
-              )}
-            </div>
-          )}
-          {showComp && (
-            <div className="space-y-2 rounded-lg bg-amber-50 p-3">
-              <input
-                autoFocus
-                value={compReason}
-                onChange={(e) => setCompReason(e.target.value)}
-                placeholder="Сабаб (мажбурий) — масалан: директор гость"
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-amber-500"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowComp(false)}
-                  disabled={closing}
-                  className="flex-1 rounded-lg border py-2 text-sm disabled:opacity-40"
-                >
-                  Бекор
-                </button>
-                <button
-                  onClick={payComp}
-                  disabled={!compReason.trim() || closing}
-                  className="flex-1 rounded-lg bg-amber-600 py-2 text-sm font-medium text-white disabled:opacity-40"
-                >
-                  Текин деб ёпиш
-                </button>
-              </div>
-            </div>
-          )}
+              ),
+            )}
+          </div>
           {closeErr && <p className="text-sm text-red-500">{closeErr}</p>}
           <button
             onClick={() => {
               setPaying(false);
-              setShowComp(false);
               setCloseErr(null);
             }}
             disabled={closing}
@@ -639,6 +580,13 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
         {order.payments.map((pm, i) => (
           <Line key={i} l={PAY_LABEL[pm.method] ?? pm.method} r={fmt(pm.amount)} />
         ))}
+        <Hr />
+        <div className="text-xs text-zinc-500">
+          <div className="mb-1 text-center">Бўлиб тўлаганда (жон бошига)</div>
+          {[2, 3, 4, 5].map((n) => (
+            <Line key={n} l={`${n} кишига`} r={`${fmt(Math.ceil(order.total / n))} so'm`} />
+          ))}
+        </div>
         <Hr />
         <div className="text-center text-xs text-zinc-500">
           СПАСИБО! ЖДЕМ ВАС СНОВА!

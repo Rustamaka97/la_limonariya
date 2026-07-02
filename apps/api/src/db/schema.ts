@@ -458,6 +458,9 @@ export const assets = pgTable(
     category: assetCategory("category").notNull(),
     name: text("name").notNull(),
     note: text("note"),
+    // Дона нархи (so'm) — синган/йўқолганда айбдордан ундириладиган сумма
+    // учун. Ихтиёрий: реал нарх маълум бўлмагунча null, ёлғон рақам йўқ.
+    price: integer("price"),
     active: boolean("active").notNull().default(true),
     branchId: uuid("branch_id").references(() => branches.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -475,6 +478,9 @@ export const assetMovements = pgTable("asset_movements", {
   qty: integer("qty").notNull(),
   reason: assetMovementReason("reason").notNull(),
   note: text("note"),
+  // Дона нархининг shu воқеа пайтидаги snapshot'и (assets.price кейин
+  // ўзгарса ҳам, эски зарар суммаси ўзгармасин учун).
+  unitPrice: integer("unit_price"),
   // sindi/yoqoldi'да aybdor xodim — tizimga kirgan director/manager'dan farqli
   // (createdById), chunki odatda ofitsiant/kassir sindiradi, lekin ular emas
   // director/manager yozadi.
