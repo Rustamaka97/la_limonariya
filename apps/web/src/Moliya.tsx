@@ -267,6 +267,7 @@ function TillCount({ day }: { day: string }) {
   const [busy, setBusy] = useState(false);
   const [openBusy, setOpenBusy] = useState(false);
   const [err, setErr] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
   const [collections, setCollections] = useState<CashCollection[]>([]);
   const [collecting, setCollecting] = useState(false);
   const [colAmount, setColAmount] = useState("");
@@ -299,9 +300,12 @@ function TillCount({ day }: { day: string }) {
   async function save() {
     const c = Math.round(Number(counted) || 0);
     setBusy(true);
+    setSaveErr(null);
     try {
       await trpc.finance.tillCount.set.mutate({ day, countedCash: c });
       refresh();
+    } catch (e: unknown) {
+      setSaveErr(e instanceof Error ? e.message : "Хато");
     } finally {
       setBusy(false);
     }
@@ -372,6 +376,7 @@ function TillCount({ day }: { day: string }) {
           </span>
         )}
       </div>
+      {saveErr && <p className="mt-2 text-sm text-red-600">{saveErr}</p>}
 
       <div className="mt-3 border-t pt-3">
         {collections.length > 0 && (

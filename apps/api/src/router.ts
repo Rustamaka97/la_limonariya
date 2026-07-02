@@ -2754,7 +2754,7 @@ export const appRouter = router({
           }),
         )
         .mutation(async ({ input, ctx }) => {
-          const { dayKey } = businessDayBounds(input.day);
+          const { dayKey, startUTC, endUTC } = businessDayBounds(input.day);
           const existing = (
             await db
               .select({ openedAt: tillCounts.openedAt })
@@ -2766,6 +2766,25 @@ export const appRouter = router({
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "Аввал сменани очинг",
+            });
+          // МАЖБУРИЙ: кун инвентаризациясиз ЁПИЛМАЙДИ (SPEC §1.5) — шу бизнес-кун
+          // ичида камида битта тасдиқланган саноқ бўлиши шарт.
+          const approvedCount = (
+            await db
+              .select({ n: count() })
+              .from(inventoryCounts)
+              .where(
+                and(
+                  eq(inventoryCounts.status, "approved"),
+                  gte(inventoryCounts.approvedAt, startUTC),
+                  lt(inventoryCounts.approvedAt, endUTC),
+                ),
+              )
+          )[0];
+          if (!approvedCount || approvedCount.n === 0)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Кун ёпилмайди — аввал инвентаризацияни тасдиқланг",
             });
           await db
             .update(tillCounts)
