@@ -49,15 +49,30 @@ for (const p of await db
   .from(products))
   if (!prodIndex.has(norm(p.name))) prodIndex.set(norm(p.name), p.id);
 
-await db.delete(recipeItems);
-await db.delete(recipes);
+// Idempotent (NON-destructive): preserve recipes already in the DB — a director's
+// in-app tech-card edits (recipeUpsert, keyed by productId) must survive a restart.
+// Seed only NEW dishes: skip a linked recipe if its product already has one; skip an
+// unlinked (productId=null) reference recipe if its name already exists.
+const existing = await db
+  .select({ productId: recipes.productId, name: recipes.name })
+  .from(recipes);
+const haveProduct = new Set(
+  existing.map((r) => r.productId).filter((x): x is string => !!x),
+);
+const haveName = new Set(existing.map((r) => norm(r.name)));
 
 let dishLinked = 0;
 let itemLinked = 0;
 let itemTotal = 0;
+let seeded = 0;
+let skipped = 0;
 
 for (const r of seed.recipes) {
   const productId = prodIndex.get(norm(r.name)) ?? null;
+  if (productId ? haveProduct.has(productId) : haveName.has(norm(r.name))) {
+    skipped++;
+    continue;
+  }
   if (productId) dishLinked++;
 
   const rec = (
@@ -90,9 +105,10 @@ for (const r of seed.recipes) {
     };
   });
   if (items.length) await db.insert(recipeItems).values(items);
+  seeded++;
 }
 
 console.log(
-  `recipes: ${seed.recipes.length} (dish→product ${dishLinked}), items linked ${itemLinked}/${itemTotal}`,
+  `recipes: seeded ${seeded}, preserved ${skipped} (dish→product ${dishLinked}), items linked ${itemLinked}/${itemTotal}`,
 );
 await client.end();
