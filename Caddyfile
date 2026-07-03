@@ -1,6 +1,19 @@
 :80 {
 	encode gzip
 
+	# Хавфсизлик сарлавҳалари (HTTPS = Cloudflare tunnel орқали). Ноль-риск тўплам.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+		# CSP — деплойда ёқиб, браузерда синаб кўринг (нотўғри бўлса SPA бузилади).
+		# Vite React PWA учун бошланғич: self + inline-style (Tailwind) + data-img.
+		# Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; worker-src 'self'; base-uri 'self'; frame-ancestors 'self'"
+	}
+
 	handle /trpc/* {
 		reverse_proxy api:3000
 	}
