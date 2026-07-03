@@ -104,12 +104,13 @@ queue бўш эмасми? ── ҳа ──▶ FIFO flush: ҳар op'ни се
 | **1 ✅** | Идемпотент `pos.create` (client UUID) | паст | PG17 replay ✅ |
 | **2 ✅** | `addItem` client `opId` (delta сақланди) + `sendToKitchen` client `ticketId` идемпотент | ўрта | PG17 replay ✅ |
 | **3 ✅** | IndexedDB `refCache` (меню/заллар/столлар оффлайн ўқилади, SWR) | паст (read-only) | swr логика 6/6 ✅ + браузер (offline render) |
-| **4** | Локал заказ ҳолати + `mutationQueue` + flush | **юқори** | **ЖОЙИДА: 2 телефон + Wi-Fi ўчириш** |
-| **5** | Конфликт огоҳлари (бир столда 2 заказ) | ўрта | жойида |
+| **4 ✅** | Локал заказ (op-log + base snapshot) + `outbox` + flush | **юқори** | **59/59 unit ✅ + 3-агент дизайн + 6-дименсия adversarial review (22 fix)** |
+| **5 ✅** | Конфликт огоҳи (бир столда 2 заказ) + online/offline indicator | ўрта | unit ✅ · UX жойида |
 
-**4-фаза hot-path ва фақат жойида тўлиқ текширилади** (2 қурилма + тармоқ ўчиши
-симуляцияси). Уни лаборанда «кўр-кўрона» prod'га чиқариш — дубль заказ/нотўғри ҳисоб
-хавфи. Шунинг учун 1–3 фазалар (хавфсиз, текширилувчи) олдин, 4–5 жойида канари билан.
+**4-5 фаза logic шу ерда тўлиқ текширилди** (59 unit + adversarial review), лекин
+**охирги қабул-тести — ЖОЙИДА, 2 телефон + Wi-Fi ўчириш билан канари** (навбат
+хатти-ҳаракатининг реал тармоқ узилиши/уланишидаги timing'и лаборанда симуляция
+қилинмайди). Prod'га канари билан чиқарилсин.
 
 ---
 
@@ -144,5 +145,26 @@ queue бўш эмасми? ── ҳа ──▶ FIFO flush: ҳар op'ни се
   (тўлиқ оффлайн-бут) — **фаза 4** иши (локал сессия + queue). Шунинг учун тест:
   online кир → POS оч (кэш иситилади) → DevTools Offline → навигация қил (reload ЭМАС).
 
-⏭ Кейинги: **фаза 4** (⚠️ ЮҚОРИ хавф) — локал заказ ҳолати + `mutationQueue` + flush.
-Hot-path, фақат ЖОЙИДА (2 телефон + Wi-Fi ўчириш) канари билан.
+**Фаза 4-5:**
+- ✅ `apps/web/src/lib/idb.ts` v2 — "outbox"(keyPath seq) + "overlay"(keyPath id) store'лар.
+- ✅ `apps/web/src/lib/outbox.ts` — движок: op-log (ҳақиқат манбаи) + overlay head
+  (server **base snapshot**) → `deriveOrder` = base + folded ops (server математикасини
+  айнан такрорлайди). Сериал-lock'ли `nextSeq` (FIFO, reload'дан ошади). `flush`
+  single-flight, per-order изоляция: `classify` → net(тўхта) / auth(401→тўхта+қайта-логин) /
+  order-gone(404→заказ ўлик, мета истисно) / op-rejected(403/400→фақат шу op) /
+  retry(5xx/408/429/parse→tries≤5 poison). enqueue* **boolean** қайтаради (idb йўқ →
+  чақирувчи online-fallback). Deadletter'да content base'га snapshot (йўқолмайди).
+- ✅ Pos.tsx: FloorView.create (enqueue + online-fallback + флоор merge server∪local),
+  OrderView (optimistic deriveOrder, refresh overlay-fallback + base-cache, offline
+  send→localUnsent), офлайн/хато banner'лари, offline'да тўлов/ёпиш/бекор гейтланган,
+  **фаза 5** конфликт тайли (⚠ + chooser). App.tsx: `startOutbox` + offline сессия кэш
+  + `outbox:auth`→қайта-логин. `outbox:drain` эвенти → UI серверга солиштиради.
+- ✅ **59/59 unit** (in-memory idb + mock net): FIFO, идемпотент replay, 401-сақлаш,
+  op-rejected vs order-gone, retry-defer, poison-no-orphan, base-fold, nextSeq-race,
+  meta-collapse-fresh-seq, localUnsent-after-send, deadletter-content-retain.
+- ✅ **Adversarial review** (3-агент дизайн → 6-дименсия → скептик верификация):
+  27 топилма, 22 тасдиқланган (1 critical: 401 заказ йўқолиши) — ҳаммаси тузатилди.
+
+⚠️ **Қолди — ЖОЙИДА канари:** 2 телефон бир столни оффлайн очиб иккаласи flush;
+navigator.onLine captive-Wi-Fi ишончлилиги; iOS Safari IDB durability; реал 401 shape;
+оффлайн send'да чоп реплейда чиқиши. Prod'га канари билан.

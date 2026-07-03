@@ -2,6 +2,21 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
 import { swr } from "./lib/cache";
+import {
+  deriveOrder,
+  enqueueAddItem,
+  enqueueCreate,
+  enqueueMeta,
+  enqueueSendToKitchen,
+  flush,
+  getOverlay,
+  isOnline,
+  listOverlayOpenOrders,
+  localUnsent,
+  mergeOpenOrders,
+  pendingOpsFor,
+  syncBaseFromServer,
+} from "./lib/outbox";
 import { trpc } from "./trpc";
 
 type Hall = { id: string; name: string; servicePct: number };
@@ -136,14 +151,16 @@ export function Pos({ user }: { user: SessionUser }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
     return <OrderView id={orderId} user={user} onBack={() => setOrderId(null)} />;
-  return <FloorView onOpen={setOrderId} onNew={setOrderId} />;
+  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} />;
 }
 
 // ── FLOOR: visual hall/table map (Clopos only has a flat list) ──────────────
 function FloorView({
+  user,
   onOpen,
   onNew,
 }: {
+  user: SessionUser;
   onOpen: (id: string) => void;
   onNew: (id: string) => void;
 }) {
@@ -151,31 +168,70 @@ function FloorView({
   const [tbls, setTbls] = useState<Table[]>([]);
   const [orders, setOrders] = useState<OpenOrder[] | null>(null);
   const [newFor, setNewFor] = useState<{ hall: Hall; table?: string } | null>(null);
+  const [conflict, setConflict] = useState<{ table: string; orders: OpenOrder[] } | null>(null);
+  const [online, setOnline] = useState(isOnline());
 
-  const refresh = useCallback(() => {
-    trpc.pos.openOrders.query().then(setOrders).catch(() => setOrders([]));
+  const refresh = useCallback(async () => {
+    // Сервер + локал (offline'да яратилган) очиқ заказларни бирлаштириш.
+    const local = (await listOverlayOpenOrders()) as unknown as OpenOrder[];
+    try {
+      const server = await trpc.pos.openOrders.query();
+      setOrders(mergeOpenOrders(server, local));
+    } catch {
+      setOrders(local); // оффлайн — фақат локал overlay
+    }
   }, []);
   useEffect(() => {
     // Заллар/столлар — ўзгармас; оффлайнда кэшдан кўринади (фаза 3 refCache).
     swr("pos.halls", () => trpc.pos.halls.query(), setHalls).catch(() => {});
     swr("pos.tables", () => trpc.pos.tables.query(), setTbls).catch(() => {});
     refresh();
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    window.addEventListener("outbox:drain", refresh); // синхрондан кейин пол янгилансин
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+      window.removeEventListener("outbox:drain", refresh);
+    };
   }, [refresh]);
 
   async function create(hallId: string, table: string | undefined, guests: number) {
-    // Client id → такрорий/offline юбориш дубль заказ яратмайди (идемпотент).
-    const { id } = await trpc.pos.create.mutate({
-      id: crypto.randomUUID(),
+    // Offline-first: локал заказ + навбат; уланганда синхрон (идемпотент client id).
+    const hall = halls.find((h) => h.id === hallId);
+    const id = crypto.randomUUID();
+    const persisted = await enqueueCreate({
+      id,
       hallId,
+      hall: hall?.name ?? null,
       tableNo: table || undefined,
+      servicePct: hall?.servicePct ?? 0,
       guests,
+      waiter: user.name,
     });
+    if (!persisted) {
+      // IndexedDB йўқ (private mode) — тўғридан-тўғри серверга (идемпотент).
+      try {
+        await trpc.pos.create.mutate({ id, hallId, tableNo: table || undefined, guests });
+      } catch {
+        alert("Заказ очилмади — оффлайн ва хотира ишламаяпти.");
+        return;
+      }
+    }
     onNew(id);
+    void flush();
   }
 
   const key = (hallId: string, name: string | null) => `${hallId}::${name ?? ""}`;
-  const openByKey = new Map<string, OpenOrder>();
-  for (const o of orders ?? []) if (!openByKey.has(key(o.hallId, o.tableNo))) openByKey.set(key(o.hallId, o.tableNo), o);
+  const byKey = new Map<string, OpenOrder[]>();
+  for (const o of orders ?? []) {
+    const k = key(o.hallId, o.tableNo);
+    const arr = byKey.get(k);
+    if (arr) arr.push(o);
+    else byKey.set(k, [o]);
+  }
   const tableKeys = new Set(tbls.map((t) => key(t.hallId, t.name)));
   const stray = (orders ?? []).filter((o) => !tableKeys.has(key(o.hallId, o.tableNo)));
   const busy = orders?.length ?? 0;
@@ -198,13 +254,19 @@ function FloorView({
         </button>
       </div>
 
+      {!online && (
+        <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+          📴 Оффлайн — заказлар шу қурилмада сақланиб, уланганда синхронланади. Тўлов уланганда мумкин.
+        </div>
+      )}
+
       {orders === null ? (
         <Spin />
       ) : (
         <>
           {halls.map((h) => {
             const hallTables = tbls.filter((t) => t.hallId === h.id);
-            const hallBusy = hallTables.filter((t) => openByKey.has(key(h.id, t.name))).length;
+            const hallBusy = hallTables.filter((t) => byKey.has(key(h.id, t.name))).length;
             return (
               <section key={h.id} className="space-y-2.5">
                 <div className="flex items-center gap-2 px-1">
@@ -220,17 +282,28 @@ function FloorView({
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
                   {hallTables.map((t) => {
-                    const o = openByKey.get(key(h.id, t.name));
-                    return o ? (
-                      <TableTile key={t.id} table={t.name} order={o} onClick={() => onOpen(o.id)} />
-                    ) : (
-                      <button
+                    const os = byKey.get(key(h.id, t.name)) ?? [];
+                    if (os.length === 0)
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setNewFor({ hall: h, table: t.name })}
+                          className="grid min-h-[76px] place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
+                        >
+                          <span className="line-clamp-2">{t.name}</span>
+                        </button>
+                      );
+                    const first = os[0] as OpenOrder;
+                    return (
+                      <TableTile
                         key={t.id}
-                        onClick={() => setNewFor({ hall: h, table: t.name })}
-                        className="grid min-h-[76px] place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
-                      >
-                        <span className="line-clamp-2">{t.name}</span>
-                      </button>
+                        table={t.name}
+                        order={first}
+                        conflict={os.length > 1}
+                        onClick={() =>
+                          os.length > 1 ? setConflict({ table: t.name, orders: os }) : onOpen(first.id)
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -264,6 +337,53 @@ function FloorView({
           onCreate={create}
         />
       )}
+
+      {conflict && (
+        <ConflictSheet
+          data={conflict}
+          onPick={(oid) => {
+            setConflict(null);
+            onOpen(oid);
+          }}
+          onClose={() => setConflict(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Битта столда 2+ очиқ заказ (оффлайн икки қурилма) — огоҳлантириш + танлаш.
+// Авто-бирлаштирмаймиз (бизнес қарори) — кассир қайси заказни очишни танлайди.
+function ConflictSheet({
+  data,
+  onPick,
+  onClose,
+}: {
+  data: { table: string; orders: OpenOrder[] };
+  onPick: (orderId: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-semibold text-brand-ink">⚠ «{data.table}» — {data.orders.length} та очиқ заказ</h3>
+        <p className="mt-1 text-xs text-zinc-500">Оффлайнда икки қурилмада очилган бўлиши мумкин. Заказни танланг:</p>
+        <div className="mt-3 space-y-2">
+          {data.orders.map((o) => (
+            <button
+              key={o.id}
+              onClick={() => onPick(o.id)}
+              className="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm hover:border-brand hover:bg-brand-cream/40"
+            >
+              <span>
+                <span className="font-medium">#{o.id.slice(0, 5).toUpperCase()}</span>
+                {o.waiter ? <span className="text-zinc-400"> · {o.waiter}</span> : null}
+              </span>
+              <span className="tabular-nums font-semibold text-brand-ink">{fmt(o.total)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -272,18 +392,25 @@ function TableTile({
   table,
   order,
   onClick,
+  conflict,
 }: {
   table: string;
   order: OpenOrder;
   onClick: () => void;
+  conflict?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex min-h-[76px] flex-col justify-between rounded-xl bg-brand p-2.5 text-left text-white shadow-sm transition hover:bg-brand-deep active:scale-95 motion-reduce:active:scale-100"
+      className={`flex min-h-[76px] flex-col justify-between rounded-xl p-2.5 text-left text-white shadow-sm transition active:scale-95 motion-reduce:active:scale-100 ${
+        conflict ? "bg-amber-600 hover:bg-amber-700" : "bg-brand hover:bg-brand-deep"
+      }`}
     >
       <div className="flex items-start justify-between gap-1">
-        <span className="line-clamp-2 text-xs font-semibold leading-tight">{table}</span>
+        <span className="line-clamp-2 text-xs font-semibold leading-tight">
+          {conflict ? "⚠ " : ""}
+          {table}
+        </span>
         {order.guests ? (
           <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-white/15 px-1 text-[10px] font-semibold">
             <IUser className="h-3 w-3" />
@@ -450,41 +577,103 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [cancelErr, setCancelErr] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
+  const [online, setOnline] = useState(isOnline());
+  const [syncErr, setSyncErr] = useState<string | null>(null);
 
-  const refresh = useCallback(() => {
-    trpc.pos.order.query({ id }).then((o) => {
+  const refresh = useCallback(async () => {
+    const ov = await getOverlay(id);
+    setSyncErr(ov?.error ?? null);
+    const pending = await pendingOpsFor(id);
+    const local = await deriveOrder(id);
+    // Синхрон тугамагунча — локални кўрсатамиз (сервер stale бўлиши мумкин).
+    if (pending > 0 && local) {
+      setOrder(local as unknown as Order);
+      setNote(local.note ?? "");
+      setUnsent(await localUnsent(id));
+      return;
+    }
+    try {
+      const o = await trpc.pos.order.query({ id });
       setOrder(o);
       setNote(o.note ?? "");
-    }).catch(() => {});
-    trpc.pos.unsentCount.query({ orderId: id }).then((r) => setUnsent(r.unsent)).catch(() => {});
-    trpc.pos.ticketsForOrder.query({ orderId: id }).then(setTickets).catch(() => {});
+      void syncBaseFromServer(o); // base snapshot → кейинги offline таҳрир fold бўлади
+      trpc.pos.unsentCount.query({ orderId: id }).then((r) => setUnsent(r.unsent)).catch(() => {});
+      trpc.pos.ticketsForOrder.query({ orderId: id }).then(setTickets).catch(() => {});
+    } catch {
+      // сервер етмади ёки NOT_FOUND (локал заказ ҳали синхронланмаган) → overlay'дан
+      if (local) {
+        setOrder(local as unknown as Order);
+        setNote(local.note ?? "");
+        setUnsent(await localUnsent(id));
+      }
+    }
   }, [id]);
 
   useEffect(() => {
     refresh();
     // Меню — ўзгармас; оффлайнда кэшдан кўринади (фаза 3 refCache).
     swr("pos.menu", () => trpc.pos.menu.query(), setMenu).catch(() => {});
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    window.addEventListener("outbox:drain", refresh); // синхрондан кейин серверга солиштир
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+      window.removeEventListener("outbox:drain", refresh);
+    };
   }, [refresh]);
 
   async function add(productId: string, delta: number) {
-    // opId — ҳар амалга ягона калит; retry/offline replay delta'ни дубль қилмайди.
-    await trpc.pos.addItem.mutate({ orderId: id, productId, delta, opId: crypto.randomUUID() });
+    // ном/нарх snapshot — менюдан ёки жорий қатордан (бўш 0-нархли қаторни олдини олиш).
+    const m = menu.find((x) => x.id === productId);
+    const cur = order?.items.find((i) => i.productId === productId);
+    if (!m && !cur) return;
+    const name = m?.name ?? cur?.name ?? "";
+    const price = m?.price ?? cur?.price ?? 0;
+    const persisted = await enqueueAddItem(id, productId, delta, { name, price });
+    if (!persisted) {
+      // хотира йўқ — тўғридан-тўғри серверга (идемпотент opId)
+      try {
+        await trpc.pos.addItem.mutate({ orderId: id, productId, delta, opId: crypto.randomUUID() });
+      } catch {
+        setSyncErr("Таом қўшилмади");
+        return;
+      }
+      refresh();
+      return;
+    }
+    const local = await deriveOrder(id);
+    if (local) setOrder(local as unknown as Order); // оптимистик
+    await flush().catch(() => {});
     refresh();
   }
 
   async function setGuests(n: number) {
-    await trpc.pos.updateMeta.mutate({ id, guests: Math.max(0, n) }).catch(() => {});
+    await enqueueMeta(id, { guests: Math.max(0, n) });
+    const local = await deriveOrder(id);
+    if (local) setOrder(local as unknown as Order);
+    await flush().catch(() => {});
     refresh();
   }
 
   async function saveNote() {
-    await trpc.pos.updateMeta.mutate({ id, note }).catch(() => {});
+    await enqueueMeta(id, { note });
+    await flush().catch(() => {});
   }
 
   async function sendToKitchen() {
     setSending(true);
     try {
-      // ticketId — retry/offline replay икки марта кухняга юбормайди (мавжудни қайтаради).
+      if (!isOnline() || (await pendingOpsFor(id)) > 0) {
+        // Оффлайн/кутилаётган: навбатга — уланганда кухняга чиқади (чоп ҳам).
+        await enqueueSendToKitchen(id);
+        setUnsent(await localUnsent(id)); // send'дан кейин қўшилганлар қолади
+        void flush();
+        return;
+      }
+      // ticketId — retry replay икки марта кухняга юбормайди (мавжудни қайтаради).
       const t = await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: crypto.randomUUID() });
       if (t.id) setTicketId(t.id);
       refresh();
@@ -618,13 +807,23 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           )}
           <button
             onClick={() => setCancelling((v) => !v)}
-            title="Заказни бекор қилиш"
-            className="grid h-9 w-9 place-items-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-600"
+            disabled={!online}
+            title={online ? "Заказни бекор қилиш" : "Оффлайн — уланганда"}
+            className="grid h-9 w-9 place-items-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
           >
             <ITrash className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {syncErr && (
+        <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">⚠️ {syncErr} — синхронизация тўхтади.</div>
+      )}
+      {!online && (
+        <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+          📴 Оффлайн — таом қўшиш ва кухняга юбориш ишлайди, уланганда синхрон. Тўлов уланганда.
+        </div>
+      )}
 
       {cancelling && (
         <div className="space-y-2 rounded-2xl border border-red-200 bg-red-50 p-3">
@@ -787,7 +986,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             ) : (
               <div className="max-h-[42vh] divide-y divide-brand-cream-soft/60 overflow-auto lg:max-h-[52vh]">
                 {order.items.map((it) => (
-                  <div key={it.id} className="flex items-center gap-2 px-3 py-2.5">
+                  <div key={it.productId ?? it.id} className="flex items-center gap-2 px-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm text-brand-ink">{it.name}</div>
                       <div className="text-xs tabular-nums text-zinc-400">{fmt(it.price)}</div>
@@ -866,7 +1065,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             </div>
           )}
 
-          {canClose ? (
+          {canClose && online ? (
             <button
               onClick={() => setPaying(true)}
               disabled={empty}
@@ -877,7 +1076,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             </button>
           ) : (
             <div className="hidden rounded-2xl bg-brand-cream-soft py-3.5 text-center text-sm font-medium text-brand-ink/60 lg:block">
-              💳 Чекни кассир ёпади
+              {!online ? "📴 Тўлов уланганда" : "💳 Чекни кассир ёпади"}
             </div>
           )}
         </aside>
@@ -905,7 +1104,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 <IFlame className="h-5 w-5" />
                 Кухняга ({unsent})
               </button>
-            ) : canClose ? (
+            ) : canClose && online ? (
               <button
                 onClick={() => setPaying(true)}
                 className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition active:scale-[.98] motion-reduce:active:scale-100"
@@ -915,7 +1114,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               </button>
             ) : (
               <span className="ml-auto text-sm font-medium text-brand-ink/50">
-                💳 Кассир ёпади
+                {!online ? "📴 Тўлов уланганда" : "💳 Кассир ёпади"}
               </span>
             )}
           </div>
