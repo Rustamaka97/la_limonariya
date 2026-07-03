@@ -11,6 +11,7 @@ const CAT: Record<string, string> = {
   ish_haqi: "Ойлик",
   jihoz: "Жиҳоз",
   boshqa: "Бошқа",
+  ega_oldi: "👑 Эга олди",
 };
 const CATS = Object.keys(CAT);
 const METHOD: Record<string, string> = {
@@ -134,6 +135,7 @@ type Fin = {
   unpricedNames: string[];
   opex: number;
   opexByCat: Record<string, number>;
+  ownerDraw: number;
   refundTotal: number;
   discountTotal: number;
   sofFoyda: number;
@@ -168,6 +170,9 @@ function FinView({ f }: { f: Fin }) {
             {f.guestDebt > 0 && <Row l="Меҳмон қарзи (олинмаган)" v={fmt(f.guestDebt)} muted />}
             {f.refundTotal > 0 && <Row l="Возврат" v={`−${fmt(f.refundTotal)}`} muted />}
             {f.discountTotal > 0 && <Row l="Чегирма" v={`−${fmt(f.discountTotal)}`} muted />}
+            {f.ownerDraw > 0 && (
+              <Row l="👑 Эга олди (фойдадан ташқари)" v={`−${fmt(f.ownerDraw)}`} muted />
+            )}
             <Row l="Чек" v={`${f.checks} та · ўрт. ${fmt(f.avgCheck)}`} muted />
           </div>
         </div>

@@ -425,6 +425,7 @@ export const expenseCategory = pgEnum("expense_category", [
   "ish_haqi", // ойлик (зарплата)
   "jihoz", // жиҳоз/техника
   "boshqa", // прочее
+  "ega_oldi", // 👑 эга олди — фойда ТАҚСИМОТИ (OPEX эмас, соф фойдани камайтирмайди)
 ]);
 
 // OPEX / cash-out. Aggregated by spentAt (operational day, 06:00 boundary), not createdAt.

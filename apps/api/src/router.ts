@@ -802,9 +802,16 @@ async function financeForWindow(start: Date, end: Date) {
     .select({ category: expenses.category, amount: expenses.amount })
     .from(expenses)
     .where(and(gte(expenses.spentAt, start), lt(expenses.spentAt, end)));
+  // эга олди — фойда ТАҚСИМОТИ, OPEX эмас: нақддан чиқади (expectedCash санайди),
+  // лекин соф фойдани камайтирмайди. Алоҳида ownerDraw сифатида кўрсатилади.
   let opex = 0;
+  let ownerDraw = 0;
   const opexByCat: Record<string, number> = {};
   for (const e of expRows) {
+    if (e.category === "ega_oldi") {
+      ownerDraw += e.amount;
+      continue;
+    }
     opex += e.amount;
     opexByCat[e.category] = (opexByCat[e.category] ?? 0) + e.amount;
   }
@@ -846,6 +853,7 @@ async function financeForWindow(start: Date, end: Date) {
     unpricedNames: cogsRes.unpricedNames,
     opex,
     opexByCat,
+    ownerDraw,
     refundTotal,
     discountTotal,
     sofFoyda,
@@ -2818,7 +2826,15 @@ export const appRouter = router({
       create: directorProcedure
         .input(
           z.object({
-            category: z.enum(["ijara", "gaz", "elektr", "ish_haqi", "jihoz", "boshqa"]),
+            category: z.enum([
+              "ijara",
+              "gaz",
+              "elektr",
+              "ish_haqi",
+              "jihoz",
+              "boshqa",
+              "ega_oldi",
+            ]),
             amount: z.number().int().positive(),
             method: z.enum(["cash", "card", "click", "payme", "debt"]).optional(),
             recurring: z.boolean().optional(),

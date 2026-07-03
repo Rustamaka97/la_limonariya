@@ -1,0 +1,1 @@
+ALTER TYPE "public"."expense_category" ADD VALUE 'ega_oldi';
