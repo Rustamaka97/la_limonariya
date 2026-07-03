@@ -20,6 +20,7 @@ import { db } from "./db/client";
 import {
   cashCollections,
   categories,
+  clientOps,
   customers,
   debtPayments,
   expenses,
@@ -936,20 +937,44 @@ async function flushKitchenTicket(
   tx: { select: typeof db.select; insert: typeof db.insert; execute: typeof db.execute },
   orderId: string,
   createdById: string,
+  ticketId?: string,
 ) {
   // advisory lock keyed on orderId — serializes concurrent sendToKitchen calls
   // (and sendToKitchen racing pos.close's auto-flush) so they can't both read
   // the same "sent so far" snapshot and double-ticket the same items.
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${orderId}))`);
 
+  // Идемпотентлик: клиент ticketId берса ва ўша тикет аллақачон бор бўлса
+  // (offline/retry replay) — янги тикет ЯРАТМАЙ, мавжудини қайтарамиз (қайта чоп).
+  if (ticketId) {
+    const prev = (
+      await tx
+        .select({ id: kitchenTickets.id, createdAt: kitchenTickets.createdAt })
+        .from(kitchenTickets)
+        .where(eq(kitchenTickets.id, ticketId))
+        .limit(1)
+    )[0];
+    if (prev) {
+      const prevItems = await tx
+        .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
+        .from(kitchenTicketItems)
+        .where(eq(kitchenTicketItems.ticketId, prev.id));
+      return {
+        id: prev.id,
+        createdAt: prev.createdAt,
+        items: prevItems.map((it) => ({ name: it.name, qty: it.qty, station: it.station ?? "Бошқа" })),
+      };
+    }
+  }
+
   const toSend = await computeUnsentItems(tx, orderId);
   if (toSend.length === 0) return null;
 
   const ticket = (
-    await tx.insert(kitchenTickets).values({ orderId, createdById }).returning({
-      id: kitchenTickets.id,
-      createdAt: kitchenTickets.createdAt,
-    })
+    await tx
+      .insert(kitchenTickets)
+      .values({ ...(ticketId ? { id: ticketId } : {}), orderId, createdById })
+      .returning({ id: kitchenTickets.id, createdAt: kitchenTickets.createdAt })
   )[0];
   if (!ticket) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
@@ -2220,6 +2245,8 @@ export const appRouter = router({
           orderId: z.string().uuid(),
           productId: z.string().uuid(),
           delta: z.number().int(),
+          // Клиент op-id → offline/retry replay delta'ни икки марта қўлламайди.
+          opId: z.string().uuid().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -2229,6 +2256,15 @@ export const appRouter = router({
           await tx.execute(
             sql`select pg_advisory_xact_lock(hashtext(${`${input.orderId}:${input.productId}`}))`,
           );
+          // Идемпотентлик: op-id аллақачон қўлланган бўлса — skip (delta дубль эмас).
+          if (input.opId) {
+            const fresh = await tx
+              .insert(clientOps)
+              .values({ opId: input.opId })
+              .onConflictDoNothing()
+              .returning({ opId: clientOps.opId });
+            if (fresh.length === 0) return { ok: true };
+          }
           const existing = (
             await tx
               .select()
@@ -2306,10 +2342,16 @@ export const appRouter = router({
       }),
 
     sendToKitchen: protectedProcedure
-      .input(z.object({ orderId: z.string().uuid() }))
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          // Клиент ticketId → offline/retry replay икки марта кухняга юбормайди.
+          ticketId: z.string().uuid().optional(),
+        }),
+      )
       .mutation(async ({ input, ctx }) => {
         const ticket = await db.transaction(async (tx) => {
-          return flushKitchenTicket(tx, input.orderId, ctx.user.id);
+          return flushKitchenTicket(tx, input.orderId, ctx.user.id, input.ticketId);
         });
         // тx COMMIT'дан кейин — принтерга (net I/O тx ушламасин, блокламасин)
         if (ticket) void firePrintKitchen(input.orderId, ticket.items);

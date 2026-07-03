@@ -464,7 +464,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   }, [refresh]);
 
   async function add(productId: string, delta: number) {
-    await trpc.pos.addItem.mutate({ orderId: id, productId, delta });
+    // opId — ҳар амалга ягона калит; retry/offline replay delta'ни дубль қилмайди.
+    await trpc.pos.addItem.mutate({ orderId: id, productId, delta, opId: crypto.randomUUID() });
     refresh();
   }
 
@@ -480,7 +481,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   async function sendToKitchen() {
     setSending(true);
     try {
-      const t = await trpc.pos.sendToKitchen.mutate({ orderId: id });
+      // ticketId — retry/offline replay икки марта кухняга юбормайди (мавжудни қайтаради).
+      const t = await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: crypto.randomUUID() });
       if (t.id) setTicketId(t.id);
       refresh();
     } finally {

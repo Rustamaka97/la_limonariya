@@ -218,6 +218,13 @@
       "when": 1783079986304,
       "tag": "0030_stock_storage_col",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1783081419778,
+      "tag": "0031_client_ops",
+      "breakpoints": true
     }
   ]
 }

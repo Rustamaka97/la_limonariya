@@ -421,6 +421,14 @@ export const stockMovements = pgTable(
   ],
 );
 
+// Offline-first идемпотентлик: клиент ҳар ёзиш амалига op-id беради. Такрор
+// (offline навбат/тармоқ retry) юборилса, op-id аллақачон борлиги учун амал
+// қайта БАЖАРИЛМАЙДИ. Эскиларини вақти-вақти билан тозалаш мумкин (retention).
+export const clientOps = pgTable("client_ops", {
+  opId: uuid("op_id").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const expenseCategory = pgEnum("expense_category", [
   "ijara", // аренда
   "gaz", // газ
