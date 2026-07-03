@@ -56,9 +56,22 @@ const fmtDate = (s: string) => {
 
 export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
   const [s, setS] = useState<Summary | null>(null);
+  const [tgEnabled, setTgEnabled] = useState(false);
+  const [tg, setTg] = useState<string | null>(null);
   useEffect(() => {
     trpc.dashboard.summary.query().then(setS).catch(() => {});
+    trpc.telegram.enabled.query().then((r) => setTgEnabled(r.enabled)).catch(() => {});
   }, []);
+
+  async function sendDigest() {
+    setTg("…");
+    try {
+      const r = await trpc.telegram.digest.mutate();
+      setTg(`✓ юборилди (${r.holes} тешик)`);
+    } catch {
+      setTg("хатолик");
+    }
+  }
 
   if (!s) return <div className="p-6 text-center text-zinc-400">⏳</div>;
 
@@ -66,6 +79,17 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
 
   return (
     <div className="space-y-5">
+      {tgEnabled && (
+        <div className="flex items-center justify-end gap-2">
+          {tg && <span className="text-xs text-zinc-400">{tg}</span>}
+          <button
+            onClick={sendDigest}
+            className="rounded-lg border px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
+          >
+            📤 Telegram кун хулосаси
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Big label="Қўй гўшт таннарх" value={s.meatCost.qoy != null ? fmt(s.meatCost.qoy) : "—"} sub="so'm/кг" accent={s.meatCost.qoy != null} />
         <Big label="Мол гўшт таннарх" value={s.meatCost.mol != null ? fmt(s.meatCost.mol) : "—"} sub="so'm/кг" accent={s.meatCost.mol != null} />

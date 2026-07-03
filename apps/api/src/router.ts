@@ -56,6 +56,7 @@ import {
   printCheck,
   printKitchenTicket,
 } from "./printing/escpos";
+import { sendTelegram, telegramEnabled } from "./telegram";
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
 import { TRPCError } from "@trpc/server";
 import {
@@ -1213,6 +1214,39 @@ async function firePrintCheck(orderId: string): Promise<void> {
   }
 }
 
+// Кун охири хулосаси: тушум/фойда/чек + очиқ тешиклар → директорга Telegram.
+// telegram.digest procedure ва cron скрипти (telegram-digest.ts) шуни чақиради.
+export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }> {
+  if (!telegramEnabled()) return { ok: false, holes: 0 };
+  const som = (n: number) => n.toLocaleString("ru-RU");
+  const { startUTC, endUTC, dayKey } = businessDayBounds();
+  const fin = await financeForWindow(startUTC, endUTC);
+  const sig = await computeSignals();
+  const holes: string[] = [];
+  if (sig.obvalkaFlags.length) holes.push(`🩸 Обвалка баланс: ${sig.obvalkaFlags.length}`);
+  if (sig.underDelivery.length) holes.push(`🚩 Кам келтириш: ${sig.underDelivery.length}`);
+  if (sig.grammLeak.length) holes.push(`🍢 Сих грамм оқмаси: ${sig.grammLeak.length}`);
+  if (sig.priceSpikes.length) holes.push(`💸 Нарх аномалияси: ${sig.priceSpikes.length}`);
+  if (sig.compFlag) holes.push(`🆓 Текин лимитдан ошди: ${som(sig.compToday)}`);
+  if (sig.cashVariance && sig.cashVariance.variance < 0)
+    holes.push(`💵 Касса камомади: ${som(sig.cashVariance.variance)}`);
+  if (sig.staleOrders.length) holes.push(`⏰ Узоқ очиқ стол: ${sig.staleOrders.length}`);
+  if (sig.thinDishes.length) holes.push(`📉 Юпқа маржа: ${sig.thinDishes.length} таом`);
+  const lines = [
+    `🍋 La Limonariya — кун хулосаси (${dayKey})`,
+    "",
+    `💵 Тушум: ${som(fin.revenue)}`,
+    `📈 Соф фойда: ${som(fin.sofFoyda)}${fin.cogsPartial ? " (COGS қисман)" : ""}`,
+    `🧾 Чек: ${fin.checks} · ўрт. ${som(fin.avgCheck)}`,
+    fin.guestDebt > 0 ? `🤝 Меҳмон қарзи (олинмаган): ${som(fin.guestDebt)}` : "",
+    fin.ownerDraw > 0 ? `👑 Эга олди: ${som(fin.ownerDraw)}` : "",
+    "",
+    holes.length ? `⚠️ Тешиклар:\n${holes.map((h) => `• ${h}`).join("\n")}` : "✅ Тешик йўқ",
+  ].filter(Boolean);
+  await sendTelegram(lines.join("\n"));
+  return { ok: true, holes: holes.length };
+}
+
 export const appRouter = router({
   health: publicProcedure.query(async () => {
     await db.execute(sql`select 1`);
@@ -1798,7 +1832,7 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
-        return db.transaction(async (tx) => {
+        const result = await db.transaction(async (tx) => {
           // Бир харид = бир обвалка (тасдиқланган модель): агар шу харид
           // аллақачон бошқа обвалкага уланган бўлса — рад этамиз.
           if (input.purchaseId) {
@@ -1882,8 +1916,36 @@ export const appRouter = router({
               createdById: ctx.user.id,
             });
 
-          return { id: row.id };
+          const computed = computeObvalka(
+            input.weightG,
+            input.pricePerKg,
+            parts.map((p) => {
+              const pt = ptMap.get(p.partTypeId);
+              return {
+                name: pt?.name ?? "?",
+                weightG: p.weightG,
+                isWaste: pt?.isWaste ?? false,
+                normMinPct: pt?.normMinPct ?? null,
+                normMaxPct: pt?.normMaxPct ?? null,
+              };
+            }),
+          );
+          return { id: row.id, computed };
         });
+
+        // тx COMMIT'дан кейин — критик бўлса директорга Telegram push (дарров).
+        const c = result.computed;
+        const anomalies = c.items.filter((i) => i.outOfNorm).length;
+        if (c.balanceFlag || c.lossPct > 5 || anomalies > 0) {
+          const kg = (input.weightG / 1000).toFixed(1);
+          const lines = [
+            `🔴 ОБВАЛКА — ${input.carcassType === "mol" ? "Мол" : "Қўй"} ${kg}кг${input.supplier ? ` · ${input.supplier}` : ""}`,
+            `Баланс: ${c.lossPct > 0 ? "−" : "+"}${Math.abs(c.lossPct)}%${c.lossPct > 5 ? " ⚠️ кам келтириш" : ""}${c.balanceFlag ? " 🚩" : ""}`,
+          ];
+          if (anomalies > 0) lines.push(`Норма аномалияси: ${anomalies} қисм`);
+          void sendTelegram(lines.join("\n"));
+        }
+        return { id: result.id };
       }),
   }),
 
@@ -3741,6 +3803,17 @@ export const appRouter = router({
           return { ok: true, paidTotal: updated[0]!.paidTotal };
         });
       }),
+  }),
+
+  telegram: router({
+    enabled: directorProcedure.query(() => ({ enabled: telegramEnabled() })),
+    // Кун охири хулосаси: тушум/фойда/чек + очиқ тешиклар → директорга push.
+    // Директор тугма билан ёки cron (23:00) чақиради.
+    digest: directorProcedure.mutation(async () => {
+      if (!telegramEnabled())
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Telegram созланмаган (env)" });
+      return sendDailyDigest();
+    }),
   }),
 
   analytics: router({
