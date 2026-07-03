@@ -427,6 +427,26 @@ async function revenueForWindow(start: Date, end: Date) {
   return { revenue, byMethod, checks, avgCheck: checks ? Math.round(revenue / checks) : 0 };
 }
 
+// Same weekday, previous week (7 business-days back) — for "vs last week" comparisons.
+function sameWeekdayLastWeek(dayKey: string): string {
+  let k = dayKey;
+  for (let i = 0; i < 7; i++) k = previousDayKey(k);
+  return k;
+}
+
+// Shared by analytics.digest and sendDailyDigest so the comparison logic lives in one place.
+async function lastWeekComparison(
+  dayKey: string,
+  todayRevenue: number,
+): Promise<{ pct: number | null; lastWeekRevenue: number; lastWeekChecks: number }> {
+  const lastWeekKey = sameWeekdayLastWeek(dayKey);
+  const { startUTC, endUTC } = businessDayBounds(lastWeekKey);
+  const r = await revenueForWindow(startUTC, endUTC);
+  const pct =
+    r.revenue > 0 ? Math.round(((todayRevenue - r.revenue) / r.revenue) * 100) : null;
+  return { pct, lastWeekRevenue: r.revenue, lastWeekChecks: r.checks };
+}
+
 // Per-order REALIZED-revenue fraction [0..1] for item-level reports, so they stay
 // consistent with the app's "debt is not realized revenue" convention AND reconcile
 // with financeForWindow/byWaiter (which are per-payment-row). Returned ONLY for
@@ -1395,12 +1415,18 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
   if (sig.voidsToday.count) holes.push(`🗑️ Ўчирилган таом: ${sig.voidsToday.count} та`);
   if (sig.discountsToday.count) holes.push(`🏷️ Чегирма: ${sig.discountsToday.count} та (${som(sig.discountsToday.sum)})`);
   if (sig.reprintsToday.count) holes.push(`🖨️ Қайта чоп: ${sig.reprintsToday.count} та`);
+  const lastWeek = await lastWeekComparison(dayKey, fin.revenue);
+  const weekdayNames = ["якшанба", "душанба", "сешанба", "чоршанба", "пайшанба", "жума", "шанба"];
+  const weekdayName = weekdayNames[new Date(`${dayKey}T00:00:00Z`).getUTCDay()];
   const lines = [
     `🍋 La Limonariya — кун хулосаси (${dayKey})`,
     "",
     `💵 Тушум: ${som(fin.revenue)}`,
     `📈 Соф фойда: ${som(fin.sofFoyda)}${fin.cogsPartial ? " (COGS қисман)" : ""}`,
     `🧾 Чек: ${fin.checks} · ўрт. ${som(fin.avgCheck)}`,
+    lastWeek.lastWeekRevenue > 0
+      ? `📊 Ўтган ${weekdayName}га нисбатан: ${lastWeek.pct! >= 0 ? "+" : ""}${lastWeek.pct}%`
+      : "",
     fin.guestDebt > 0 ? `🤝 Меҳмон қарзи (олинмаган): ${som(fin.guestDebt)}` : "",
     fin.ownerDraw > 0 ? `👑 Эга олди: ${som(fin.ownerDraw)}` : "",
     "",
@@ -4715,11 +4741,13 @@ export const appRouter = router({
     signals: directorProcedure.query(() => computeSignals()),
 
     digest: directorProcedure.query(async () => {
-      const { startUTC, endUTC } = businessDayBounds();
+      const { startUTC, endUTC, dayKey } = businessDayBounds();
       const todayFin = await financeForWindow(startUTC, endUTC);
       const estCogs = Math.round(todayFin.revenue * BLENDED_COGS_PCT);
       const estProfit =
         todayFin.revenue - estCogs - todayFin.opex - todayFin.cardTax - todayFin.refundTotal;
+
+      const lastWeek = await lastWeekComparison(dayKey, todayFin.revenue);
 
       const { supplierTotal, guestTotal } = await debtTotals();
       const stock = await stockableOnHand();
@@ -4776,6 +4804,9 @@ export const appRouter = router({
         debtToday: supplierTotal + guestTotal,
         supplierDebt: supplierTotal,
         guestDebt: guestTotal,
+        revenueLastWeekSameDay: lastWeek.lastWeekRevenue,
+        checksLastWeekSameDay: lastWeek.lastWeekChecks,
+        vsLastWeekPct: lastWeek.pct,
       };
     }),
   }),
@@ -4795,7 +4826,14 @@ export const appRouter = router({
         for (const k of keys) {
           const { startUTC, endUTC } = businessDayBounds(k);
           const r = await revenueForWindow(startUTC, endUTC);
-          rows.push({ dayKey: k, revenue: r.revenue, checks: r.checks, avgCheck: r.avgCheck });
+          const estProfit = r.revenue - Math.round(r.revenue * BLENDED_COGS_PCT);
+          rows.push({
+            dayKey: k,
+            revenue: r.revenue,
+            checks: r.checks,
+            avgCheck: r.avgCheck,
+            estProfit,
+          });
         }
         return { rows, breakEvenHint: BREAK_EVEN_HINT };
       }),

@@ -51,7 +51,11 @@ type Today = {
   debtToday: number;
   supplierDebt: number;
   guestDebt: number;
+  revenueLastWeekSameDay: number;
+  checksLastWeekSameDay: number;
+  vsLastWeekPct: number | null;
 };
+type TrendRow = { dayKey: string; revenue: number; checks: number; avgCheck: number; estProfit: number };
 type AuditRow = {
   id: string;
   action: string;
@@ -83,11 +87,30 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
   const [tg, setTg] = useState<string | null>(null);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [today, setToday] = useState<Today | null>(null);
+  const [trend, setTrend] = useState<TrendRow[] | null>(null);
+
+  function refetchToday() {
+    trpc.analytics.digest.query().then(setToday).catch(() => {});
+  }
+
   useEffect(() => {
     trpc.dashboard.summary.query().then(setS).catch(() => {});
     trpc.telegram.enabled.query().then((r) => setTgEnabled(r.enabled)).catch(() => {});
     trpc.audit.recent.query({ limit: 25 }).then(setAudit).catch(() => {});
-    trpc.analytics.digest.query().then(setToday).catch(() => {});
+    refetchToday();
+    trpc.report.salesDaily.query({ days: 14 }).then((r) => setTrend(r.rows)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function tick() {
+      if (document.visibilityState === "visible") refetchToday();
+    }
+    const id = setInterval(tick, 30000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, []);
 
   async function sendDigest() {
@@ -116,7 +139,10 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
         <div>
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-zinc-700">📊 Бугун</h2>
-            <span className="text-xs text-zinc-400">жонли ҳолат</span>
+            <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              жонли ҳолат
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Big label="Тушум" value={fmt(revenueToday)} sub="so'm" accent />
@@ -132,6 +158,18 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
             />
             <Big label="Қарз" value={fmt(debtToday)} sub={`етк. ${fmt(today.supplierDebt)} · меҳ. ${fmt(today.guestDebt)}`} danger={today.debtToday > 0} />
           </div>
+          {today.vsLastWeekPct !== null && (
+            <div className={`mt-2 text-xs font-medium ${today.vsLastWeekPct >= 0 ? "text-green-700" : "text-red-600"}`}>
+              {today.vsLastWeekPct >= 0 ? "↑" : "↓"} {Math.abs(today.vsLastWeekPct)}% ўтган ҳафтанинг шу кунига нисбатан
+            </div>
+          )}
+          {trend && trend.length > 0 && (
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <SparklineCard label="14 кун · тушум" points={trend.map((t) => t.revenue)} />
+              <SparklineCard label="14 кун · чек" points={trend.map((t) => t.checks)} />
+              <SparklineCard label="14 кун · фойда" points={trend.map((t) => t.estProfit)} color="#0e4037" />
+            </div>
+          )}
         </div>
       )}
       {tgEnabled && (
@@ -285,6 +323,39 @@ function Big({ label, value, sub, accent, danger, className }: { label: string; 
       <div className={`mt-0.5 text-xl font-bold tabular-nums ${danger ? "text-red-600" : accent ? "text-green-700" : ""}`}>{value}</div>
       {sub && <div className="text-xs text-zinc-400">{sub}</div>}
     </div>
+  );
+}
+
+function SparklineCard({ label, points, color }: { label: string; points: number[]; color?: string }) {
+  return (
+    <div className="rounded-xl border bg-white p-3">
+      <Sparkline points={points} color={color} />
+      <div className="mt-1 text-center text-xs text-zinc-400">{label}</div>
+    </div>
+  );
+}
+
+function Sparkline({ points, color }: { points: number[]; color?: string }) {
+  const w = 100;
+  const h = 28;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min;
+  const step = points.length > 1 ? w / (points.length - 1) : 0;
+  const coords: Array<{ x: number; y: number }> = points.map((p, i) => {
+    const x = i * step;
+    const y = range === 0 ? h / 2 : h - 2 - ((p - min) / range) * (h - 4);
+    return { x, y };
+  });
+  const path = coords.map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  const last = coords[coords.length - 1] ?? { x: 0, y: h / 2 };
+  const lastX = last.x;
+  const lastY = last.y;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full">
+      <polyline points={path} fill="none" stroke={color ?? "#0e4037"} strokeWidth={1.5} />
+      <circle cx={lastX} cy={lastY} r={2.5} style={{ fill: "var(--color-brand-gold, #f3b759)" }} />
+    </svg>
   );
 }
 
