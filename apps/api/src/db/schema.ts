@@ -177,6 +177,10 @@ export const tables = pgTable("tables", {
   name: text("name").notNull(),
   sort: integer("sort").notNull().default(0),
   active: boolean("active").notNull().default(true),
+  // Floor-plan drag position (px, within the hall's fixed-size canvas). Null = not
+  // arranged yet — FloorView falls back to an auto grid computed from `sort`.
+  posX: integer("pos_x"),
+  posY: integer("pos_y"),
 });
 
 export const orderStatus = pgEnum("order_status", ["open", "closed", "cancelled"]);

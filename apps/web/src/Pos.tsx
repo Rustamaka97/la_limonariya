@@ -1,10 +1,18 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
 import { trpc } from "./trpc";
 
 type Hall = { id: string; name: string; servicePct: number };
-type Table = { id: string; hallId: string; name: string; sort: number };
+type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null };
 type MenuItem = {
   id: string;
   name: string;
@@ -133,21 +141,39 @@ export function Pos({ user }: { user: SessionUser }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
     return <OrderView id={orderId} user={user} onBack={() => setOrderId(null)} />;
-  return <FloorView onOpen={setOrderId} onNew={setOrderId} />;
+  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} />;
 }
 
-// ── FLOOR: visual hall/table map (Clopos only has a flat list) ──────────────
+const CANVAS_COLS = 6;
+const CELL_W = 140;
+const CELL_H = 96;
+const TILE_W = 116;
+const TILE_H = 80;
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n));
+}
+
+function defaultPos(i: number): { x: number; y: number } {
+  return { x: 16 + (i % CANVAS_COLS) * CELL_W, y: 16 + Math.floor(i / CANVAS_COLS) * CELL_H };
+}
+
+// ── FLOOR: visual hall/table map, drag-arrangeable (Clopos only has a flat list) ─
 function FloorView({
+  user,
   onOpen,
   onNew,
 }: {
+  user: SessionUser;
   onOpen: (id: string) => void;
   onNew: (id: string) => void;
 }) {
+  const isDirector = user.role === "director";
   const [halls, setHalls] = useState<Hall[]>([]);
   const [tbls, setTbls] = useState<Table[]>([]);
   const [orders, setOrders] = useState<OpenOrder[] | null>(null);
   const [newFor, setNewFor] = useState<{ hall: Hall; table?: string } | null>(null);
+  const [arrange, setArrange] = useState(false);
 
   const refresh = useCallback(() => {
     trpc.pos.openOrders.query().then(setOrders).catch(() => setOrders([]));
@@ -167,6 +193,11 @@ function FloorView({
     onNew(id);
   }
 
+  function moved(id: string, x: number, y: number) {
+    setTbls((prev) => prev.map((t) => (t.id === id ? { ...t, posX: x, posY: y } : t)));
+    trpc.pos.setTablePosition.mutate({ id, posX: x, posY: y }).catch(() => refresh());
+  }
+
   const key = (hallId: string, name: string | null) => `${hallId}::${name ?? ""}`;
   const openByKey = new Map<string, OpenOrder>();
   for (const o of orders ?? []) if (!openByKey.has(key(o.hallId, o.tableNo))) openByKey.set(key(o.hallId, o.tableNo), o);
@@ -181,15 +212,30 @@ function FloorView({
           <h2 className="text-lg font-bold text-brand-ink">Заллар</h2>
           <p className="text-xs text-zinc-400">
             {orders === null ? "…" : `${busy} банд · ${tbls.length} стол`}
+            {arrange && " · столни судраб жойлаштиринг"}
           </p>
         </div>
-        <button
-          onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
-        >
-          <IPlus className="h-4 w-4" />
-          Тезкор заказ
-        </button>
+        <div className="flex items-center gap-2">
+          {isDirector && (
+            <button
+              onClick={() => setArrange((a) => !a)}
+              className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[.98] motion-reduce:active:scale-100 ${
+                arrange
+                  ? "bg-brand-ink text-white hover:bg-brand-ink/90"
+                  : "border border-brand-cream-soft bg-white text-brand-ink hover:border-brand"
+              }`}
+            >
+              {arrange ? "✓ Тайёр" : "⠿ Жойлаштириш"}
+            </button>
+          )}
+          <button
+            onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
+          >
+            <IPlus className="h-4 w-4" />
+            Тезкор заказ
+          </button>
+        </div>
       </div>
 
       {orders === null ? (
@@ -198,7 +244,12 @@ function FloorView({
         <>
           {halls.map((h) => {
             const hallTables = tbls.filter((t) => t.hallId === h.id);
-            const hallBusy = hallTables.filter((t) => openByKey.has(key(h.id, t.name))).length;
+            const ordersByName = new Map<string, OpenOrder>();
+            for (const t of hallTables) {
+              const o = openByKey.get(key(h.id, t.name));
+              if (o) ordersByName.set(t.name, o);
+            }
+            const hallBusy = ordersByName.size;
             return (
               <section key={h.id} className="space-y-2.5">
                 <div className="flex items-center gap-2 px-1">
@@ -212,22 +263,14 @@ function FloorView({
                     {hallBusy}/{hallTables.length}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                  {hallTables.map((t) => {
-                    const o = openByKey.get(key(h.id, t.name));
-                    return o ? (
-                      <TableTile key={t.id} table={t.name} order={o} onClick={() => onOpen(o.id)} />
-                    ) : (
-                      <button
-                        key={t.id}
-                        onClick={() => setNewFor({ hall: h, table: t.name })}
-                        className="grid min-h-[76px] place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
-                      >
-                        <span className="line-clamp-2">{t.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <HallCanvas
+                  tables={hallTables}
+                  orders={ordersByName}
+                  arrange={arrange}
+                  onOpen={onOpen}
+                  onNewTable={(name) => setNewFor({ hall: h, table: name })}
+                  onMoved={moved}
+                />
               </section>
             );
           })}
@@ -262,19 +305,143 @@ function FloorView({
   );
 }
 
+// Free-form floor plan: tables render at their saved (x,y); director can drag them
+// to match the real room. Unarranged tables fall back to an auto grid so a fresh
+// hall still looks fine before anyone has touched the layout.
+function HallCanvas({
+  tables,
+  orders,
+  arrange,
+  onOpen,
+  onNewTable,
+  onMoved,
+}: {
+  tables: Table[];
+  orders: Map<string, OpenOrder>;
+  arrange: boolean;
+  onOpen: (id: string) => void;
+  onNewTable: (tableName: string) => void;
+  onMoved: (id: string, x: number, y: number) => void;
+}) {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ id: string; offX: number; offY: number } | null>(null);
+  const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(null);
+
+  const canvasW = CANVAS_COLS * CELL_W + 32;
+  const rows = Math.max(1, Math.ceil(tables.length / CANVAS_COLS));
+  const canvasH = Math.max(280, rows * CELL_H + 40);
+
+  function posOf(t: Table, i: number): { x: number; y: number } {
+    if (live?.id === t.id) return { x: live.x, y: live.y };
+    if (t.posX != null && t.posY != null) return { x: t.posX, y: t.posY };
+    return defaultPos(i);
+  }
+
+  function startDrag(e: ReactPointerEvent, t: Table, i: number) {
+    if (!arrange || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const p = posOf(t, i);
+    setDrag({ id: t.id, offX: e.clientX - rect.left - p.x, offY: e.clientY - rect.top - p.y });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onMove(e: ReactPointerEvent) {
+    if (!drag || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = clamp(e.clientX - rect.left - drag.offX, 0, canvasW - TILE_W);
+    const y = clamp(e.clientY - rect.top - drag.offY, 0, canvasH - TILE_H);
+    setLive({ id: drag.id, x, y });
+  }
+
+  function endDrag() {
+    if (drag && live) onMoved(live.id, Math.round(live.x), Math.round(live.y));
+    setDrag(null);
+    setLive(null);
+  }
+
+  return (
+    <div
+      ref={canvasRef}
+      onPointerMove={onMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      className={`relative overflow-x-auto rounded-xl border transition-colors ${
+        arrange ? "border-dashed border-brand bg-brand-cream/30" : "border-brand-cream-soft/60 bg-brand-cream/10"
+      }`}
+      style={{ height: canvasH, touchAction: arrange ? "none" : undefined }}
+    >
+      <div style={{ position: "relative", width: canvasW, height: canvasH }}>
+        {tables.map((t, i) => {
+          const p = posOf(t, i);
+          const o = orders.get(t.name);
+          const dragging = drag?.id === t.id;
+          const style = {
+            position: "absolute" as const,
+            left: p.x,
+            top: p.y,
+            width: TILE_W,
+            height: TILE_H,
+            cursor: arrange ? "grab" : "pointer",
+            zIndex: dragging ? 10 : 1,
+          };
+          if (o) {
+            return (
+              <TableTile
+                key={t.id}
+                table={t.name}
+                order={o}
+                onClick={() => !arrange && onOpen(o.id)}
+                onPointerDown={(e) => startDrag(e, t, i)}
+                style={style}
+                fill
+                dragging={dragging}
+              />
+            );
+          }
+          return (
+            <button
+              key={t.id}
+              style={style}
+              onPointerDown={(e) => startDrag(e, t, i)}
+              onClick={() => !arrange && onNewTable(t.name)}
+              className={`grid place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand ${
+                dragging ? "scale-105 shadow-lg" : "active:scale-95 motion-reduce:active:scale-100"
+              }`}
+            >
+              <span className="line-clamp-2">{t.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TableTile({
   table,
   order,
   onClick,
+  onPointerDown,
+  style,
+  fill,
+  dragging,
 }: {
   table: string;
   order: OpenOrder;
   onClick: () => void;
+  onPointerDown?: (e: ReactPointerEvent) => void;
+  style?: CSSProperties;
+  fill?: boolean;
+  dragging?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex min-h-[76px] flex-col justify-between rounded-xl bg-brand p-2.5 text-left text-white shadow-sm transition hover:bg-brand-deep active:scale-95 motion-reduce:active:scale-100"
+      onPointerDown={onPointerDown}
+      style={style}
+      className={`flex ${fill ? "h-full w-full" : "min-h-[76px]"} flex-col justify-between rounded-xl bg-brand p-2.5 text-left text-white shadow-sm transition hover:bg-brand-deep ${
+        dragging ? "scale-105 shadow-lg" : "active:scale-95 motion-reduce:active:scale-100"
+      }`}
     >
       <div className="flex items-start justify-between gap-1">
         <span className="line-clamp-2 text-xs font-semibold leading-tight">{table}</span>

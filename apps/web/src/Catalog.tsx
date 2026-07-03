@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SessionUser } from "./App";
 import { trpc } from "./trpc";
 
@@ -18,6 +18,7 @@ export type Product = {
   category: string | null;
   station: string | null;
   hasRecipe: boolean;
+  marginPct: number | null;
 };
 export type Station = { id: string; name: string };
 type Component = { id: string; name: string; unit: string; type: string };
@@ -51,6 +52,7 @@ export function Catalog({ user }: { user: SessionUser }) {
   const [stationsList, setStationsList] = useState<Station[]>([]);
   const [products, setProducts] = useState<Product[] | null>(null);
   const [cat, setCat] = useState<string | null>(null);
+  const [q, setQ] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [editingCat, setEditingCat] = useState<Category | "new" | null>(null);
@@ -71,6 +73,12 @@ export function Catalog({ user }: { user: SessionUser }) {
 
   useEffect(refreshCats, [refreshCats]);
   useEffect(refreshProducts, [refreshProducts]);
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return products;
+    return products?.filter((p) => p.name.toLowerCase().includes(needle)) ?? null;
+  }, [products, q]);
   useEffect(() => {
     if (isDirector) trpc.catalog.stations.query().then(setStationsList).catch(() => {});
   }, [isDirector]);
@@ -78,7 +86,13 @@ export function Catalog({ user }: { user: SessionUser }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Қидириш…"
+            className="w-40 rounded-lg border px-3 py-1 text-sm outline-none focus:border-brand"
+          />
           <Chip active={cat === null} onClick={() => setCat(null)}>
             Барчаси
           </Chip>
@@ -132,11 +146,12 @@ export function Catalog({ user }: { user: SessionUser }) {
               <th className="px-3 py-2 font-medium">Тур</th>
               <th className="px-3 py-2 font-medium">Станция</th>
               <th className="px-3 py-2 text-right font-medium">Нарх</th>
+              {isDirector && <th className="px-3 py-2 text-right font-medium">Маржа</th>}
               {isDirector && <th className="px-3 py-2"></th>}
             </tr>
           </thead>
           <tbody className="divide-y">
-            {products?.map((p) => {
+            {shown?.map((p) => {
               const b = TYPE_BADGE[p.type];
               return (
                 <tr key={p.id} className={!p.active ? "opacity-40" : ""}>
@@ -160,6 +175,21 @@ export function Catalog({ user }: { user: SessionUser }) {
                       : "—"}
                   </td>
                   {isDirector && (
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {p.marginPct == null ? (
+                        <span className="text-zinc-300">—</span>
+                      ) : (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
+                            p.marginPct < 40 ? "bg-red-100 text-red-700" : "text-zinc-600"
+                          }`}
+                        >
+                          {p.marginPct}%
+                        </span>
+                      )}
+                    </td>
+                  )}
+                  {isDirector && (
                     <td className="px-3 py-2 text-right">
                       <button
                         onClick={() => setEditing(p)}
@@ -174,8 +204,12 @@ export function Catalog({ user }: { user: SessionUser }) {
             })}
           </tbody>
         </table>
-        {products ? (
-          <div className="px-4 py-2 text-xs text-zinc-400">{products.length} та маҳсулот</div>
+        {shown ? (
+          shown.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-zinc-400">Топилмади</div>
+          ) : (
+            <div className="px-4 py-2 text-xs text-zinc-400">{shown.length} та маҳсулот</div>
+          )
         ) : (
           <div className="px-4 py-6 text-center text-zinc-400">⏳</div>
         )}

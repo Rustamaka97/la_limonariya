@@ -1112,7 +1112,7 @@ export const appRouter = router({
         )
         .query(async ({ input, ctx }) => {
           const showInactive = input?.includeInactive && ctx.user.role === "director";
-          return db
+          const rows = await db
             .select({
               id: products.id,
               name: products.name,
@@ -1138,6 +1138,20 @@ export const appRouter = router({
               ),
             )
             .orderBy(products.type, products.name);
+
+          // Маржа — director-only (same sensitivity rule as Таннарх tab). Reuses the
+          // meat-cost-based dish costing so Каталог never shows a Clopos-style fake
+          // 100% margin before real obvalka cost data exists (guard matches thinDishes).
+          if (ctx.user.role !== "director") return rows.map((r) => ({ ...r, marginPct: null as number | null }));
+          const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+          const dishes = await computeDishTaannarx(meatCost);
+          const marginByProduct = new Map<string, number>();
+          for (const d of dishes) {
+            if (d.productId && d.salePrice > 0 && d.meatCostTotal > 0) {
+              marginByProduct.set(d.productId, 100 - (d.meatPct ?? 0));
+            }
+          }
+          return rows.map((r) => ({ ...r, marginPct: marginByProduct.get(r.id) ?? null }));
         }),
 
       create: directorProcedure
@@ -1643,11 +1657,25 @@ export const appRouter = router({
           hallId: tables.hallId,
           name: tables.name,
           sort: tables.sort,
+          posX: tables.posX,
+          posY: tables.posY,
         })
         .from(tables)
         .where(eq(tables.active, true))
         .orderBy(tables.sort);
     }),
+
+    // Director-only: drag-arrange the floor plan. Position is in canvas px,
+    // persisted per table so FloorView renders the real room layout next time.
+    setTablePosition: directorProcedure
+      .input(z.object({ id: z.string().uuid(), posX: z.number().int(), posY: z.number().int() }))
+      .mutation(async ({ input }) => {
+        await db
+          .update(tables)
+          .set({ posX: input.posX, posY: input.posY })
+          .where(eq(tables.id, input.id));
+        return { ok: true };
+      }),
 
     menu: protectedProcedure.query(async () => {
       return db

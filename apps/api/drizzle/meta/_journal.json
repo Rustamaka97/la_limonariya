@@ -169,6 +169,13 @@
       "when": 1783026416960,
       "tag": "0023_customers",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1783067527406,
+      "tag": "0024_wooden_susan_delgado",
+      "breakpoints": true
     }
   ]
 }
