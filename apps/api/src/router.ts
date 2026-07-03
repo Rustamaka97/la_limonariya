@@ -668,12 +668,22 @@ async function computeSignals() {
     .from(recipeItems)
     .innerJoin(recipes, eq(recipeItems.recipeId, recipes.id))
     .where(isNotNull(recipes.productId));
-  const prodCarcass = new Map<string, "qoy" | "mol">();
+  // Ҳар product'нинг қайси carcass(лар)га тегиши. Аралаш (мол ВА қўй) таом
+  // аниқ бир carcass'га тегишли эмас — grammLeak'дан ЧИҚАРИЛАДИ (нотўғри
+  // ҳисоблашдан кўра ҳисобламаган яхши; query tartibiga bog'liq bo'lmaslik uchun).
+  const prodCarcassSet = new Map<string, Set<"qoy" | "mol">>();
   for (const h of meatHints) {
     if (!h.productId) continue;
     const s = h.stockHint ?? "";
-    if (/мол/i.test(s)) prodCarcass.set(h.productId, "mol");
-    else if (/қўй|қуй|куй/i.test(s)) prodCarcass.set(h.productId, "qoy");
+    const set = prodCarcassSet.get(h.productId) ?? new Set<"qoy" | "mol">();
+    if (/мол/i.test(s)) set.add("mol");
+    else if (/қўй|қуй|куй/i.test(s)) set.add("qoy");
+    if (set.size) prodCarcassSet.set(h.productId, set);
+  }
+  const prodCarcass = new Map<string, "qoy" | "mol">();
+  for (const [pid, set] of prodCarcassSet) {
+    const only = [...set][0];
+    if (set.size === 1 && only) prodCarcass.set(pid, only);
   }
 
   const soldRows = await db
@@ -716,7 +726,9 @@ async function computeSignals() {
         expectedSikh,
         leakG,
         leakPct,
-        flag: marinatedG > 0 && Math.abs(leakPct) > GRAMM_LEAK_TOLERANCE_PCT,
+        // Флаг faqat СОТУВ бўлганда — соtilmasдan оқма ҳисобланмайди (акс ҳолда
+        // эрталаб маринад тайёрланса ҳар куни сохта 100% тревога чиқади).
+        flag: marinatedG > 0 && soldSikh > 0 && Math.abs(leakPct) > GRAMM_LEAK_TOLERANCE_PCT,
       };
     })
     .filter((g) => g.marinatedG > 0 || g.soldSikh > 0);
@@ -1053,80 +1065,95 @@ async function stationIpMap(): Promise<Map<string, string | null>> {
   return new Map(rows.map((r) => [r.name, r.ip]));
 }
 
-// Кухня тикетини принтерларга юбориш — заказ ёпилишини блокламайди.
+const BRAND_PRINT = {
+  name: "La Limonariya",
+  city: "Навоий",
+  phone: "+998 95 429 36 34",
+};
+
+// Кухня тикетини принтерларга юбориш — заказ ёпилишини блокламайди. Бутун тана
+// try/catch'да: DB/net хатоси ҳеч қачон unhandled rejection бўлмасин (API crash).
 async function firePrintKitchen(
   orderId: string,
   items: { name: string; qty: number; station: string | null }[],
 ): Promise<void> {
-  if (items.length === 0) return;
-  const meta = (
-    await db
-      .select({ hall: halls.name, tableNo: orders.tableNo, createdAt: orders.createdAt })
-      .from(orders)
-      .leftJoin(halls, eq(orders.hallId, halls.id))
-      .where(eq(orders.id, orderId))
-      .limit(1)
-  )[0];
-  if (!meta) return;
-  const ipMap = await stationIpMap();
-  printKitchenTicket(
-    meta,
-    items.map((it) => ({ name: it.name, qty: it.qty, station: it.station ?? "Бошқа" })),
-    ipMap,
-  );
+  try {
+    if (items.length === 0) return;
+    const meta = (
+      await db
+        .select({ hall: halls.name, tableNo: orders.tableNo, createdAt: orders.createdAt })
+        .from(orders)
+        .leftJoin(halls, eq(orders.hallId, halls.id))
+        .where(eq(orders.id, orderId))
+        .limit(1)
+    )[0];
+    if (!meta) return;
+    const ipMap = await stationIpMap();
+    printKitchenTicket(
+      meta,
+      items.map((it) => ({ name: it.name, qty: it.qty, station: it.station ?? "Бошқа" })),
+      ipMap,
+    );
+  } catch (e) {
+    console.error("[print] firePrintKitchen:", e instanceof Error ? e.message : e);
+  }
 }
 
-// Мижоз чекини BAR принтерига — заказ ёпилишини блокламайди.
+// Мижоз чекини BAR принтерига — заказ ёпилишини блокламайди (try/catch билан).
 async function firePrintCheck(orderId: string): Promise<void> {
-  const head = (
-    await db
-      .select({
-        checkNo: orders.id,
-        tableNo: orders.tableNo,
-        servicePct: orders.servicePct,
-        createdAt: orders.createdAt,
-        isComp: orders.isComp,
-        compReason: orders.compReason,
-        hall: halls.name,
-        waiter: users.name,
-      })
-      .from(orders)
-      .leftJoin(halls, eq(orders.hallId, halls.id))
-      .leftJoin(users, eq(orders.waiterId, users.id))
-      .where(eq(orders.id, orderId))
-      .limit(1)
-  )[0];
-  if (!head) return;
-  const items = await db
-    .select({ name: orderItems.name, price: orderItems.price, qty: orderItems.qty })
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderId));
-  const pays = await db
-    .select({ method: orderPayments.method, amount: orderPayments.amount })
-    .from(orderPayments)
-    .where(eq(orderPayments.orderId, orderId));
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const service = Math.round((subtotal * head.servicePct) / 100);
-  const barIp = (await stationIpMap()).get(BAR_STATION) ?? null;
-  const check: CheckData = {
-    brandName: "La Limonariya",
-    brandCity: "Наманган",
-    brandPhone: "+998 88 510 0077",
-    checkNo: head.checkNo.slice(0, 5).toUpperCase(),
-    hall: head.hall,
-    tableNo: head.tableNo,
-    waiter: head.waiter,
-    createdAt: head.createdAt,
-    isComp: head.isComp,
-    compReason: head.compReason,
-    items,
-    subtotal,
-    service,
-    servicePct: head.servicePct,
-    total: subtotal + service,
-    payments: pays,
-  };
-  printCheck(check, barIp);
+  try {
+    const head = (
+      await db
+        .select({
+          checkNo: orders.id,
+          tableNo: orders.tableNo,
+          servicePct: orders.servicePct,
+          createdAt: orders.createdAt,
+          isComp: orders.isComp,
+          compReason: orders.compReason,
+          hall: halls.name,
+          waiter: users.name,
+        })
+        .from(orders)
+        .leftJoin(halls, eq(orders.hallId, halls.id))
+        .leftJoin(users, eq(orders.waiterId, users.id))
+        .where(eq(orders.id, orderId))
+        .limit(1)
+    )[0];
+    if (!head) return;
+    const items = await db
+      .select({ name: orderItems.name, price: orderItems.price, qty: orderItems.qty })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+    const pays = await db
+      .select({ method: orderPayments.method, amount: orderPayments.amount })
+      .from(orderPayments)
+      .where(eq(orderPayments.orderId, orderId));
+    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+    const service = Math.round((subtotal * head.servicePct) / 100);
+    const barIp = (await stationIpMap()).get(BAR_STATION) ?? null;
+    const check: CheckData = {
+      brandName: BRAND_PRINT.name,
+      brandCity: BRAND_PRINT.city,
+      brandPhone: BRAND_PRINT.phone,
+      checkNo: head.checkNo.slice(0, 5).toUpperCase(),
+      hall: head.hall,
+      tableNo: head.tableNo,
+      waiter: head.waiter,
+      createdAt: head.createdAt,
+      isComp: head.isComp,
+      compReason: head.compReason,
+      items,
+      subtotal,
+      service,
+      servicePct: head.servicePct,
+      total: subtotal + service,
+      payments: pays,
+    };
+    printCheck(check, barIp);
+  } catch (e) {
+    console.error("[print] firePrintCheck:", e instanceof Error ? e.message : e);
+  }
 }
 
 export const appRouter = router({
@@ -1719,21 +1746,29 @@ export const appRouter = router({
                 message: "Бу харид аллақачон обвалкага уланган",
               });
           }
-          const row = (
-            await tx
-              .insert(obvalka)
-              .values({
-                carcassType: input.carcassType,
-                weightG: input.weightG,
-                pricePerKg: input.pricePerKg,
-                supplier: input.supplier ?? null,
-                note: input.note ?? null,
-                purchaseId: input.purchaseId ?? null,
-                shortReason: input.shortReason ?? null,
-                createdById: ctx.user.id,
-              })
-              .returning()
-          )[0];
+          let row;
+          try {
+            row = (
+              await tx
+                .insert(obvalka)
+                .values({
+                  carcassType: input.carcassType,
+                  weightG: input.weightG,
+                  pricePerKg: input.pricePerKg,
+                  supplier: input.supplier ?? null,
+                  note: input.note ?? null,
+                  purchaseId: input.purchaseId ?? null,
+                  shortReason: input.shortReason ?? null,
+                  createdById: ctx.user.id,
+                })
+                .returning()
+            )[0];
+          } catch (e) {
+            // partial unique index (obvalka_purchase_uq) — race'да иккинчиси
+            if (e && typeof e === "object" && "code" in e && e.code === "23505")
+              throw new TRPCError({ code: "CONFLICT", message: "Бу харид аллақачон обвалкага уланган" });
+            throw e;
+          }
           if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
           const ptList = await tx
@@ -1797,42 +1832,25 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const marinatedG = Math.round(input.rawG * (1 + input.growthPct / 100));
-        return db.transaction(async (tx) => {
-          const carcassName = input.carcassType === "mol" ? "Мол лаҳм" : "Қўй лаҳм";
-          const cp = (
-            await tx
-              .select({ id: products.id })
-              .from(products)
-              .where(eq(products.name, carcassName))
-              .limit(1)
-          )[0];
-          const batch = (
-            await tx
-              .insert(marinadeBatches)
-              .values({
-                carcassType: input.carcassType,
-                rawG: input.rawG,
-                growthPct: input.growthPct,
-                marinatedG,
-                note: input.note ?? null,
-                createdById: ctx.user.id,
-              })
-              .returning({ id: marinadeBatches.id })
-          )[0];
-          if (!batch) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-          // Хом лаҳм омбордан чиқади (production): pooled лаҳм камаяди.
-          if (cp)
-            await tx.insert(stockMovements).values({
-              productId: cp.id,
-              type: "production",
-              qty: -input.rawG,
-              unit: "g",
-              refType: "marinade",
-              refId: batch.id,
+        // ДИҚҚАТ: маринад омбордан ЛАҲМ ЧИҚАРМАЙДИ. Лаҳм pooled product сифатида
+        // фақат сотувда (sale_writeoff, рецепт лаҳм hint орқали) камаяди — маринадда
+        // ҳам чиқарсак ИККИ БОРА камаяди (омбор бузилади). Партия ёзуви faqat
+        // грамм-оқма сигнали учун (marinatedG vs сотилган сих).
+        const batch = (
+          await db
+            .insert(marinadeBatches)
+            .values({
+              carcassType: input.carcassType,
+              rawG: input.rawG,
+              growthPct: input.growthPct,
+              marinatedG,
+              note: input.note ?? null,
               createdById: ctx.user.id,
-            });
-          return { id: batch.id, marinatedG };
-        });
+            })
+            .returning({ id: marinadeBatches.id })
+        )[0];
+        if (!batch) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { id: batch.id, marinatedG };
       }),
 
     list: protectedProcedure.query(async () => {
@@ -3524,6 +3542,8 @@ export const appRouter = router({
 
       const sig = await computeSignals();
       const anomalyCount =
+        // underDelivery қўшилмайди — ҳар кам-келтириш (lossPct>5) аллақачон
+        // obvalkaFlags'да бор (balanceFlag=|lossPct|>5), икки бора саналмасин.
         sig.obvalkaFlags.length +
         sig.thinDishes.length +
         (sig.cashVariance && sig.cashVariance.variance !== 0 ? 1 : 0) +
@@ -3532,7 +3552,6 @@ export const appRouter = router({
         sig.shortagePattern.length +
         (sig.compFlag ? 1 : 0) +
         sig.staleOrders.length +
-        sig.underDelivery.length +
         sig.grammLeak.filter((g) => g.flag).length;
 
       return {

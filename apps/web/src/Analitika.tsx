@@ -202,7 +202,7 @@ export function Analitika() {
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs tabular-nums ${g.flag ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
                   >
-                    {g.flag ? "🔴" : "🟢"} {g.leakG > 0 ? "−" : "+"}{Math.abs(g.leakG / 1000).toFixed(1)}кг · {g.leakPct}%
+                    {g.flag ? "🔴" : "🟢"} {g.leakG > 0 ? "оқма" : "ортиқча"} {Math.abs(g.leakG / 1000).toFixed(1)}кг · {Math.abs(g.leakPct)}%
                   </span>
                 </li>
               ))}

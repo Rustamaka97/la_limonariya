@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -7,6 +8,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -160,25 +162,35 @@ export const partTypes = pgTable(
   (t) => [unique().on(t.carcassType, t.name)],
 );
 
-export const obvalka = pgTable("obvalka", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  carcassType: carcassType("carcass_type").notNull(),
-  weightG: integer("weight_g").notNull(),
-  pricePerKg: integer("price_per_kg").notNull().default(0),
-  supplier: text("supplier"),
-  note: text("note"),
-  // Бозорчи киритган расмий харидга ихтиёрий боғлаш (бир харид = бир обвалка,
-  // аудит изи учун). Гўшт харидда product сифатида сақланмайди — обвалканинг
-  // ЎЗИ харид ёзуви (weightG = харид вазни).
-  purchaseId: uuid("purchase_id").references(() => purchases.id),
-  // Кам-келтириш сабаби (баланс ±5%дан ошса менежер изоҳи).
-  shortReason: text("short_reason"),
-  branchId: uuid("branch_id").references(() => branches.id),
-  createdById: uuid("created_by_id").references(() => users.id),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const obvalka = pgTable(
+  "obvalka",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    carcassType: carcassType("carcass_type").notNull(),
+    weightG: integer("weight_g").notNull(),
+    pricePerKg: integer("price_per_kg").notNull().default(0),
+    supplier: text("supplier"),
+    note: text("note"),
+    // Бозорчи киритган расмий харидга ихтиёрий боғлаш (бир харид = бир обвалка,
+    // аудит изи учун). Гўшт харидда product сифатида сақланмайди — обвалканинг
+    // ЎЗИ харид ёзуви (weightG = харид вазни).
+    purchaseId: uuid("purchase_id").references(() => purchases.id),
+    // Кам-келтириш сабаби (баланс ±5%дан ошса менежер изоҳи).
+    shortReason: text("short_reason"),
+    branchId: uuid("branch_id").references(() => branches.id),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // "Бир харид = бир обвалка" — race'да иккита обвалка бир харидга уланмасин
+  // (DB даражасида, application SELECT текшируви етарли эмас).
+  (t) => [
+    uniqueIndex("obvalka_purchase_uq")
+      .on(t.purchaseId)
+      .where(sql`${t.purchaseId} is not null`),
+  ],
+);
 
 export const obvalkaParts = pgTable("obvalka_parts", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -463,12 +463,12 @@ export function ProductModal({
         </label>
 
         <label className="block text-sm text-zinc-600">
-          1 сихга гўшт (г) — сих грамм назорати учун (ихтиёрий)
+          1 сихдаги гўшт — <b>маринадланган</b> (г), сих грамм назорати учун (ихтиёрий)
           <input
             inputMode="numeric"
             value={gramNorm}
             onChange={(e) => setGramNorm(e.target.value.replace(/\D/g, ""))}
-            placeholder="масалан 140 (шашлик)"
+            placeholder="масалан 140 (маринадланган шашлик)"
             className="mt-1 w-full rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:border-brand"
           />
         </label>

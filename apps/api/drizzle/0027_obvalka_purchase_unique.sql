@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "obvalka_purchase_uq" ON "obvalka" USING btree ("purchase_id") WHERE "obvalka"."purchase_id" is not null;
