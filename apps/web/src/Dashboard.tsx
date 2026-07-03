@@ -37,6 +37,19 @@ type RecentDiscount = {
   closedAt: string | null;
   performedByName: string | null;
 };
+type Today = {
+  revenueToday: number;
+  cashToday: number;
+  estProfit: number;
+  estCogsPct: number;
+  anomalyCount: number;
+  lowStock: number;
+  openTables: number;
+  openValue: number;
+  debtToday: number;
+  supplierDebt: number;
+  guestDebt: number;
+};
 type AuditRow = {
   id: string;
   action: string;
@@ -67,10 +80,12 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
   const [tgEnabled, setTgEnabled] = useState(false);
   const [tg, setTg] = useState<string | null>(null);
   const [audit, setAudit] = useState<AuditRow[]>([]);
+  const [today, setToday] = useState<Today | null>(null);
   useEffect(() => {
     trpc.dashboard.summary.query().then(setS).catch(() => {});
     trpc.telegram.enabled.query().then((r) => setTgEnabled(r.enabled)).catch(() => {});
     trpc.audit.recent.query({ limit: 25 }).then(setAudit).catch(() => {});
+    trpc.analytics.digest.query().then(setToday).catch(() => {});
   }, []);
 
   async function sendDigest() {
@@ -89,6 +104,22 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
 
   return (
     <div className="space-y-5">
+      {today && (
+        <div>
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-zinc-700">📊 Бугун</h2>
+            <span className="text-xs text-zinc-400">жонли ҳолат</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <Big label="Тушум" value={fmt(today.revenueToday)} sub="so'm" accent />
+            <Big label="Фойда ~" value={fmt(today.estProfit)} sub={`тахминий · COGS ${Math.round(today.estCogsPct * 100)}%`} accent={today.estProfit >= 0} danger={today.estProfit < 0} />
+            <Big label="Нақд" value={fmt(today.cashToday)} sub="so'm" />
+            <Big label="Очиқ столлар" value={String(today.openTables)} sub={today.openValue ? `${fmt(today.openValue)} so'm` : "бўш"} />
+            <Big label="Аномалия" value={String(today.anomalyCount)} sub={today.lowStock ? `${today.lowStock} кам қолдиқ` : "белги"} danger={today.anomalyCount > 0} />
+            <Big label="Қарз" value={fmt(today.debtToday)} sub={`етк. ${fmt(today.supplierDebt)} · меҳ. ${fmt(today.guestDebt)}`} danger={today.debtToday > 0} />
+          </div>
+        </div>
+      )}
       {tgEnabled && (
         <div className="flex items-center justify-end gap-2">
           {tg && <span className="text-xs text-zinc-400">{tg}</span>}
@@ -230,11 +261,11 @@ const AUDIT_LABEL: Record<string, string> = {
   "order.cancel": "❌ Заказ бекор",
 };
 
-function Big({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+function Big({ label, value, sub, accent, danger }: { label: string; value: string; sub?: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className={`rounded-xl border p-3 ${accent ? "border-green-200 bg-green-50" : "bg-white"}`}>
+    <div className={`rounded-xl border p-3 ${danger ? "border-red-200 bg-red-50" : accent ? "border-green-200 bg-green-50" : "bg-white"}`}>
       <div className="text-xs text-zinc-500">{label}</div>
-      <div className={`mt-0.5 text-xl font-bold tabular-nums ${accent ? "text-green-700" : ""}`}>{value}</div>
+      <div className={`mt-0.5 text-xl font-bold tabular-nums ${danger ? "text-red-600" : accent ? "text-green-700" : ""}`}>{value}</div>
       {sub && <div className="text-xs text-zinc-400">{sub}</div>}
     </div>
   );

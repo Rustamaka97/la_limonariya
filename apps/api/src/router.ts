@@ -4515,6 +4515,28 @@ export const appRouter = router({
       const stock = await stockableOnHand();
       const lowStock = stock.filter((p) => p.onHand < 0).length;
 
+      // Live: open orders (столлар) right now. orders has no stored total → count
+      // open orders and sum their item subtotals (price·qty) for a live glance.
+      const openTables = Number(
+        (
+          await db
+            .select({ n: count() })
+            .from(orders)
+            .where(eq(orders.status, "open"))
+        )[0]?.n ?? 0,
+      );
+      const openValue = Number(
+        (
+          await db
+            .select({
+              v: sql<number>`coalesce(sum(${orderItems.price} * ${orderItems.qty}), 0)`,
+            })
+            .from(orderItems)
+            .innerJoin(orders, eq(orderItems.orderId, orders.id))
+            .where(eq(orders.status, "open"))
+        )[0]?.v ?? 0,
+      );
+
       const sig = await computeSignals();
       const anomalyCount =
         // underDelivery қўшилмайди — ҳар кам-келтириш (lossPct>5) аллақачон
@@ -4534,10 +4556,13 @@ export const appRouter = router({
 
       return {
         revenueToday: todayFin.revenue,
+        cashToday: todayFin.byMethod.cash ?? 0,
         estProfit,
         estCogsPct: BLENDED_COGS_PCT,
         anomalyCount,
         lowStock,
+        openTables,
+        openValue,
         debtToday: supplierTotal + guestTotal,
         supplierDebt: supplierTotal,
         guestDebt: guestTotal,
