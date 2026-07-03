@@ -9,6 +9,11 @@ type Dish = {
   meatCostTotal: number;
   meatG: number;
   meatPct: number | null;
+  fullCostTotal: number;
+  costComplete: boolean;
+  unpricedCount: number;
+  marginTotal: number | null;
+  marginPct: number | null;
 };
 type Data = {
   meatCost: { qoy: number | null; mol: number | null };
@@ -47,54 +52,64 @@ export function Taannarx() {
         </p>
       )}
 
-      <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
             <tr>
               <th className="px-4 py-2 font-medium">Таом</th>
               <th className="px-3 py-2 text-right font-medium">Сотув</th>
-              <th className="px-3 py-2 text-right font-medium">Гўшт таннарх</th>
-              <th className="px-3 py-2 text-right font-medium">Гўшт %</th>
+              <th className="px-3 py-2 text-right font-medium">Тўлиқ таннарх</th>
+              <th className="px-3 py-2 text-right font-medium">Маржа</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {withMeat.map((d) => {
               const batch = d.meatPct != null && d.meatPct > 100;
-              const valid = d.meatPct != null && !batch;
-              const high = valid && d.meatPct! >= 60;
-              const mid = valid && d.meatPct! >= 40;
+              const valid = d.salePrice > 0 && !batch;
+              const mp = d.marginPct;
+              // higher margin = healthier (opposite of cost %)
+              const loss = valid && mp != null && mp < 0;
+              const thin = valid && mp != null && mp >= 0 && mp < 25;
               return (
-                <tr key={d.id} className={high ? "bg-red-50" : ""}>
+                <tr key={d.id} className={loss ? "bg-red-50" : ""}>
                   <td className="px-4 py-2">
                     {d.name}
-                    <span className="ml-1 text-xs text-zinc-400">
-                      {(d.meatG / 1000).toFixed(2)}кг
+                    <span className="ml-1 block text-xs text-zinc-400">
+                      гўшт {(d.meatG / 1000).toFixed(2)}кг · {fmt(d.meatCostTotal)}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-zinc-500">
                     {d.salePrice ? fmt(d.salePrice) : "—"}
                   </td>
                   <td className="px-3 py-2 text-right font-medium tabular-nums">
-                    {fmt(d.meatCostTotal)}
+                    {fmt(d.fullCostTotal)}
+                    {!d.costComplete && (
+                      <span
+                        className="ml-1 text-xs text-amber-500"
+                        title={`${d.unpricedCount} компонент нархсиз — таннарх тўлиқ эмас`}
+                      >
+                        ⚠{d.unpricedCount}
+                      </span>
+                    )}
                   </td>
                   <td
                     className={`px-3 py-2 text-right font-medium tabular-nums ${
-                      !d.salePrice
+                      !valid
                         ? "text-zinc-300"
-                        : batch
-                          ? "text-amber-600"
-                          : high
-                            ? "text-red-600"
-                            : mid
-                              ? "text-amber-600"
-                              : "text-green-600"
+                        : loss
+                          ? "text-red-600"
+                          : thin
+                            ? "text-amber-600"
+                            : "text-green-600"
                     }`}
                   >
                     {!d.salePrice
                       ? "—"
                       : batch
                         ? "партия?"
-                        : `${d.meatPct}%${high ? " ⚠️" : ""}`}
+                        : mp != null
+                          ? `${mp}%${loss ? " 🔴" : thin ? " ⚠️" : ""}`
+                          : "—"}
                   </td>
                 </tr>
               );
@@ -110,8 +125,9 @@ export function Taannarx() {
         </table>
         {withMeat.length > 0 && (
           <div className="px-4 py-2 text-xs text-zinc-400">
-            Гўшт % = гўшт таннархи сотув нархига нисбатан. 🔴 ≥60% — маржа юпқа.
-            Нарх «—» = таом каталогга боғланмаган.
+            Тўлиқ таннарх = гўшт + нархи бор барча компонентлар. ⚠N = N компонент
+            нархсиз (таннарх тўлиқ эмас). Маржа% = (сотув − таннарх) / сотув · 🔴
+            манфий, ⚠️ &lt;25% юпқа. Нарх «—» = каталогга боғланмаган.
           </div>
         )}
       </div>

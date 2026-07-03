@@ -141,12 +141,22 @@ async function computeDishTaannarx(meatCost: {
       recipeId: recipeItems.recipeId,
       qtyG: recipeItems.qtyG,
       stockHint: recipeItems.stockHint,
+      componentId: recipeItems.componentId,
+      compUnit: products.unit,
+      compCost: products.costPrice,
+      compType: products.type,
     })
-    .from(recipeItems);
-  const byRecipe = new Map<
-    string,
-    { qtyG: number | null; stockHint: string | null }[]
-  >();
+    .from(recipeItems)
+    .leftJoin(products, eq(recipeItems.componentId, products.id));
+  type RItem = {
+    qtyG: number | null;
+    stockHint: string | null;
+    componentId: string | null;
+    compUnit: string | null;
+    compCost: number | null;
+    compType: string | null;
+  };
+  const byRecipe = new Map<string, RItem[]>();
   for (const it of items) {
     const a = byRecipe.get(it.recipeId) ?? [];
     a.push(it);
@@ -168,18 +178,49 @@ async function computeDishTaannarx(meatCost: {
     let meatCostTotal = 0;
     let meatG = 0;
     let hasUnpricedMeat = false; // meat ingredient present but its carcass has no obvalka cost yet
+    // FULL taannarx: meat + every priced weight/volume component. Components we
+    // can't value (name-only, dona-unit, dish/semi, or no costPrice yet) are
+    // counted as "incomplete" so the margin is honestly flagged, never faked.
+    let fullCostTotal = 0;
+    let unpricedCount = 0;
+    let hasComponents = false;
     for (const it of byRecipe.get(r.id) ?? []) {
+      if (!it.qtyG) continue;
+      hasComponents = true;
       const c = carcassOf(it.stockHint, r.category);
-      const cost = c ? meatCost[c] : null;
-      if (c && cost && it.qtyG) {
-        meatCostTotal += (it.qtyG / 1000) * cost;
-        meatG += it.qtyG;
-      } else if (c && !cost) {
-        hasUnpricedMeat = true;
+      if (c) {
+        const cost = meatCost[c];
+        if (cost) {
+          meatCostTotal += (it.qtyG / 1000) * cost;
+          meatG += it.qtyG;
+          fullCostTotal += (it.qtyG / 1000) * cost;
+        } else {
+          hasUnpricedMeat = true;
+          unpricedCount++;
+        }
+        continue;
+      }
+      // non-meat component: value only weight/volume stock-leaf products with a
+      // known costPrice (списание treats qtyG as base units the same way).
+      const valuable =
+        it.componentId != null &&
+        it.compCost != null &&
+        it.compUnit != null &&
+        it.compUnit !== "dona" &&
+        it.compType !== "dish" &&
+        it.compType !== "semi";
+      if (valuable) {
+        const v = valuePortion(it.qtyG, it.compUnit!, it.compCost, null);
+        if (v != null) fullCostTotal += v;
+        else unpricedCount++;
+      } else {
+        unpricedCount++;
       }
     }
     meatCostTotal = Math.round(meatCostTotal);
+    fullCostTotal = Math.round(fullCostTotal);
     const salePrice = r.salePrice ?? 0;
+    const costComplete = hasComponents && unpricedCount === 0;
     return {
       id: r.id,
       productId: r.productId,
@@ -191,6 +232,15 @@ async function computeDishTaannarx(meatCost: {
       meatPct:
         salePrice > 0 ? Math.round((meatCostTotal / salePrice) * 100) : null,
       hasUnpricedMeat,
+      // full-cost margin
+      fullCostTotal,
+      costComplete,
+      unpricedCount,
+      marginTotal: salePrice > 0 ? salePrice - fullCostTotal : null,
+      marginPct:
+        salePrice > 0
+          ? Math.round(((salePrice - fullCostTotal) / salePrice) * 100)
+          : null,
     };
   });
 }
