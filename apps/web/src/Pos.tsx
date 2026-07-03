@@ -161,7 +161,9 @@ function FloorView({
   }, [refresh]);
 
   async function create(hallId: string, table: string | undefined, guests: number) {
+    // Client id → такрорий/offline юбориш дубль заказ яратмайди (идемпотент).
     const { id } = await trpc.pos.create.mutate({
+      id: crypto.randomUUID(),
       hallId,
       tableNo: table || undefined,
       guests,

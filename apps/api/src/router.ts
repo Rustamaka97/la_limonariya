@@ -2148,6 +2148,9 @@ export const appRouter = router({
     create: protectedProcedure
       .input(
         z.object({
+          // Клиент id беради → флаки тармоқ/offline retry дубль заказ яратмайди
+          // (идемпотент). Берилмаса — сервер яратади (эски мижоз мослиги).
+          id: z.string().uuid().optional(),
           hallId: z.string().uuid(),
           tableNo: z.string().optional(),
           guests: z.number().int().positive().max(999).optional(),
@@ -2163,6 +2166,7 @@ export const appRouter = router({
           await db
             .insert(orders)
             .values({
+              ...(input.id ? { id: input.id } : {}),
               hallId: hall.id,
               tableNo: input.tableNo ?? null,
               guests: input.guests ?? null,
@@ -2170,10 +2174,22 @@ export const appRouter = router({
               waiterId: ctx.user.id,
               servicePct: hall.servicePct,
             })
+            .onConflictDoNothing()
             .returning()
         )[0];
-        if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        return { id: row.id };
+        if (row) return { id: row.id };
+        // Конфликт = ўша client id билан такрорий сўров → мавжудини қайтарамиз.
+        if (input.id) {
+          const existing = (
+            await db
+              .select({ id: orders.id })
+              .from(orders)
+              .where(eq(orders.id, input.id))
+              .limit(1)
+          )[0];
+          if (existing) return { id: existing.id };
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       }),
 
     updateMeta: protectedProcedure
