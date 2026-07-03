@@ -14,3 +14,7 @@ docs/clopos-api/
 # Шифрланган бэкаплар — репога кирмайди
 backups/
 *.sql.gz.enc
+
+# Claude Code: local state stays out, shared skills go in
+.claude/*
+!.claude/skills/
