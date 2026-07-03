@@ -10,6 +10,12 @@ import {
   verifyPin,
 } from "./auth";
 import { SESSION_COOKIE } from "./context";
+import {
+  clientIp,
+  loginBlockedFor,
+  recordLoginFail,
+  recordLoginSuccess,
+} from "./rate-limit";
 import { db } from "./db/client";
 import {
   cashCollections,
@@ -1183,6 +1189,16 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ pin: pinSchema }))
       .mutation(async ({ input, ctx }) => {
+        const now = Date.now();
+        const ip = clientIp(ctx.c);
+        const blockedMs = loginBlockedFor(ip, now);
+        if (blockedMs > 0) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: `Кўп марта нотўғри. ${Math.ceil(blockedMs / 1000)} сония кутинг.`,
+          });
+        }
+
         const u = (
           await db
             .select()
@@ -1194,8 +1210,10 @@ export const appRouter = router({
         )[0];
 
         if (!u || !u.pinHash || !verifyPin(input.pin, u.pinHash)) {
+          recordLoginFail(ip, now);
           throw new TRPCError({ code: "UNAUTHORIZED", message: "PIN noto'g'ri" });
         }
+        recordLoginSuccess(ip);
 
         const { token, tokenHash } = newSessionToken();
         const expiresAt = new Date(Date.now() + SESSION_MS);

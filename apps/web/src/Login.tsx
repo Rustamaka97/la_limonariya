@@ -7,16 +7,17 @@ const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
   const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(value: string) {
     setBusy(true);
-    setError(false);
+    setError(null);
     try {
       onSuccess(await trpc.auth.login.mutate({ pin: value }));
-    } catch {
-      setError(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      setError(msg.includes("кутинг") ? msg : "PIN нотўғри");
       setPin("");
     } finally {
       setBusy(false);
@@ -56,7 +57,7 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
             />
           ))}
         </div>
-        {error && <p className="text-sm text-red-400">PIN нотўғри</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
         <div className="grid grid-cols-3 gap-3">
           {DIGITS.map((d) => (
@@ -70,7 +71,7 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
           </button>
           <button
             onClick={() => {
-              setError(false);
+              setError(null);
               setPin((p) => p.slice(0, -1));
             }}
             disabled={busy}
