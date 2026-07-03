@@ -3,6 +3,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -370,6 +371,25 @@ export const normChanges = pgTable(
       .defaultNow(),
   },
   (t) => [index("nc_created_idx").on(t.createdAt)],
+);
+
+// Умумий ўзгармас аудит журнали (immutable): кимнинг қандай ҳимоя-муҳим амали
+// (PIN, ходим/роль, нарх, рецепт, буюртма бекор қилиш ...). Ёзилади, ўчирилмайди.
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id),
+    action: text("action").notNull(), // "pin.reset" | "user.update" | "product.update" ...
+    entity: text("entity"), // "user" | "product" | "order" | "station" | "recipe"
+    entityId: uuid("entity_id"),
+    summary: text("summary"), // human-readable qisqa izoh
+    meta: jsonb("meta"), // old→new yoki qo'shimcha
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("al_created_idx").on(t.createdAt)],
 );
 
 export const paymentMethod = pgEnum("payment_method", [

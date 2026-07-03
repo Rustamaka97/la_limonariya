@@ -37,6 +37,14 @@ type RecentDiscount = {
   closedAt: string | null;
   performedByName: string | null;
 };
+type AuditRow = {
+  id: string;
+  action: string;
+  entity: string | null;
+  summary: string | null;
+  createdAt: string;
+  actor: string | null;
+};
 type Summary = {
   meatCost: { qoy: number | null; mol: number | null };
   catalog: Record<string, number>;
@@ -58,9 +66,11 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
   const [s, setS] = useState<Summary | null>(null);
   const [tgEnabled, setTgEnabled] = useState(false);
   const [tg, setTg] = useState<string | null>(null);
+  const [audit, setAudit] = useState<AuditRow[]>([]);
   useEffect(() => {
     trpc.dashboard.summary.query().then(setS).catch(() => {});
     trpc.telegram.enabled.query().then((r) => setTgEnabled(r.enabled)).catch(() => {});
+    trpc.audit.recent.query({ limit: 25 }).then(setAudit).catch(() => {});
   }, []);
 
   async function sendDigest() {
@@ -186,9 +196,39 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
           </ul>
         )}
       </Section>
+
+      <Section title="🧾 Аудит журнали" hint="ким нимани ўзгартирди — PIN, роль, нарх, рецепт, бекор">
+        {audit.length === 0 ? (
+          <Empty>ҳали йўқ</Empty>
+        ) : (
+          <ul className="divide-y">
+            {audit.map((a) => (
+              <li key={a.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <span>
+                  <span className="font-medium">{AUDIT_LABEL[a.action] ?? a.action}</span>
+                  {a.summary && <span className="text-zinc-500"> · {a.summary}</span>}{" "}
+                  <span className="text-zinc-400">{fmtDate(a.createdAt)}</span>
+                </span>
+                <span className="text-xs text-zinc-400">{a.actor ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
     </div>
   );
 }
+
+const AUDIT_LABEL: Record<string, string> = {
+  "pin.reset": "🔑 PIN",
+  "user.create": "👤 Янги ходим",
+  "user.update": "👤 Ходим",
+  "product.create": "🏷️ Янги маҳсулот",
+  "product.update": "🏷️ Маҳсулот",
+  "station.ip": "🖨️ Принтер IP",
+  "recipe.upsert": "📋 Тех-карта",
+  "order.cancel": "❌ Заказ бекор",
+};
 
 function Big({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
   return (

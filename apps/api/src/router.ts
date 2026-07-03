@@ -18,6 +18,7 @@ import {
 } from "./rate-limit";
 import { db } from "./db/client";
 import {
+  auditLog,
   cashCollections,
   categories,
   clientOps,
@@ -59,6 +60,7 @@ import {
   NORM_MIN_SAMPLES,
   type CleanCarcass,
 } from "./obvalka-norms";
+import { logAudit } from "./audit";
 import {
   type CheckData,
   printCheck,
@@ -1383,7 +1385,7 @@ export const appRouter = router({
 
     setPin: directorProcedure
       .input(z.object({ userId: z.string().uuid(), pin: pinSchema }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
           await db
             .update(users)
@@ -1395,6 +1397,13 @@ export const appRouter = router({
           }
           throw e;
         }
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "pin.reset",
+          entity: "user",
+          entityId: input.userId,
+          summary: "PIN ўзгартирилди",
+        });
         return { ok: true };
       }),
 
@@ -1405,13 +1414,21 @@ export const appRouter = router({
           role: z.enum(["director", "manager", "buyer", "cashier", "waiter"]),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const row = (
           await db
             .insert(users)
             .values({ name: input.name, role: input.role })
             .returning({ id: users.id })
         )[0];
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "user.create",
+          entity: "user",
+          entityId: row?.id ?? null,
+          summary: `${input.name} (${input.role})`,
+          meta: { name: input.name, role: input.role },
+        });
         return { id: row?.id };
       }),
 
@@ -1424,11 +1441,52 @@ export const appRouter = router({
           active: z.boolean().optional(),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { userId, ...patch } = input;
         if (Object.keys(patch).length === 0) return { ok: true };
+        const old = (
+          await db
+            .select({ name: users.name, role: users.role, active: users.active })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1)
+        )[0];
         await db.update(users).set(patch).where(eq(users.id, userId));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "user.update",
+          entity: "user",
+          entityId: userId,
+          summary:
+            patch.role && old && patch.role !== old.role
+              ? `роль: ${old.role} → ${patch.role}`
+              : "ходим таҳрирланди",
+          meta: { old, new: patch },
+        });
         return { ok: true };
+      }),
+  }),
+
+  // Аудит журнали — ким қандай ҳимоя-муҳим ўзгариш қилди (директор кўради).
+  audit: router({
+    recent: directorProcedure
+      .input(
+        z.object({ limit: z.number().int().positive().max(200).optional() }).optional(),
+      )
+      .query(async ({ input }) => {
+        return db
+          .select({
+            id: auditLog.id,
+            action: auditLog.action,
+            entity: auditLog.entity,
+            summary: auditLog.summary,
+            createdAt: auditLog.createdAt,
+            actor: users.name,
+          })
+          .from(auditLog)
+          .leftJoin(users, eq(auditLog.actorId, users.id))
+          .orderBy(desc(auditLog.createdAt))
+          .limit(input?.limit ?? 50);
       }),
   }),
 
@@ -1532,7 +1590,7 @@ export const appRouter = router({
             gramNorm: z.number().int().positive().nullable().optional(),
           }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
           const row = (
             await db
               .insert(products)
@@ -1548,6 +1606,14 @@ export const appRouter = router({
               })
               .returning({ id: products.id })
           )[0];
+          await logAudit(db, {
+            actorId: ctx.user.id,
+            action: "product.create",
+            entity: "product",
+            entityId: row?.id ?? null,
+            summary: `${input.name} · ${input.price ?? 0} so'm`,
+            meta: { name: input.name, price: input.price ?? 0 },
+          });
           return { id: row?.id };
         }),
 
@@ -1566,10 +1632,32 @@ export const appRouter = router({
             active: z.boolean().optional(),
           }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
           const { id, ...patch } = input;
           if (Object.keys(patch).length === 0) return { ok: true };
+          const old = (
+            await db
+              .select({
+                name: products.name,
+                price: products.price,
+                active: products.active,
+              })
+              .from(products)
+              .where(eq(products.id, id))
+              .limit(1)
+          )[0];
           await db.update(products).set(patch).where(eq(products.id, id));
+          await logAudit(db, {
+            actorId: ctx.user.id,
+            action: "product.update",
+            entity: "product",
+            entityId: id,
+            summary:
+              patch.price != null && old && patch.price !== old.price
+                ? `нарх: ${old.price} → ${patch.price} so'm`
+                : `${old?.name ?? ""} таҳрирланди`,
+            meta: { old, new: patch },
+          });
           return { ok: true };
         }),
 
@@ -1623,11 +1711,19 @@ export const appRouter = router({
             .nullable(),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         await db
           .update(stations)
           .set({ ip: input.ip })
           .where(eq(stations.id, input.stationId));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "station.ip",
+          entity: "station",
+          entityId: input.stationId,
+          summary: `принтер IP: ${input.ip ?? "йўқ"}`,
+          meta: { ip: input.ip },
+        });
         return { ok: true };
       }),
 
@@ -1685,7 +1781,7 @@ export const appRouter = router({
             .min(1),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         return db.transaction(async (tx) => {
           const p = (
             await tx
@@ -1737,6 +1833,14 @@ export const appRouter = router({
               sort: i,
             })),
           );
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "recipe.upsert",
+            entity: "product",
+            entityId: input.productId,
+            summary: `${p.name} тех-картаси (${input.items.length} компонент)`,
+            meta: { yieldG: input.yieldG ?? null, itemCount: input.items.length },
+          });
           return { ok: true };
         });
       }),
@@ -3062,6 +3166,17 @@ export const appRouter = router({
             .update(orders)
             .set({ status: "cancelled", closedAt: new Date(), closedById: ctx.user.id })
             .where(eq(orders.id, input.id));
+
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "order.cancel",
+            entity: "order",
+            entityId: input.id,
+            summary: sentByProduct.size
+              ? `бекор (${sentByProduct.size} пишган йўқотилди)`
+              : "бекор қилинди",
+            meta: { note: input.note ?? null, lossItems: sentByProduct.size },
+          });
 
           return { ok: true, lossItems: sentByProduct.size };
         });
