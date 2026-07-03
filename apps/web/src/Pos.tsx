@@ -1252,11 +1252,11 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
       </div>
       <div className="mx-auto flex max-w-xs gap-2">
         <button
-          onClick={() => window.print()}
+          onClick={() => trpc.pos.reprintTicket.mutate({ ticketId }).catch(() => {})}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-brand-cream/30"
         >
           <IPrinter className="h-4 w-4" />
-          Чоп этиш
+          Қайта чоп
         </button>
         <button
           onClick={onBack}
@@ -1335,11 +1335,11 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
       </div>
       <div className="mx-auto flex max-w-xs gap-2">
         <button
-          onClick={() => window.print()}
+          onClick={() => trpc.pos.reprintCheck.mutate({ orderId: order.id }).catch(() => {})}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-brand-cream/30"
         >
           <IPrinter className="h-4 w-4" />
-          Чоп этиш
+          Қайта чоп
         </button>
         <button
           onClick={onBack}

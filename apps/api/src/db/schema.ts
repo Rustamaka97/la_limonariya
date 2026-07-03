@@ -80,6 +80,8 @@ export const stations = pgTable("stations", {
   cloposId: integer("clopos_id").unique(),
   name: text("name").notNull(),
   printable: boolean("printable").notNull().default(true),
+  // Тармоқ принтери IP'си (RAW TCP 9100). null = принтер йўқ (чоп ўтказилмайди).
+  ip: text("ip"),
 });
 
 export const products = pgTable("products", {

@@ -176,6 +176,13 @@
       "when": 1783072455635,
       "tag": "0024_obvalka_purchase_link",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1783073082994,
+      "tag": "0025_station_printer_ip",
+      "breakpoints": true
     }
   ]
 }

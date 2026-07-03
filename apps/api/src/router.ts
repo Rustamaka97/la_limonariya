@@ -43,6 +43,11 @@ import {
   voidedItems,
 } from "./db/schema";
 import { computeObvalka } from "./obvalka-calc";
+import {
+  type CheckData,
+  printCheck,
+  printKitchenTicket,
+} from "./printing/escpos";
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
 import { TRPCError } from "@trpc/server";
 import {
@@ -967,6 +972,90 @@ async function computeOrderStockMoves(
   return { moves, skippedNames };
 }
 
+// ── Принтер уланиш helper'лари (fire-and-forget, тx'дан ТАШҚАРИ чақирилади) ──
+const BAR_STATION = "BAR";
+
+async function stationIpMap(): Promise<Map<string, string | null>> {
+  const rows = await db.select({ name: stations.name, ip: stations.ip }).from(stations);
+  return new Map(rows.map((r) => [r.name, r.ip]));
+}
+
+// Кухня тикетини принтерларга юбориш — заказ ёпилишини блокламайди.
+async function firePrintKitchen(
+  orderId: string,
+  items: { name: string; qty: number; station: string | null }[],
+): Promise<void> {
+  if (items.length === 0) return;
+  const meta = (
+    await db
+      .select({ hall: halls.name, tableNo: orders.tableNo, createdAt: orders.createdAt })
+      .from(orders)
+      .leftJoin(halls, eq(orders.hallId, halls.id))
+      .where(eq(orders.id, orderId))
+      .limit(1)
+  )[0];
+  if (!meta) return;
+  const ipMap = await stationIpMap();
+  printKitchenTicket(
+    meta,
+    items.map((it) => ({ name: it.name, qty: it.qty, station: it.station ?? "Бошқа" })),
+    ipMap,
+  );
+}
+
+// Мижоз чекини BAR принтерига — заказ ёпилишини блокламайди.
+async function firePrintCheck(orderId: string): Promise<void> {
+  const head = (
+    await db
+      .select({
+        checkNo: orders.id,
+        tableNo: orders.tableNo,
+        servicePct: orders.servicePct,
+        createdAt: orders.createdAt,
+        isComp: orders.isComp,
+        compReason: orders.compReason,
+        hall: halls.name,
+        waiter: users.name,
+      })
+      .from(orders)
+      .leftJoin(halls, eq(orders.hallId, halls.id))
+      .leftJoin(users, eq(orders.waiterId, users.id))
+      .where(eq(orders.id, orderId))
+      .limit(1)
+  )[0];
+  if (!head) return;
+  const items = await db
+    .select({ name: orderItems.name, price: orderItems.price, qty: orderItems.qty })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+  const pays = await db
+    .select({ method: orderPayments.method, amount: orderPayments.amount })
+    .from(orderPayments)
+    .where(eq(orderPayments.orderId, orderId));
+  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const service = Math.round((subtotal * head.servicePct) / 100);
+  const barIp = (await stationIpMap()).get(BAR_STATION) ?? null;
+  const check: CheckData = {
+    brandName: "La Limonariya",
+    brandCity: "Наманган",
+    brandPhone: "+998 88 510 0077",
+    checkNo: head.checkNo.slice(0, 5).toUpperCase(),
+    hall: head.hall,
+    tableNo: head.tableNo,
+    waiter: head.waiter,
+    createdAt: head.createdAt,
+    isComp: head.isComp,
+    compReason: head.compReason,
+    items,
+    subtotal,
+    service,
+    servicePct: head.servicePct,
+    total: subtotal + service,
+    payments: pays,
+  };
+  printCheck(check, barIp);
+}
+
 export const appRouter = router({
   health: publicProcedure.query(async () => {
     await db.execute(sql`select 1`);
@@ -1251,10 +1340,30 @@ export const appRouter = router({
 
     stations: protectedProcedure.query(async () => {
       return db
-        .select({ id: stations.id, name: stations.name })
+        .select({ id: stations.id, name: stations.name, ip: stations.ip })
         .from(stations)
         .orderBy(stations.name);
     }),
+
+    // Станция принтери IP'сини созлаш (директор). null = принтер йўқ.
+    setStationIp: directorProcedure
+      .input(
+        z.object({
+          stationId: z.string().uuid(),
+          ip: z
+            .string()
+            .trim()
+            .regex(/^(\d{1,3}\.){3}\d{1,3}$/, "IP формати нотўғри")
+            .nullable(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        await db
+          .update(stations)
+          .set({ ip: input.ip })
+          .where(eq(stations.id, input.stationId));
+        return { ok: true };
+      }),
 
     // Products usable as tech-card lines: raw + carcass parts + semi-finished.
     components: protectedProcedure.query(async () => {
@@ -1959,10 +2068,39 @@ export const appRouter = router({
     sendToKitchen: protectedProcedure
       .input(z.object({ orderId: z.string().uuid() }))
       .mutation(async ({ input, ctx }) => {
-        return db.transaction(async (tx) => {
-          const ticket = await flushKitchenTicket(tx, input.orderId, ctx.user.id);
-          return ticket ?? { id: null, createdAt: null, items: [] };
+        const ticket = await db.transaction(async (tx) => {
+          return flushKitchenTicket(tx, input.orderId, ctx.user.id);
         });
+        // тx COMMIT'дан кейин — принтерга (net I/O тx ушламасин, блокламасин)
+        if (ticket) void firePrintKitchen(input.orderId, ticket.items);
+        return ticket ?? { id: null, createdAt: null, items: [] };
+      }),
+
+    // Принтер ўчиб қолган бўлса — мавжуд тикетни/чекни қайта чоп.
+    reprintTicket: protectedProcedure
+      .input(z.object({ ticketId: z.string().uuid() }))
+      .mutation(async ({ input }) => {
+        const head = (
+          await db
+            .select({ orderId: kitchenTickets.orderId })
+            .from(kitchenTickets)
+            .where(eq(kitchenTickets.id, input.ticketId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        const items = await db
+          .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
+          .from(kitchenTicketItems)
+          .where(eq(kitchenTicketItems.ticketId, input.ticketId));
+        void firePrintKitchen(head.orderId, items);
+        return { ok: true };
+      }),
+
+    reprintCheck: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .mutation(async ({ input }) => {
+        void firePrintCheck(input.orderId);
+        return { ok: true };
       }),
 
     unsentCount: protectedProcedure
@@ -2066,7 +2204,7 @@ export const appRouter = router({
               message: "Текин заказга тўлов қўшиб бўлмайди",
             });
         }
-        return db.transaction(async (tx) => {
+        const result = await db.transaction(async (tx) => {
           const head = (
             await tx
               .select({ status: orders.status, servicePct: orders.servicePct })
@@ -2118,7 +2256,7 @@ export const appRouter = router({
 
           // safety net: ticket anything the waiter forgot to send before closing
           // ("тикетсиз таом ЙЎҚ" must hold even for fast/closed-without-send orders)
-          await flushKitchenTicket(tx, input.id, ctx.user.id);
+          const flushed = await flushKitchenTicket(tx, input.id, ctx.user.id);
 
           // текин/ходим: stock is still written off below (food was actually
           // served) — only revenue (payments) is skipped.
@@ -2138,11 +2276,20 @@ export const appRouter = router({
           if (moves.length) await tx.insert(stockMovements).values(moves);
           return {
             ok: true,
+            alreadyClosed: false,
             deducted: moves.length,
             skipped: skippedNames.size,
             skippedNames: [...skippedNames].slice(0, 12),
+            flushedItems: flushed?.items ?? [],
           };
         });
+        // тx COMMIT'дан кейин: юборилмай қолган таомлар кухняга + мижоз чеки
+        // BAR принтерига (net I/O заказ жавобини блокламасин, fire-and-forget).
+        if (!result.alreadyClosed) {
+          void firePrintKitchen(input.id, result.flushedItems ?? []);
+          void firePrintCheck(input.id);
+        }
+        return result;
       }),
 
     cancel: protectedProcedure

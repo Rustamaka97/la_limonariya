@@ -43,6 +43,18 @@ await db
     set: { name: sql`excluded.name`, position: sql`excluded.position` },
   });
 
+// Тасдиқланган принтер IP'лари (docs/rustam-javoblari-2.md, clopus-analiz.md).
+// NON CHOY — принтери йўқ (null). onConflict'да ip ЯНГИЛАНМАЙДИ — қўлдан
+// созланган IP re-seed'да бузилмасин.
+const STATION_IP: Record<string, string | null> = {
+  SALAT: "192.168.1.131",
+  OSHXONA: "192.168.1.132",
+  SHASHLIK: "192.168.1.133",
+  BALIQ: "192.168.1.134",
+  BAR: "192.168.1.137",
+  "NON CHOY": null,
+};
+
 await db
   .insert(stations)
   .values(
@@ -50,6 +62,7 @@ await db
       cloposId: s.clopos_id,
       name: s.name,
       printable: s.printable,
+      ip: STATION_IP[s.name] ?? null,
     })),
   )
   .onConflictDoUpdate({

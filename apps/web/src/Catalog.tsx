@@ -19,7 +19,7 @@ export type Product = {
   station: string | null;
   hasRecipe: boolean;
 };
-export type Station = { id: string; name: string };
+export type Station = { id: string; name: string; ip?: string | null };
 type Component = { id: string; name: string; unit: string; type: string };
 
 const TYPE_BADGE: Record<string, { label: string; cls: string }> = {
@@ -203,6 +203,65 @@ export function Catalog({ user }: { user: SessionUser }) {
           }}
         />
       )}
+
+      {isDirector && stationsList.length > 0 && (
+        <PrintersSection
+          stations={stationsList}
+          onChanged={() => trpc.catalog.stations.query().then(setStationsList).catch(() => {})}
+        />
+      )}
+    </div>
+  );
+}
+
+function PrintersSection({ stations, onChanged }: { stations: Station[]; onChanged: () => void }) {
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save(stationId: string) {
+    const raw = (edits[stationId] ?? "").trim();
+    setBusy(stationId);
+    setErr(null);
+    try {
+      await trpc.catalog.setStationIp.mutate({ stationId, ip: raw || null });
+      setEdits((e) => { const n = { ...e }; delete n[stationId]; return n; });
+      onChanged();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Хато");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="border-b px-4 py-2.5 text-sm font-semibold">🖨 Принтерлар (станция IP)</div>
+      {err && <div className="px-4 pt-2 text-sm text-red-600">{err}</div>}
+      <div className="divide-y text-sm">
+        {stations.map((s) => {
+          const val = edits[s.id] ?? s.ip ?? "";
+          const dirty = edits[s.id] !== undefined && edits[s.id] !== (s.ip ?? "");
+          return (
+            <div key={s.id} className="flex items-center gap-2 px-4 py-2">
+              <span className="w-24 shrink-0 font-medium">{s.name}</span>
+              <input
+                value={val}
+                onChange={(e) => setEdits((ed) => ({ ...ed, [s.id]: e.target.value }))}
+                placeholder="192.168.1.x (бўш = принтер йўқ)"
+                className="min-w-0 flex-1 rounded-lg border px-3 py-1.5 text-sm tabular-nums outline-none focus:border-brand"
+              />
+              <button
+                onClick={() => save(s.id)}
+                disabled={busy === s.id || !dirty}
+                className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+              >
+                Сақлаш
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
