@@ -58,6 +58,7 @@ import {
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
 import { TRPCError } from "@trpc/server";
 import {
+  cashierProcedure,
   directorProcedure,
   managerProcedure,
   protectedProcedure,
@@ -2386,7 +2387,7 @@ export const appRouter = router({
         };
       }),
 
-    close: protectedProcedure
+    close: cashierProcedure
       .input(
         z.object({
           id: z.string().uuid(),

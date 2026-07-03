@@ -418,6 +418,8 @@ function NewOrderSheet({
 function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack: () => void }) {
   const canComp = ["director", "manager", "cashier"].includes(user.role);
   const canDiscount = ["director", "manager"].includes(user.role);
+  // Чек ёпиш = кассир иши (сервер ҳам cashierProcedure билан ҳимоялайди).
+  const canClose = canComp;
   const [order, setOrder] = useState<Order | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [paying, setPaying] = useState(false);
@@ -857,14 +859,20 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             </div>
           )}
 
-          <button
-            onClick={() => setPaying(true)}
-            disabled={empty}
-            className="hidden w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.99] disabled:opacity-40 lg:flex motion-reduce:active:scale-100"
-          >
-            <IReceipt className="h-5 w-5" />
-            Ёпиш ва чек
-          </button>
+          {canClose ? (
+            <button
+              onClick={() => setPaying(true)}
+              disabled={empty}
+              className="hidden w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.99] disabled:opacity-40 lg:flex motion-reduce:active:scale-100"
+            >
+              <IReceipt className="h-5 w-5" />
+              Ёпиш ва чек
+            </button>
+          ) : (
+            <div className="hidden rounded-2xl bg-brand-cream-soft py-3.5 text-center text-sm font-medium text-brand-ink/60 lg:block">
+              💳 Чекни кассир ёпади
+            </div>
+          )}
         </aside>
       </div>
 
@@ -890,7 +898,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 <IFlame className="h-5 w-5" />
                 Кухняга ({unsent})
               </button>
-            ) : (
+            ) : canClose ? (
               <button
                 onClick={() => setPaying(true)}
                 className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition active:scale-[.98] motion-reduce:active:scale-100"
@@ -898,6 +906,10 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 <IReceipt className="h-5 w-5" />
                 Ёпиш ва чек
               </button>
+            ) : (
+              <span className="ml-auto text-sm font-medium text-brand-ink/50">
+                💳 Кассир ёпади
+              </span>
             )}
           </div>
         </div>
