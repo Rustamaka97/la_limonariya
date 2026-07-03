@@ -2730,42 +2730,154 @@ export const appRouter = router({
         return { ok: true };
       }),
 
-    transfers: managerProcedure.query(async () => {
+    // Брак/бузилди списание: маҳсулот бузилса ҳисобдан чиқариш (loss ҳаракати).
+    spoilage: managerProcedure
+      .input(
+        z.object({
+          productId: z.string().uuid(),
+          qty: z.number().positive(),
+          reason: z.string().trim().min(1),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const prod = (
+          await db
+            .select({ unit: products.unit })
+            .from(products)
+            .where(eq(products.id, input.productId))
+            .limit(1)
+        )[0];
+        if (!prod) throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
+        const factor = prod.unit === "kg" || prod.unit === "l" ? 1000 : 1;
+        const base = Math.round(input.qty * factor);
+        if (base <= 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
+        const baseUnit =
+          prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
+        await db.insert(stockMovements).values({
+          productId: input.productId,
+          type: "loss" as const,
+          qty: -base,
+          unit: baseUnit,
+          refType: "spoilage",
+          note: input.reason,
+          createdById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    // Ишлаб чиқариш: партия тайёрланганда хом-ашё чиқади (−), ярим-тайёр кирим (+).
+    // Масалан Шапок → Фарш. Битта refId остида барча ҳаракат.
+    produce: managerProcedure
+      .input(
+        z.object({
+          outputProductId: z.string().uuid(),
+          outputQty: z.number().positive(),
+          inputs: z
+            .array(z.object({ productId: z.string().uuid(), qty: z.number().positive() }))
+            .min(1),
+          note: z.string().trim().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const ids = [input.outputProductId, ...input.inputs.map((i) => i.productId)];
+        const prods = await db
+          .select({ id: products.id, unit: products.unit })
+          .from(products)
+          .where(inArray(products.id, ids));
+        const unitOf = new Map(prods.map((p) => [p.id, p.unit]));
+        const toBase = (
+          id: string,
+          qty: number,
+        ): { base: number; baseUnit: "g" | "ml" | "dona" } | null => {
+          const u = unitOf.get(id);
+          if (!u) return null;
+          const factor = u === "kg" || u === "l" ? 1000 : 1;
+          const base = Math.round(qty * factor);
+          const baseUnit: "g" | "ml" | "dona" =
+            u === "dona" ? "dona" : u === "l" || u === "ml" ? "ml" : "g";
+          return base > 0 ? { base, baseUnit } : null;
+        };
+
+        const out = toBase(input.outputProductId, input.outputQty);
+        if (!out) throw new TRPCError({ code: "BAD_REQUEST", message: "Чиқиш маҳсулоти нотўғри" });
+
+        const refId = crypto.randomUUID();
+        const moves: (typeof stockMovements.$inferInsert)[] = [];
+        for (const it of input.inputs) {
+          const b = toBase(it.productId, it.qty);
+          if (!b) throw new TRPCError({ code: "BAD_REQUEST", message: "Хом-ашё миқдори нотўғри" });
+          moves.push({
+            productId: it.productId,
+            type: "production" as const,
+            qty: -b.base,
+            unit: b.baseUnit,
+            refType: "production",
+            refId,
+            note: input.note ?? null,
+            createdById: ctx.user.id,
+          });
+        }
+        moves.push({
+          productId: input.outputProductId,
+          type: "production" as const,
+          qty: out.base,
+          unit: out.baseUnit,
+          refType: "production",
+          refId,
+          note: input.note ?? null,
+          createdById: ctx.user.id,
+        });
+        await db.insert(stockMovements).values(moves);
+        return { ok: true };
+      }),
+
+    // Қўлда ҳаракатлар журнали: кўчириш, списание, ишлаб чиқариш, тузатиш —
+    // refId бўйича гуруҳлаб (transfer/production кўп қаторли), директор кўради.
+    journal: managerProcedure.query(async () => {
       const rows = await db
         .select({
+          id: stockMovements.id,
           refId: stockMovements.refId,
+          type: stockMovements.type,
           name: products.name,
           unit: stockMovements.unit,
           qty: stockMovements.qty,
           storage: stockMovements.storage,
+          note: stockMovements.note,
           createdAt: stockMovements.createdAt,
           by: users.name,
         })
         .from(stockMovements)
         .leftJoin(products, eq(products.id, stockMovements.productId))
         .leftJoin(users, eq(users.id, stockMovements.createdById))
-        .where(eq(stockMovements.type, "transfer"))
+        .where(
+          inArray(stockMovements.type, ["transfer", "loss", "production", "inventory_adjust"]),
+        )
         .orderBy(desc(stockMovements.createdAt))
-        .limit(100);
+        .limit(200);
 
-      // жуфтни refId бўйича бирлаштириш: qty<0 = from, qty>0 = to
-      const byRef = new Map<
-        string,
-        { refId: string; name: string; unit: string; qty: number; from: string | null; to: string | null; createdAt: Date; by: string | null }
-      >();
+      type Line = { name: string; unit: string; qty: number; storage: string | null };
+      type Group = {
+        key: string;
+        type: string;
+        note: string | null;
+        createdAt: Date;
+        by: string | null;
+        lines: Line[];
+      };
+      const byKey = new Map<string, Group>();
+      const order: string[] = [];
       for (const r of rows) {
-        if (!r.refId) continue;
-        const g =
-          byRef.get(r.refId) ??
-          { refId: r.refId, name: r.name ?? "?", unit: r.unit, qty: 0, from: null, to: null, createdAt: r.createdAt, by: r.by };
-        if (r.qty < 0) g.from = r.storage;
-        else {
-          g.to = r.storage;
-          g.qty = r.qty;
+        const key = r.refId ?? r.id;
+        let g = byKey.get(key);
+        if (!g) {
+          g = { key, type: r.type, note: r.note, createdAt: r.createdAt, by: r.by, lines: [] };
+          byKey.set(key, g);
+          order.push(key);
         }
-        byRef.set(r.refId, g);
+        g.lines.push({ name: r.name ?? "?", unit: r.unit, qty: r.qty, storage: r.storage });
       }
-      return [...byRef.values()].slice(0, 50);
+      return order.slice(0, 50).map((k) => byKey.get(k) as Group);
     }),
   }),
 
