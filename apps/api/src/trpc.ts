@@ -22,6 +22,14 @@ export const managerProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next();
 });
 
+// Харид + Обвалка = бозорчи иши (Shell.canObvalka: director|manager|buyer).
+// Гўшт нархи/costPrice базасини ёзади — официант/кассир кира олмайди.
+export const buyerProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!["director", "manager", "buyer"].includes(ctx.user.role))
+    throw new TRPCError({ code: "FORBIDDEN" });
+  return next();
+});
+
 // Чек ёпиш = кассир иши (SPEC: «чекни фақат КАССИР ёпади»). Официант/бозорчи
 // тўлов қабул қила олмайди — фақат директор/менежер/кассир.
 export const cashierProcedure = protectedProcedure.use(({ ctx, next }) => {

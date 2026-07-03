@@ -259,6 +259,9 @@ const AUDIT_LABEL: Record<string, string> = {
   "station.ip": "🖨️ Принтер IP",
   "recipe.upsert": "📋 Тех-карта",
   "order.cancel": "❌ Заказ бекор",
+  "norm.apply": "🧠 Норма",
+  "expense.create": "💸 Харажат",
+  "expense.delete": "🗑️ Харажат ўчди",
 };
 
 function Big({ label, value, sub, accent, danger }: { label: string; value: string; sub?: string; accent?: boolean; danger?: boolean }) {

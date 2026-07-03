@@ -70,6 +70,7 @@ import { sendTelegram, telegramEnabled } from "./telegram";
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
 import { TRPCError } from "@trpc/server";
 import {
+  buyerProcedure,
   cashierProcedure,
   directorProcedure,
   managerProcedure,
@@ -365,9 +366,31 @@ async function expectedCashForWindow(start: Date, end: Date) {
         )
     )[0]?.s ?? 0,
   );
+  // Қайтаришлар нақд (refunds жадвалида method йўқ — дизайн бўйича нақд):
+  // кассадан физик пул чиқади → expectedCash'дан айирилади (сохта камомад чиқмасин).
+  const cashRefunds = Number(
+    (
+      await db
+        .select({ s: sql<number>`coalesce(sum(${refunds.amount}), 0)` })
+        .from(refunds)
+        .where(and(gte(refunds.createdAt, start), lt(refunds.createdAt, end)))
+    )[0]?.s ?? 0,
+  );
   const expectedCash =
-    TILL_FLOAT + cashRevenue + cashDebtRepaid - cashExpenses - cashCollected;
-  return { cashRevenue, cashDebtRepaid, cashExpenses, cashCollected, expectedCash };
+    TILL_FLOAT +
+    cashRevenue +
+    cashDebtRepaid -
+    cashExpenses -
+    cashCollected -
+    cashRefunds;
+  return {
+    cashRevenue,
+    cashDebtRepaid,
+    cashExpenses,
+    cashCollected,
+    cashRefunds,
+    expectedCash,
+  };
 }
 
 // Lightweight revenue-only aggregation (no COGS) for trend/report views where
@@ -404,27 +427,20 @@ async function revenueForWindow(start: Date, end: Date) {
   return { revenue, byMethod, checks, avgCheck: checks ? Math.round(revenue / checks) : 0 };
 }
 
-// Orders (closed, in window) that carry a debt payment — used to keep item-level
-// revenue consistent with the rest of the app's "debt is not realized revenue"
-// convention. Qty (food actually served) still counts; revenue doesn't.
-// Orders that don't count as revenue: debt-financed (cash not yet received)
-// and текин/ходим comp orders (intentionally zero revenue). Qty/stock still
-// count for both — only money is excluded.
-async function nonRevenueOrderIds(start: Date, end: Date): Promise<Set<string>> {
-  const debtRows = await db
-    .select({ orderId: orderPayments.orderId })
-    .from(orderPayments)
-    .innerJoin(orders, eq(orderPayments.orderId, orders.id))
-    .where(
-      and(
-        eq(orderPayments.method, "debt"),
-        eq(orders.status, "closed"),
-        gte(orders.closedAt, start),
-        lt(orders.closedAt, end),
-      ),
-    );
+// Per-order REALIZED-revenue fraction [0..1] for item-level reports, so they stay
+// consistent with the app's "debt is not realized revenue" convention AND reconcile
+// with financeForWindow/byWaiter (which are per-payment-row). Returned ONLY for
+// orders that aren't fully realized: comp = 0, debt-only = 0, split cash+debt =
+// nonDebt/total (the CASH part still counts — the earlier whole-order exclusion
+// dropped it). Cash-only orders are absent → caller defaults to 1. Qty/stock still
+// count fully for every order regardless of this fraction.
+async function orderRevenueFraction(
+  start: Date,
+  end: Date,
+): Promise<Map<string, number>> {
+  const frac = new Map<string, number>();
   const compRows = await db
-    .select({ orderId: orders.id })
+    .select({ id: orders.id })
     .from(orders)
     .where(
       and(
@@ -434,7 +450,35 @@ async function nonRevenueOrderIds(start: Date, end: Date): Promise<Set<string>> 
         lt(orders.closedAt, end),
       ),
     );
-  return new Set([...debtRows.map((r) => r.orderId), ...compRows.map((r) => r.orderId)]);
+  for (const r of compRows) frac.set(r.id, 0);
+  const payRows = await db
+    .select({
+      orderId: orderPayments.orderId,
+      method: orderPayments.method,
+      amount: orderPayments.amount,
+    })
+    .from(orderPayments)
+    .innerJoin(orders, eq(orderPayments.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, start),
+        lt(orders.closedAt, end),
+      ),
+    );
+  const agg = new Map<string, { nonDebt: number; total: number; hasDebt: boolean }>();
+  for (const p of payRows) {
+    const a = agg.get(p.orderId) ?? { nonDebt: 0, total: 0, hasDebt: false };
+    a.total += p.amount;
+    if (p.method === "debt") a.hasDebt = true;
+    else a.nonDebt += p.amount;
+    agg.set(p.orderId, a);
+  }
+  for (const [oid, a] of agg) {
+    if (frac.has(oid)) continue; // comp already 0
+    if (a.hasDebt) frac.set(oid, a.total > 0 ? a.nonDebt / a.total : 0);
+  }
+  return frac;
 }
 
 async function debtTotals() {
@@ -479,7 +523,7 @@ async function stockableOnHand(exec: { select: typeof db.select } = db) {
     .from(products)
     .leftJoin(stockMovements, eq(stockMovements.productId, products.id))
     .where(
-      and(eq(products.active, true), inArray(products.type, ["ingredient", "part", "goods"])),
+      and(eq(products.active, true), inArray(products.type, ["ingredient", "part", "semi", "goods"])),
     )
     .groupBy(products.id, products.name, products.type, products.unit, products.costPrice)
     .orderBy(products.type, products.name);
@@ -488,10 +532,13 @@ async function stockableOnHand(exec: { select: typeof db.select } = db) {
 
 // Битта маҳсулот қолдиғи (base units). Списание/ишлаб чиқаришда мавжуддан кўп
 // чиқаришни тақиқлаш учун — манфий қолдиқ билан ўғирликни яширишни олдини олади.
-async function productOnHand(productId: string): Promise<number> {
+async function productOnHand(
+  productId: string,
+  exec: { select: typeof db.select } = db,
+): Promise<number> {
   return Number(
     (
-      await db
+      await exec
         .select({ s: sql<number>`coalesce(sum(${stockMovements.qty}), 0)` })
         .from(stockMovements)
         .where(eq(stockMovements.productId, productId))
@@ -1197,10 +1244,11 @@ async function computeOrderStockMoves(
             ? qoyId
             : null;
       } else if (ri.componentId) {
-        // mapped ingredient: only a stock-leaf, weight-unit product (grams)
+        // mapped ingredient: any stock-leaf weight-unit product (grams), incl. semi
+        // (Фарш ва ш.к. — stock.produce уни омборга киритади, сотувда чиқарилади;
+        // акс ҳолда semi бир томонлама реестр бўлиб қоларди). dish/dona эмас.
         const c = prodMap.get(ri.componentId);
-        if (c && c.type !== "dish" && c.type !== "semi" && c.unit !== "dona")
-          target = ri.componentId;
+        if (c && c.type !== "dish" && c.unit !== "dona") target = ri.componentId;
       }
 
       if (target)
@@ -1224,8 +1272,12 @@ async function computeOrderStockMoves(
 const BAR_STATION = "BAR";
 
 async function stationIpMap(): Promise<Map<string, string | null>> {
-  const rows = await db.select({ name: stations.name, ip: stations.ip }).from(stations);
-  return new Map(rows.map((r) => [r.name, r.ip]));
+  const rows = await db
+    .select({ name: stations.name, ip: stations.ip, printable: stations.printable })
+    .from(stations);
+  // printable=false → чоп этилмайди (IP бор бўлса ҳам). Принтинг IP мавжудлигига
+  // қараб қарор қилади, шунинг учун чоп этилмайдиган станцияда ip'ни null қиламиз.
+  return new Map(rows.map((r) => [r.name, r.printable ? r.ip : null]));
 }
 
 const BRAND_PRINT = {
@@ -1436,25 +1488,27 @@ export const appRouter = router({
     setPin: directorProcedure
       .input(z.object({ userId: z.string().uuid(), pin: pinSchema }))
       .mutation(async ({ input, ctx }) => {
-        try {
-          await db
-            .update(users)
-            .set({ pinHash: hashPin(input.pin), pinLookup: pinLookup(input.pin) })
-            .where(eq(users.id, input.userId));
-        } catch (e) {
-          if (e && typeof e === "object" && "code" in e && e.code === "23505") {
-            throw new TRPCError({ code: "CONFLICT", message: "Бу PIN банд" });
+        return db.transaction(async (tx) => {
+          try {
+            await tx
+              .update(users)
+              .set({ pinHash: hashPin(input.pin), pinLookup: pinLookup(input.pin) })
+              .where(eq(users.id, input.userId));
+          } catch (e) {
+            if (e && typeof e === "object" && "code" in e && e.code === "23505") {
+              throw new TRPCError({ code: "CONFLICT", message: "Бу PIN банд" });
+            }
+            throw e;
           }
-          throw e;
-        }
-        await logAudit(db, {
-          actorId: ctx.user.id,
-          action: "pin.reset",
-          entity: "user",
-          entityId: input.userId,
-          summary: "PIN ўзгартирилди",
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "pin.reset",
+            entity: "user",
+            entityId: input.userId,
+            summary: "PIN ўзгартирилди",
+          });
+          return { ok: true };
         });
-        return { ok: true };
       }),
 
     create: directorProcedure
@@ -1465,21 +1519,23 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
-        const row = (
-          await db
-            .insert(users)
-            .values({ name: input.name, role: input.role })
-            .returning({ id: users.id })
-        )[0];
-        await logAudit(db, {
-          actorId: ctx.user.id,
-          action: "user.create",
-          entity: "user",
-          entityId: row?.id ?? null,
-          summary: `${input.name} (${input.role})`,
-          meta: { name: input.name, role: input.role },
+        return db.transaction(async (tx) => {
+          const row = (
+            await tx
+              .insert(users)
+              .values({ name: input.name, role: input.role })
+              .returning({ id: users.id })
+          )[0];
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "user.create",
+            entity: "user",
+            entityId: row?.id ?? null,
+            summary: `${input.name} (${input.role})`,
+            meta: { name: input.name, role: input.role },
+          });
+          return { id: row?.id };
         });
-        return { id: row?.id };
       }),
 
     update: directorProcedure
@@ -1494,26 +1550,28 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { userId, ...patch } = input;
         if (Object.keys(patch).length === 0) return { ok: true };
-        const old = (
-          await db
-            .select({ name: users.name, role: users.role, active: users.active })
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1)
-        )[0];
-        await db.update(users).set(patch).where(eq(users.id, userId));
-        await logAudit(db, {
-          actorId: ctx.user.id,
-          action: "user.update",
-          entity: "user",
-          entityId: userId,
-          summary:
-            patch.role && old && patch.role !== old.role
-              ? `роль: ${old.role} → ${patch.role}`
-              : "ходим таҳрирланди",
-          meta: { old, new: patch },
+        return db.transaction(async (tx) => {
+          const old = (
+            await tx
+              .select({ name: users.name, role: users.role, active: users.active })
+              .from(users)
+              .where(eq(users.id, userId))
+              .limit(1)
+          )[0];
+          await tx.update(users).set(patch).where(eq(users.id, userId));
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "user.update",
+            entity: "user",
+            entityId: userId,
+            summary:
+              patch.role && old && patch.role !== old.role
+                ? `роль: ${old.role} → ${patch.role}`
+                : "ходим таҳрирланди",
+            meta: { old, new: patch },
+          });
+          return { ok: true };
         });
-        return { ok: true };
       }),
   }),
 
@@ -1641,30 +1699,32 @@ export const appRouter = router({
           }),
         )
         .mutation(async ({ input, ctx }) => {
-          const row = (
-            await db
-              .insert(products)
-              .values({
-                name: input.name,
-                type: input.type,
-                unit: input.unit,
-                price: input.price ?? 0,
-                categoryId: input.categoryId ?? null,
-                stationId: input.stationId ?? null,
-                soldByWeight: input.soldByWeight ?? false,
-                gramNorm: input.gramNorm ?? null,
-              })
-              .returning({ id: products.id })
-          )[0];
-          await logAudit(db, {
-            actorId: ctx.user.id,
-            action: "product.create",
-            entity: "product",
-            entityId: row?.id ?? null,
-            summary: `${input.name} · ${input.price ?? 0} so'm`,
-            meta: { name: input.name, price: input.price ?? 0 },
+          return db.transaction(async (tx) => {
+            const row = (
+              await tx
+                .insert(products)
+                .values({
+                  name: input.name,
+                  type: input.type,
+                  unit: input.unit,
+                  price: input.price ?? 0,
+                  categoryId: input.categoryId ?? null,
+                  stationId: input.stationId ?? null,
+                  soldByWeight: input.soldByWeight ?? false,
+                  gramNorm: input.gramNorm ?? null,
+                })
+                .returning({ id: products.id })
+            )[0];
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "product.create",
+              entity: "product",
+              entityId: row?.id ?? null,
+              summary: `${input.name} · ${input.price ?? 0} so'm`,
+              meta: { name: input.name, price: input.price ?? 0 },
+            });
+            return { id: row?.id };
           });
-          return { id: row?.id };
         }),
 
       update: directorProcedure
@@ -1685,30 +1745,32 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           const { id, ...patch } = input;
           if (Object.keys(patch).length === 0) return { ok: true };
-          const old = (
-            await db
-              .select({
-                name: products.name,
-                price: products.price,
-                active: products.active,
-              })
-              .from(products)
-              .where(eq(products.id, id))
-              .limit(1)
-          )[0];
-          await db.update(products).set(patch).where(eq(products.id, id));
-          await logAudit(db, {
-            actorId: ctx.user.id,
-            action: "product.update",
-            entity: "product",
-            entityId: id,
-            summary:
-              patch.price != null && old && patch.price !== old.price
-                ? `нарх: ${old.price} → ${patch.price} so'm`
-                : `${old?.name ?? ""} таҳрирланди`,
-            meta: { old, new: patch },
+          return db.transaction(async (tx) => {
+            const old = (
+              await tx
+                .select({
+                  name: products.name,
+                  price: products.price,
+                  active: products.active,
+                })
+                .from(products)
+                .where(eq(products.id, id))
+                .limit(1)
+            )[0];
+            await tx.update(products).set(patch).where(eq(products.id, id));
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "product.update",
+              entity: "product",
+              entityId: id,
+              summary:
+                patch.price != null && old && patch.price !== old.price
+                  ? `нарх: ${old.price} → ${patch.price} so'm`
+                  : `${old?.name ?? ""} таҳрирланди`,
+              meta: { old, new: patch },
+            });
+            return { ok: true };
           });
-          return { ok: true };
         }),
 
       get: protectedProcedure
@@ -1762,19 +1824,21 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
-        await db
-          .update(stations)
-          .set({ ip: input.ip })
-          .where(eq(stations.id, input.stationId));
-        await logAudit(db, {
-          actorId: ctx.user.id,
-          action: "station.ip",
-          entity: "station",
-          entityId: input.stationId,
-          summary: `принтер IP: ${input.ip ?? "йўқ"}`,
-          meta: { ip: input.ip },
+        return db.transaction(async (tx) => {
+          await tx
+            .update(stations)
+            .set({ ip: input.ip })
+            .where(eq(stations.id, input.stationId));
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "station.ip",
+            entity: "station",
+            entityId: input.stationId,
+            summary: `принтер IP: ${input.ip ?? "йўқ"}`,
+            meta: { ip: input.ip },
+          });
+          return { ok: true };
         });
-        return { ok: true };
       }),
 
     // Products usable as tech-card lines: raw + carcass parts + semi-finished.
@@ -2024,7 +2088,7 @@ export const appRouter = router({
         };
       }),
 
-    create: protectedProcedure
+    create: buyerProcedure
       .input(
         z.object({
           carcassType: z.enum(["qoy", "mol"]),
@@ -2327,6 +2391,16 @@ export const appRouter = router({
             });
             updated++;
           }
+          // norm_changes батафсил old→new сақлайди; шу ерда директорнинг умумий
+          // "🧾 Аудит журнали"да ҳам кўринсин (бир хулоса қатор).
+          if (updated > 0)
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "norm.apply",
+              entity: "partType",
+              summary: `${updated} қисм нормаси торайтирилди`,
+              meta: { count: updated },
+            });
         });
         return { updated };
       }),
@@ -2604,6 +2678,10 @@ export const appRouter = router({
           .where(eq(orderPayments.orderId, input.id));
         const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
         const service = Math.round((subtotal * head.servicePct) / 100);
+        // Чекда чоп этилган жамдек: чегирма айирилади, текин (comp) = 0.
+        const total = head.isComp
+          ? 0
+          : subtotal + service - head.discountAmount;
         return {
           ...head,
           checkNo: input.id.slice(0, 5).toUpperCase(),
@@ -2611,7 +2689,7 @@ export const appRouter = router({
           payments,
           subtotal,
           service,
-          total: subtotal + service,
+          total,
         };
       }),
 
@@ -2774,6 +2852,23 @@ export const appRouter = router({
           await tx.execute(
             sql`select pg_advisory_xact_lock(hashtext(${`${input.orderId}:${input.productId}`}))`,
           );
+          // Ёпилган заказга таом қўшиб бўлмайди (списание аллақачон ёзилган →
+          // тўланмаган+чегирилмаган "текин" таом бўлмасин; offline replay ҳам
+          // ёпилган заказга тушмасин). Бошқа мутациялар ҳам шу гейтни ишлатади.
+          const oHead = (
+            await tx
+              .select({ status: orders.status })
+              .from(orders)
+              .where(eq(orders.id, input.orderId))
+              .limit(1)
+              .for("update")
+          )[0];
+          if (!oHead) throw new TRPCError({ code: "NOT_FOUND" });
+          if (oHead.status !== "open")
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Заказ ёпилган — таом қўшиб бўлмайди",
+            });
           // Идемпотентлик: op-id аллақачон қўлланган бўлса — skip (delta дубль эмас).
           if (input.opId) {
             const fresh = await tx
@@ -2870,6 +2965,19 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const ticket = await db.transaction(async (tx) => {
+          const oHead = (
+            await tx
+              .select({ status: orders.status })
+              .from(orders)
+              .where(eq(orders.id, input.orderId))
+              .limit(1)
+          )[0];
+          if (!oHead) throw new TRPCError({ code: "NOT_FOUND" });
+          if (oHead.status !== "open")
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Заказ ёпилган — кухняга юбориб бўлмайди",
+            });
           return flushKitchenTicket(tx, input.orderId, ctx.user.id, input.ticketId);
         });
         // тx COMMIT'дан кейин — принтерга (net I/O тx ушламасин, блокламасин)
@@ -3036,12 +3144,16 @@ export const appRouter = router({
             });
         }
         const result = await db.transaction(async (tx) => {
+          // FOR UPDATE — параллел addItem/sendToKitchen шу қаторни кутсин
+          // (ёпилиш пайтида таом қўшилиб, чегирилмай қолмасин; addItem ҳам
+          // шу қаторни FOR UPDATE қилади → сериаллашади).
           const head = (
             await tx
               .select({ status: orders.status, servicePct: orders.servicePct })
               .from(orders)
               .where(eq(orders.id, input.id))
               .limit(1)
+              .for("update")
           )[0];
           if (!head) throw new TRPCError({ code: "NOT_FOUND" });
           if (head.status === "cancelled")
@@ -3136,12 +3248,16 @@ export const appRouter = router({
       .input(z.object({ id: z.string().uuid(), note: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
         return db.transaction(async (tx) => {
+          // FOR UPDATE — параллел cancel/close шу қаторни кутсин: иккинчи cancel
+          // блокланиб, кейин status='cancelled'ни кўради → рад этилади (loss/voided
+          // икки бора ёзилмайди). close ҳам шу қаторни FOR UPDATE қилади.
           const head = (
             await tx
               .select({ status: orders.status })
               .from(orders)
               .where(eq(orders.id, input.id))
               .limit(1)
+              .for("update")
           )[0];
           if (!head) throw new TRPCError({ code: "NOT_FOUND" });
           if (head.status !== "open")
@@ -3271,65 +3387,65 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         if (input.fromStorage === input.toStorage)
           throw new TRPCError({ code: "BAD_REQUEST", message: "Бир хил омбор танланди" });
+        return db.transaction(async (tx) => {
+          // Advisory lock — параллел списание/кўчириш негатив-гвардни айланиб
+          // ўтмасин (check-then-insert атомик бўлсин).
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${input.productId}))`,
+          );
+          const prod = (
+            await tx
+              .select({ unit: products.unit })
+              .from(products)
+              .where(eq(products.id, input.productId))
+              .limit(1)
+          )[0];
+          if (!prod)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
 
-        const prod = (
-          await db
-            .select({ unit: products.unit })
-            .from(products)
-            .where(eq(products.id, input.productId))
-            .limit(1)
-        )[0];
-        if (!prod) throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
+          const factor = prod.unit === "kg" || prod.unit === "l" ? 1000 : 1;
+          const base = Math.round(input.qty * factor);
+          if (base <= 0)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
+          const baseUnit =
+            prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
 
-        const factor = prod.unit === "kg" || prod.unit === "l" ? 1000 : 1;
-        const base = Math.round(input.qty * factor);
-        if (base <= 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
-        const baseUnit =
-          prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
+          const onHand = await productOnHand(input.productId, tx);
+          if (base > onHand)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Қолдиқ етарли эмас (бор: ${onHand} ${baseUnit})`,
+            });
 
-        // мавжуд глобал қолдиқдан кўп кўчириб бўлмайди
-        const onHand = Number(
-          (
-            await db
-              .select({ s: sql<number>`coalesce(sum(${stockMovements.qty}), 0)` })
-              .from(stockMovements)
-              .where(eq(stockMovements.productId, input.productId))
-          )[0]?.s ?? 0,
-        );
-        if (base > onHand)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Қолдиқ етарли эмас (бор: ${onHand} ${baseUnit})`,
-          });
-
-        const refId = crypto.randomUUID();
-        const label = `${input.fromStorage}→${input.toStorage}`;
-        const note = input.note ? `${label} · ${input.note}` : label;
-        await db.insert(stockMovements).values([
-          {
-            productId: input.productId,
-            type: "transfer" as const,
-            qty: -base,
-            unit: baseUnit,
-            storage: input.fromStorage,
-            refType: "transfer",
-            refId,
-            note,
-            createdById: ctx.user.id,
-          },
-          {
-            productId: input.productId,
-            type: "transfer" as const,
-            qty: base,
-            unit: baseUnit,
-            storage: input.toStorage,
-            refType: "transfer",
-            refId,
-            note,
-            createdById: ctx.user.id,
-          },
-        ]);
-        return { ok: true };
+          const refId = crypto.randomUUID();
+          const label = `${input.fromStorage}→${input.toStorage}`;
+          const note = input.note ? `${label} · ${input.note}` : label;
+          await tx.insert(stockMovements).values([
+            {
+              productId: input.productId,
+              type: "transfer" as const,
+              qty: -base,
+              unit: baseUnit,
+              storage: input.fromStorage,
+              refType: "transfer",
+              refId,
+              note,
+              createdById: ctx.user.id,
+            },
+            {
+              productId: input.productId,
+              type: "transfer" as const,
+              qty: base,
+              unit: baseUnit,
+              storage: input.toStorage,
+              refType: "transfer",
+              refId,
+              note,
+              createdById: ctx.user.id,
+            },
+          ]);
+          return { ok: true };
+        });
       }),
 
     // Брак/бузилди списание: маҳсулот бузилса ҳисобдан чиқариш (loss ҳаракати).
@@ -3342,35 +3458,42 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
-        const prod = (
-          await db
-            .select({ unit: products.unit })
-            .from(products)
-            .where(eq(products.id, input.productId))
-            .limit(1)
-        )[0];
-        if (!prod) throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
-        const factor = prod.unit === "kg" || prod.unit === "l" ? 1000 : 1;
-        const base = Math.round(input.qty * factor);
-        if (base <= 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
-        const baseUnit =
-          prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
-        const onHand = await productOnHand(input.productId);
-        if (base > onHand)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Қолдиқдан кўп списание бўлмайди (бор: ${onHand} ${baseUnit})`,
+        return db.transaction(async (tx) => {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${input.productId}))`,
+          );
+          const prod = (
+            await tx
+              .select({ unit: products.unit })
+              .from(products)
+              .where(eq(products.id, input.productId))
+              .limit(1)
+          )[0];
+          if (!prod)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
+          const factor = prod.unit === "kg" || prod.unit === "l" ? 1000 : 1;
+          const base = Math.round(input.qty * factor);
+          if (base <= 0)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
+          const baseUnit =
+            prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
+          const onHand = await productOnHand(input.productId, tx);
+          if (base > onHand)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Қолдиқдан кўп списание бўлмайди (бор: ${onHand} ${baseUnit})`,
+            });
+          await tx.insert(stockMovements).values({
+            productId: input.productId,
+            type: "loss" as const,
+            qty: -base,
+            unit: baseUnit,
+            refType: "spoilage",
+            note: input.reason,
+            createdById: ctx.user.id,
           });
-        await db.insert(stockMovements).values({
-          productId: input.productId,
-          type: "loss" as const,
-          qty: -base,
-          unit: baseUnit,
-          refType: "spoilage",
-          note: input.reason,
-          createdById: ctx.user.id,
+          return { ok: true };
         });
-        return { ok: true };
       }),
 
     // Ишлаб чиқариш: партия тайёрланганда хом-ашё чиқади (−), ярим-тайёр кирим (+).
@@ -3387,8 +3510,16 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+        // Барча иштирокчи маҳсулотни tartibланган ҳолда қулфлаймиз (deadlock'сиз) —
+        // параллел produce/списание негатив-гвардни айланиб ўтмасин.
+        const lockIds = [
+          ...new Set([input.outputProductId, ...input.inputs.map((i) => i.productId)]),
+        ].sort();
+        for (const id of lockIds)
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${id}))`);
         const ids = [input.outputProductId, ...input.inputs.map((i) => i.productId)];
-        const prods = await db
+        const prods = await tx
           .select({ id: products.id, unit: products.unit })
           .from(products)
           .where(inArray(products.id, ids));
@@ -3414,7 +3545,7 @@ export const appRouter = router({
         for (const it of input.inputs) {
           const b = toBase(it.productId, it.qty);
           if (!b) throw new TRPCError({ code: "BAD_REQUEST", message: "Хом-ашё миқдори нотўғри" });
-          const onHand = await productOnHand(it.productId);
+          const onHand = await productOnHand(it.productId, tx);
           if (b.base > onHand)
             throw new TRPCError({
               code: "BAD_REQUEST",
@@ -3441,8 +3572,9 @@ export const appRouter = router({
           note: input.note ?? null,
           createdById: ctx.user.id,
         });
-        await db.insert(stockMovements).values(moves);
+        await tx.insert(stockMovements).values(moves);
         return { ok: true };
+        });
       }),
 
     // Қўлда ҳаракатлар журнали: кўчириш, списание, ишлаб чиқариш, тузатиш —
@@ -3535,7 +3667,7 @@ export const appRouter = router({
       return rows.map((r) => ({ ...r, lines: Number(r.lines) }));
     }),
 
-    create: protectedProcedure
+    create: buyerProcedure
       .input(
         z.object({
           supplier: z.string().optional(),
@@ -3690,22 +3822,32 @@ export const appRouter = router({
           const spentAt = input.day
             ? new Date(businessDayBounds(input.day).startUTC.getTime() + 12 * 3600 * 1000)
             : new Date();
-          const row = (
-            await db
-              .insert(expenses)
-              .values({
-                category: input.category,
-                amount: input.amount,
-                method: input.method ?? "cash",
-                recurring: input.recurring ?? false,
-                note: input.note ?? null,
-                staffId: input.staffId ?? null,
-                spentAt,
-                createdById: ctx.user.id,
-              })
-              .returning({ id: expenses.id })
-          )[0];
-          return { id: row?.id };
+          return db.transaction(async (tx) => {
+            const row = (
+              await tx
+                .insert(expenses)
+                .values({
+                  category: input.category,
+                  amount: input.amount,
+                  method: input.method ?? "cash",
+                  recurring: input.recurring ?? false,
+                  note: input.note ?? null,
+                  staffId: input.staffId ?? null,
+                  spentAt,
+                  createdById: ctx.user.id,
+                })
+                .returning({ id: expenses.id })
+            )[0];
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "expense.create",
+              entity: "expense",
+              entityId: row?.id ?? null,
+              summary: `${input.category} · ${input.amount} so'm`,
+              meta: { category: input.category, amount: input.amount, method: input.method ?? "cash" },
+            });
+            return { id: row?.id };
+          });
         }),
 
       // Кунлик иш ҳақи: актив ходимлар + бугун тўланган сумма (ish_haqi + staffId).
@@ -3737,9 +3879,28 @@ export const appRouter = router({
 
       delete: directorProcedure
         .input(z.object({ id: z.string().uuid() }))
-        .mutation(async ({ input }) => {
-          await db.delete(expenses).where(eq(expenses.id, input.id));
-          return { ok: true };
+        .mutation(async ({ input, ctx }) => {
+          return db.transaction(async (tx) => {
+            const old = (
+              await tx
+                .select({ category: expenses.category, amount: expenses.amount })
+                .from(expenses)
+                .where(eq(expenses.id, input.id))
+                .limit(1)
+            )[0];
+            await tx.delete(expenses).where(eq(expenses.id, input.id));
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "expense.delete",
+              entity: "expense",
+              entityId: input.id,
+              summary: old
+                ? `${old.category} · ${old.amount} so'm ўчирилди`
+                : "харажат ўчирилди",
+              meta: { old: old ?? null },
+            });
+            return { ok: true };
+          });
         }),
     }),
 
@@ -3931,26 +4092,53 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         if (!["director", "manager", "cashier"].includes(ctx.user.role))
           throw new TRPCError({ code: "FORBIDDEN" });
-        const order = (
-          await db
-            .select({ status: orders.status })
-            .from(orders)
-            .where(eq(orders.id, input.orderId))
-            .limit(1)
-        )[0];
-        if (!order) throw new TRPCError({ code: "NOT_FOUND" });
-        if (order.status !== "closed")
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Фақат ёпилган чекни қайтариш мумкин",
+        return db.transaction(async (tx) => {
+          // Advisory lock — параллел иккита қайтариш потолокдан ошиб кетмасин.
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${input.orderId}))`,
+          );
+          const order = (
+            await tx
+              .select({ status: orders.status })
+              .from(orders)
+              .where(eq(orders.id, input.orderId))
+              .limit(1)
+          )[0];
+          if (!order) throw new TRPCError({ code: "NOT_FOUND" });
+          if (order.status !== "closed")
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Фақат ёпилган чекни қайтариш мумкин",
+            });
+          // Потолок: реал йиғилган (қарздан ташқари) тўлов − олдинги қайтаришлар.
+          // Қарз = олинмаган пул → қайтариб бўлмайди; текин чек = 0.
+          const pays = await tx
+            .select({ method: orderPayments.method, amount: orderPayments.amount })
+            .from(orderPayments)
+            .where(eq(orderPayments.orderId, input.orderId));
+          const collected = pays
+            .filter((p) => p.method !== "debt")
+            .reduce((s, p) => s + p.amount, 0);
+          const prior = (
+            await tx
+              .select({ amount: refunds.amount })
+              .from(refunds)
+              .where(eq(refunds.orderId, input.orderId))
+          ).reduce((s, r) => s + r.amount, 0);
+          const remaining = collected - prior;
+          if (input.amount > remaining)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Қайтариш (${input.amount}) қолган тўловдан (${remaining}) катта`,
+            });
+          await tx.insert(refunds).values({
+            orderId: input.orderId,
+            amount: input.amount,
+            reason: input.reason,
+            performedById: ctx.user.id,
           });
-        await db.insert(refunds).values({
-          orderId: input.orderId,
-          amount: input.amount,
-          reason: input.reason,
-          performedById: ctx.user.id,
+          return { ok: true, remaining: remaining - input.amount };
         });
-        return { ok: true };
       }),
 
     refunds: protectedProcedure
@@ -3994,6 +4182,7 @@ export const appRouter = router({
             closedAt: orders.closedAt,
             isComp: orders.isComp,
             servicePct: orders.servicePct,
+            discountAmount: orders.discountAmount,
           })
           .from(orders)
           .leftJoin(halls, eq(orders.hallId, halls.id))
@@ -4015,7 +4204,10 @@ export const appRouter = router({
               .from(orderItems)
               .where(eq(orderItems.orderId, r.id));
             const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-            const total = subtotal + Math.round((subtotal * r.servicePct) / 100);
+            // Чекда чоп этилгандек: чегирма айирилади, текин (comp) = 0.
+            const total = r.isComp
+              ? 0
+              : subtotal + Math.round((subtotal * r.servicePct) / 100) - r.discountAmount;
             return {
               ...r,
               checkNo: r.id.slice(0, 5).toUpperCase(),
@@ -4486,18 +4678,35 @@ export const appRouter = router({
             .select()
             .from(inventoryItems)
             .where(eq(inventoryItems.countId, input.countId));
+          // Adjust against the LIVE ledger sum, NOT the stale start-snapshot
+          // (theoreticalQty). Sales during the submit→approve window already posted
+          // sale_writeoff to the same ledger; subtracting the snapshot would
+          // double-count them. Target invariant: ledger on-hand == countedQty.
+          const ids = items.map((it) => it.productId);
+          const sumRows = ids.length
+            ? await tx
+                .select({
+                  productId: stockMovements.productId,
+                  s: sql<number>`coalesce(sum(${stockMovements.qty}), 0)`,
+                })
+                .from(stockMovements)
+                .where(inArray(stockMovements.productId, ids))
+                .groupBy(stockMovements.productId)
+            : [];
+          const onHand = new Map(sumRows.map((r) => [r.productId, Number(r.s)]));
           const moves = items
-            .filter((it) => it.countedQty != null && it.countedQty !== it.theoreticalQty)
+            .filter((it) => it.countedQty != null)
             .map((it) => ({
               productId: it.productId,
               type: "inventory_adjust" as const,
-              qty: it.countedQty! - it.theoreticalQty,
+              qty: it.countedQty! - (onHand.get(it.productId) ?? 0),
               unit: it.unit,
               refType: "inventory",
               refId: input.countId,
               note: it.reason ?? null,
               createdById: ctx.user.id,
-            }));
+            }))
+            .filter((m) => m.qty !== 0);
           if (moves.length) await tx.insert(stockMovements).values(moves);
           return { ok: true, alreadyApproved: false, adjusted: moves.length };
         });
@@ -4509,7 +4718,8 @@ export const appRouter = router({
       const { startUTC, endUTC } = businessDayBounds();
       const todayFin = await financeForWindow(startUTC, endUTC);
       const estCogs = Math.round(todayFin.revenue * BLENDED_COGS_PCT);
-      const estProfit = todayFin.revenue - estCogs - todayFin.opex - todayFin.cardTax;
+      const estProfit =
+        todayFin.revenue - estCogs - todayFin.opex - todayFin.cardTax - todayFin.refundTotal;
 
       const { supplierTotal, guestTotal } = await debtTotals();
       const stock = await stockableOnHand();
@@ -4599,7 +4809,7 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
-        const nonRevenue = await nonRevenueOrderIds(startUTC, endUTC);
+        const frac = await orderRevenueFraction(startUTC, endUTC);
         const rows = await db
           .select({
             orderId: orderItems.orderId,
@@ -4624,12 +4834,11 @@ export const appRouter = router({
           const key = r.category ?? "Бошқа";
           const e = byCat.get(key) ?? { revenue: 0, qty: 0 };
           e.qty += r.qty; // food served counts regardless of payment status
-          if (!nonRevenue.has(r.orderId)) {
-            // revenue = realized cash only, matching salesDaily/byWaiter convention
-            const rev = r.qty * r.price;
-            e.revenue += rev;
-            total += rev;
-          }
+          // realized revenue: scale by the order's cash fraction (split cash+debt
+          // keeps its cash part; comp/debt-only = 0; cash-only = full).
+          const rev = Math.round(r.qty * r.price * (frac.get(r.orderId) ?? 1));
+          e.revenue += rev;
+          total += rev;
           byCat.set(key, e);
         }
         return [...byCat.entries()]
@@ -4653,7 +4862,7 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
-        const nonRevenue = await nonRevenueOrderIds(startUTC, endUTC);
+        const frac = await orderRevenueFraction(startUTC, endUTC);
         const rows = await db
           .select({
             orderId: orderItems.orderId,
@@ -4676,7 +4885,8 @@ export const appRouter = router({
           if (!r.productId) continue;
           const e = byProduct.get(r.productId) ?? { name: r.name, qty: 0, revenue: 0 };
           e.qty += r.qty; // food served counts regardless of payment status
-          if (!nonRevenue.has(r.orderId)) e.revenue += r.qty * r.price; // realized cash only
+          // realized revenue scaled by the order's cash fraction (split-tender safe)
+          e.revenue += Math.round(r.qty * r.price * (frac.get(r.orderId) ?? 1));
           byProduct.set(r.productId, e);
         }
         const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
