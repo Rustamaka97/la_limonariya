@@ -239,6 +239,13 @@
       "when": 1783089412526,
       "tag": "0033_payment_humo",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1783094921897,
+      "tag": "0034_reprint_log",
+      "breakpoints": true
     }
   ]
 }

@@ -42,6 +42,7 @@ import {
   recipeItems,
   recipes,
   refunds,
+  reprintLog,
   sessions,
   stations,
   stockMovements,
@@ -426,6 +427,19 @@ async function stockableOnHand(exec: { select: typeof db.select } = db) {
   return rows.map((r) => ({ ...r, onHand: Number(r.onHand) }));
 }
 
+// Битта маҳсулот қолдиғи (base units). Списание/ишлаб чиқаришда мавжуддан кўп
+// чиқаришни тақиқлаш учун — манфий қолдиқ билан ўғирликни яширишни олдини олади.
+async function productOnHand(productId: string): Promise<number> {
+  return Number(
+    (
+      await db
+        .select({ s: sql<number>`coalesce(sum(${stockMovements.qty}), 0)` })
+        .from(stockMovements)
+        .where(eq(stockMovements.productId, productId))
+    )[0]?.s ?? 0,
+  );
+}
+
 // Owner-confirmed storages — must match apps/web/src/Inventarizatsiya.tsx STORAGES.
 const STORAGES = ["Ошхона музлаткич", "Катта музлаткич"] as const;
 
@@ -639,6 +653,36 @@ async function computeSignals() {
   const compToday = compRows.reduce((s, r) => s + r.qty * r.price, 0);
   const compFlag = compToday > COMP_DAILY_CAP;
 
+  // Возврат / ўчирилган таом / чегирма — кун бўйича сони+суммаси (тешик №6/12/13).
+  // Директор кўради; кўп бўлса сохта-возврат/ортиқча-чегирма аломати.
+  const refundRows = await db
+    .select({ amount: refunds.amount })
+    .from(refunds)
+    .where(and(gte(refunds.createdAt, startUTC), lt(refunds.createdAt, endUTC)));
+  const refundsToday = { count: refundRows.length, sum: refundRows.reduce((s, r) => s + r.amount, 0) };
+  const voidRows = await db
+    .select({ id: voidedItems.id })
+    .from(voidedItems)
+    .where(and(gte(voidedItems.createdAt, startUTC), lt(voidedItems.createdAt, endUTC)));
+  const voidsToday = { count: voidRows.length };
+  const discRows = await db
+    .select({ amount: orders.discountAmount })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        gt(orders.discountAmount, 0),
+        gte(orders.closedAt, startUTC),
+        lt(orders.closedAt, endUTC),
+      ),
+    );
+  const discountsToday = { count: discRows.length, sum: discRows.reduce((s, r) => s + r.amount, 0) };
+  const reprintRows = await db
+    .select({ id: reprintLog.id })
+    .from(reprintLog)
+    .where(and(gte(reprintLog.createdAt, startUTC), lt(reprintLog.createdAt, endUTC)));
+  const reprintsToday = { count: reprintRows.length };
+
   // №14 очиқ стол сигнали: узоқ ёпилмаган стол — мижоз тўламай кетган
   // ёки касса эсдан чиқарган бўлиши мумкин.
   const staleCutoff = new Date(Date.now() - STALE_ORDER_MINUTES * 60_000);
@@ -756,6 +800,10 @@ async function computeSignals() {
     staleOrders,
     underDelivery,
     grammLeak,
+    refundsToday,
+    voidsToday,
+    discountsToday,
+    reprintsToday,
   };
 }
 
@@ -1232,6 +1280,10 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
     holes.push(`💵 Касса камомади: ${som(sig.cashVariance.variance)}`);
   if (sig.staleOrders.length) holes.push(`⏰ Узоқ очиқ стол: ${sig.staleOrders.length}`);
   if (sig.thinDishes.length) holes.push(`📉 Юпқа маржа: ${sig.thinDishes.length} таом`);
+  if (sig.refundsToday.count) holes.push(`↩️ Возврат: ${sig.refundsToday.count} та (${som(sig.refundsToday.sum)})`);
+  if (sig.voidsToday.count) holes.push(`🗑️ Ўчирилган таом: ${sig.voidsToday.count} та`);
+  if (sig.discountsToday.count) holes.push(`🏷️ Чегирма: ${sig.discountsToday.count} та (${som(sig.discountsToday.sum)})`);
+  if (sig.reprintsToday.count) holes.push(`🖨️ Қайта чоп: ${sig.reprintsToday.count} та`);
   const lines = [
     `🍋 La Limonariya — кун хулосаси (${dayKey})`,
     "",
@@ -2380,6 +2432,8 @@ export const appRouter = router({
           delta: z.number().int(),
           // Клиент op-id → offline/retry replay delta'ни икки марта қўлламайди.
           opId: z.string().uuid().optional(),
+          // Кухняга юборилган таомни камайтиришда сабаб (void журналига ёзилади).
+          voidReason: z.string().trim().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -2442,6 +2496,7 @@ export const appRouter = router({
                   productId: input.productId,
                   name: existing.name,
                   qty: existing.qty - Math.max(qty, 0),
+                  note: input.voidReason ?? null,
                   performedById: ctx.user.id,
                 });
               }
@@ -2493,8 +2548,8 @@ export const appRouter = router({
 
     // Принтер ўчиб қолган бўлса — мавжуд тикетни/чекни қайта чоп.
     reprintTicket: protectedProcedure
-      .input(z.object({ ticketId: z.string().uuid() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ ticketId: z.string().uuid(), reason: z.string().trim().min(1) }))
+      .mutation(async ({ input, ctx }) => {
         const head = (
           await db
             .select({ orderId: kitchenTickets.orderId })
@@ -2507,13 +2562,27 @@ export const appRouter = router({
           .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
           .from(kitchenTicketItems)
           .where(eq(kitchenTicketItems.ticketId, input.ticketId));
+        // Дубликат-чоп журнали (тешик №22) — чоп'дан ОЛДИН ёзилади.
+        await db.insert(reprintLog).values({
+          orderId: head.orderId,
+          ticketId: input.ticketId,
+          kind: "ticket",
+          reason: input.reason,
+          performedById: ctx.user.id,
+        });
         void firePrintKitchen(head.orderId, items);
         return { ok: true };
       }),
 
     reprintCheck: protectedProcedure
-      .input(z.object({ orderId: z.string().uuid() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ orderId: z.string().uuid(), reason: z.string().trim().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        await db.insert(reprintLog).values({
+          orderId: input.orderId,
+          kind: "check",
+          reason: input.reason,
+          performedById: ctx.user.id,
+        });
         void firePrintCheck(input.orderId);
         return { ok: true };
       }),
@@ -2944,6 +3013,12 @@ export const appRouter = router({
         if (base <= 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
         const baseUnit =
           prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
+        const onHand = await productOnHand(input.productId);
+        if (base > onHand)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Қолдиқдан кўп списание бўлмайди (бор: ${onHand} ${baseUnit})`,
+          });
         await db.insert(stockMovements).values({
           productId: input.productId,
           type: "loss" as const,
@@ -2997,6 +3072,12 @@ export const appRouter = router({
         for (const it of input.inputs) {
           const b = toBase(it.productId, it.qty);
           if (!b) throw new TRPCError({ code: "BAD_REQUEST", message: "Хом-ашё миқдори нотўғри" });
+          const onHand = await productOnHand(it.productId);
+          if (b.base > onHand)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Хом-ашё қолдиғи етарли эмас (бор: ${onHand} ${b.baseUnit})`,
+            });
           moves.push({
             productId: it.productId,
             type: "production" as const,
@@ -4104,7 +4185,10 @@ export const appRouter = router({
         sig.shortagePattern.length +
         (sig.compFlag ? 1 : 0) +
         sig.staleOrders.length +
-        sig.grammLeak.filter((g) => g.flag).length;
+        sig.grammLeak.filter((g) => g.flag).length +
+        sig.refundsToday.count +
+        sig.voidsToday.count +
+        sig.reprintsToday.count;
 
       return {
         revenueToday: todayFin.revenue,

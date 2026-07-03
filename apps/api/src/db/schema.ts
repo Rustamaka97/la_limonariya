@@ -335,6 +335,22 @@ export const voidedItems = pgTable(
   (t) => [index("vi_order_idx").on(t.orderId)],
 );
 
+// Қайта чоп журнали (тешик №22): кухня тикети ёки чек қайта чоп этилса — ким,
+// қачон, нима учун. Append-only. Дубликат-чоп/икки-марта-пишир йўлини кузатади.
+export const reprintLog = pgTable(
+  "reprint_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "cascade" }),
+    ticketId: uuid("ticket_id"),
+    kind: text("kind").notNull(), // "ticket" | "check"
+    reason: text("reason"),
+    performedById: uuid("performed_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rl_created_idx").on(t.createdAt)],
+);
+
 export const paymentMethod = pgEnum("payment_method", [
   "cash",
   "card",

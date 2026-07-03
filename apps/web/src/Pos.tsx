@@ -720,6 +720,25 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   }, [refresh]);
 
   async function add(productId: string, delta: number) {
+    // Void кейси: кухняга юборилган таомни камайтириш (директор/менежер) — сабаб
+    // сўралади ва журналга ёзилади (тешик №11/22). Online + камёб → тўғридан-тўғри.
+    if (delta < 0 && tickets.length > 0 && ["director", "manager"].includes(user.role) && isOnline()) {
+      const r = window.prompt("Кухняга юборилган таомни камайтириш сабаби?");
+      if (r === null) return; // бекор
+      try {
+        await trpc.pos.addItem.mutate({
+          orderId: id,
+          productId,
+          delta,
+          opId: crypto.randomUUID(),
+          voidReason: r.trim() || undefined,
+        });
+      } catch (e) {
+        setSyncErr(e instanceof Error ? e.message : "Хато");
+      }
+      refresh();
+      return;
+    }
     // ном/нарх snapshot — менюдан ёки жорий қатордан (бўш 0-нархли қаторни олдини олиш).
     const m = menu.find((x) => x.id === productId);
     const cur = order?.items.find((i) => i.productId === productId);
@@ -1671,7 +1690,10 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
       </div>
       <div className="mx-auto flex max-w-xs gap-2">
         <button
-          onClick={() => trpc.pos.reprintTicket.mutate({ ticketId }).catch(() => {})}
+          onClick={() => {
+            const reason = window.prompt("Қайта чоп сабаби? (масалан: принтер тиқилди)");
+            if (reason?.trim()) trpc.pos.reprintTicket.mutate({ ticketId, reason: reason.trim() }).catch(() => {});
+          }}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-brand-cream/30"
         >
           <IPrinter className="h-4 w-4" />
@@ -1757,7 +1779,10 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
       </div>
       <div className="mx-auto flex max-w-xs gap-2">
         <button
-          onClick={() => trpc.pos.reprintCheck.mutate({ orderId: order.id }).catch(() => {})}
+          onClick={() => {
+            const reason = window.prompt("Чекни қайта чоп сабаби?");
+            if (reason?.trim()) trpc.pos.reprintCheck.mutate({ orderId: order.id, reason: reason.trim() }).catch(() => {});
+          }}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-brand-cream/30"
         >
           <IPrinter className="h-4 w-4" />
