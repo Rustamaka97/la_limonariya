@@ -38,7 +38,8 @@ type OpenOrder = {
   total: number;
   createdAt: string;
 };
-type PayMethod = "cash" | "card" | "click" | "payme" | "debt";
+type PayMethod = "cash" | "card" | "click" | "payme" | "humo" | "debt";
+const PAY_METHODS: PayMethod[] = ["cash", "card", "click", "payme", "humo", "debt"];
 type Order = {
   id: string;
   checkNo: string;
@@ -72,6 +73,7 @@ const PAY_LABEL: Record<string, string> = {
   card: "Карта",
   click: "Click",
   payme: "Payme",
+  humo: "Ҳумо",
   debt: "Қарз",
 };
 
@@ -1278,7 +1280,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             ) : showSplit ? (
               <div className="space-y-2 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
                 <p className="text-xs font-semibold text-brand-ink">Аралаш тўлов — ҳар турга суммани ёзинг</p>
-                {(["cash", "card", "click", "payme", "debt"] as PayMethod[]).map((m) => (
+                {PAY_METHODS.map((m) => (
                   <div key={m} className="flex items-center gap-2">
                     <span className="w-16 shrink-0 text-sm text-zinc-600">{PAY_LABEL[m]}</span>
                     <input
@@ -1320,7 +1322,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             ) : !showComp ? (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  {(["cash", "card", "click", "payme", "debt"] as PayMethod[]).map((m) => {
+                  {PAY_METHODS.map((m) => {
                     const Icon = m === "cash" ? IBank : m === "debt" ? IReceipt : ICard;
                     return (
                       <button

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."payment_method" ADD VALUE 'humo' BEFORE 'debt';

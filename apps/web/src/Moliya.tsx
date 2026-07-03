@@ -19,6 +19,7 @@ const METHOD: Record<string, string> = {
   card: "Карта",
   click: "Click",
   payme: "Payme",
+  humo: "Ҳумо",
   debt: "Қарз",
 };
 

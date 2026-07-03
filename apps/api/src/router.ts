@@ -778,7 +778,7 @@ async function financeForWindow(start: Date, end: Date) {
     if (p.method !== "debt") revenue += p.amount;
   }
   const electronic =
-    (byMethod.card ?? 0) + (byMethod.click ?? 0) + (byMethod.payme ?? 0);
+    (byMethod.card ?? 0) + (byMethod.click ?? 0) + (byMethod.payme ?? 0) + (byMethod.humo ?? 0);
   const cardTax = Math.round((electronic * 4) / 100);
   const guestDebt = byMethod.debt ?? 0;
 
@@ -2523,7 +2523,7 @@ export const appRouter = router({
           payments: z
             .array(
               z.object({
-                method: z.enum(["cash", "card", "click", "payme", "debt"]),
+                method: z.enum(["cash", "card", "click", "payme", "humo", "debt"]),
                 amount: z.number().int().nonnegative(),
               }),
             )
@@ -3193,7 +3193,7 @@ export const appRouter = router({
               "ega_oldi",
             ]),
             amount: z.number().int().positive(),
-            method: z.enum(["cash", "card", "click", "payme", "debt"]).optional(),
+            method: z.enum(["cash", "card", "click", "payme", "humo", "debt"]).optional(),
             recurring: z.boolean().optional(),
             note: z.string().optional(),
             staffId: z.string().uuid().optional(), // кунлик иш ҳақи — ходим
@@ -3384,7 +3384,7 @@ export const appRouter = router({
         z.object({
           orderId: z.string().uuid(),
           amount: z.number().int().positive(),
-          method: z.enum(["cash", "card", "click", "payme"]).optional(),
+          method: z.enum(["cash", "card", "click", "payme", "humo"]).optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {

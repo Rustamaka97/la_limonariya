@@ -232,6 +232,13 @@
       "when": 1783089130680,
       "tag": "0032_expenses_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1783089412526,
+      "tag": "0033_payment_humo",
+      "breakpoints": true
     }
   ]
 }

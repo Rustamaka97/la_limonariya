@@ -340,6 +340,7 @@ export const paymentMethod = pgEnum("payment_method", [
   "card",
   "click",
   "payme",
+  "humo", // Ҳумо — банк картаси (electronic, card tax'га киради, нақд эмас)
   "debt",
 ]);
 
