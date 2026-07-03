@@ -103,7 +103,7 @@ queue бўш эмасми? ── ҳа ──▶ FIFO flush: ҳар op'ни се
 |---|---|---|---|
 | **1 ✅** | Идемпотент `pos.create` (client UUID) | паст | PG17 replay ✅ |
 | **2 ✅** | `addItem` client `opId` (delta сақланди) + `sendToKitchen` client `ticketId` идемпотент | ўрта | PG17 replay ✅ |
-| **3** | Dexie `refCache` (меню/столлар оффлайн ўқилади) | паст (read-only) | браузер, DevTools offline |
+| **3 ✅** | IndexedDB `refCache` (меню/заллар/столлар оффлайн ўқилади, SWR) | паст (read-only) | swr логика 6/6 ✅ + браузер (offline render) |
 | **4** | Локал заказ ҳолати + `mutationQueue` + flush | **юқори** | **ЖОЙИДА: 2 телефон + Wi-Fi ўчириш** |
 | **5** | Конфликт огоҳлари (бир столда 2 заказ) | ўрта | жойида |
 
@@ -129,4 +129,15 @@ queue бўш эмасми? ── ҳа ──▶ FIFO flush: ҳар op'ни се
   қайтаради (икки марта кухняга юбормайди). Pos.tsx `ticketId` юборади.
 - ✅ PG17: opId replay → delta SKIP (client_ops=1); тикет client-id × 2 → 1 тикет.
 
-⏭ Кейинги: фаза 3 (Dexie `refCache` — меню/столлар оффлайн ўқилади, read-only, хавфсиз).
+**Фаза 3:**
+- ✅ `apps/web/src/lib/idb.ts` — dependency'сиз IndexedDB KV ("limon" базаси; фаза 4
+  навбати ҳам шуни ишлатади).
+- ✅ `apps/web/src/lib/cache.ts` `swr()` — stale-while-revalidate: кэшдан дарров, сўнг
+  тармоқдан янгилайди; оффлайнда кэшни кўрсатади, кэш ҳам йўқ бўлса throw.
+- ✅ Pos.tsx: `pos.menu` / `pos.halls` / `pos.tables` swr орқали → оффлайнда POS
+  рендер бўлади (заказлар динамик — кэшланмайди).
+- ✅ swr логика unit 6/6 (online/offline/private-mode). IndexedDB'нинг ўзи браузерда
+  синалади (DevTools → Offline).
+
+⏭ Кейинги: **фаза 4** (⚠️ ЮҚОРИ хавф) — локал заказ ҳолати + `mutationQueue` + flush.
+Hot-path, фақат ЖОЙИДА (2 телефон + Wi-Fi ўчириш) канари билан.

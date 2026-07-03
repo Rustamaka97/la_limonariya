@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
+import { swr } from "./lib/cache";
 import { trpc } from "./trpc";
 
 type Hall = { id: string; name: string; servicePct: number };
@@ -155,8 +156,9 @@ function FloorView({
     trpc.pos.openOrders.query().then(setOrders).catch(() => setOrders([]));
   }, []);
   useEffect(() => {
-    trpc.pos.halls.query().then(setHalls).catch(() => {});
-    trpc.pos.tables.query().then(setTbls).catch(() => {});
+    // Заллар/столлар — ўзгармас; оффлайнда кэшдан кўринади (фаза 3 refCache).
+    swr("pos.halls", () => trpc.pos.halls.query(), setHalls).catch(() => {});
+    swr("pos.tables", () => trpc.pos.tables.query(), setTbls).catch(() => {});
     refresh();
   }, [refresh]);
 
@@ -460,7 +462,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
 
   useEffect(() => {
     refresh();
-    trpc.pos.menu.query().then(setMenu).catch(() => {});
+    // Меню — ўзгармас; оффлайнда кэшдан кўринади (фаза 3 refCache).
+    swr("pos.menu", () => trpc.pos.menu.query(), setMenu).catch(() => {});
   }, [refresh]);
 
   async function add(productId: string, delta: number) {
