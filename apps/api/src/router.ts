@@ -4389,6 +4389,63 @@ export const appRouter = router({
           }))
           .sort((a, b) => b.revenue - a.revenue);
       }),
+
+    // Кассир атрибуцияси (closedById): ким ёпди, ким КЎП ҚАРЗГА берди (сохта
+    // қарз назорати). byWaiter revenue'ни очишга (waiterId) боғлайди — бу ёпишга.
+    byCashier: managerProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const rows = await db
+          .select({
+            cashierId: orders.closedById,
+            cashierName: users.name,
+            amount: orderPayments.amount,
+            method: orderPayments.method,
+            orderId: orders.id,
+          })
+          .from(orderPayments)
+          .innerJoin(orders, eq(orderPayments.orderId, orders.id))
+          .leftJoin(users, eq(orders.closedById, users.id))
+          .where(
+            and(
+              eq(orders.status, "closed"),
+              gte(orders.closedAt, startUTC),
+              lt(orders.closedAt, endUTC),
+            ),
+          );
+        const by = new Map<
+          string,
+          { name: string; revenue: number; debtIssued: number; orders: Set<string> }
+        >();
+        for (const r of rows) {
+          const key = r.cashierId ?? "unknown";
+          const e = by.get(key) ?? {
+            name: r.cashierName ?? "Номаълум",
+            revenue: 0,
+            debtIssued: 0,
+            orders: new Set<string>(),
+          };
+          if (r.method === "debt") e.debtIssued += r.amount;
+          else e.revenue += r.amount;
+          e.orders.add(r.orderId);
+          by.set(key, e);
+        }
+        return [...by.entries()]
+          .map(([cashierId, v]) => ({
+            cashierId,
+            name: v.name,
+            revenue: v.revenue,
+            debtIssued: v.debtIssued,
+            checks: v.orders.size,
+          }))
+          .sort((a, b) => b.revenue - a.revenue);
+      }),
   }),
 });
 

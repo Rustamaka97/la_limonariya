@@ -31,7 +31,7 @@ function fmtShort(dayKey: string): string {
   return `${d}.${m}`;
 }
 
-type Sub = "trend" | "category" | "dishes" | "waiters";
+type Sub = "trend" | "category" | "dishes" | "waiters" | "cashiers";
 
 export function Hisobot() {
   const [sub, setSub] = useState<Sub>("trend");
@@ -43,6 +43,7 @@ export function Hisobot() {
     { k: "category", label: "Категория" },
     { k: "dishes", label: "Топ таомлар" },
     { k: "waiters", label: "Официантлар" },
+    { k: "cashiers", label: "Кассирлар" },
   ];
 
   const quick = (n: number) => {
@@ -80,6 +81,7 @@ export function Hisobot() {
       {sub === "category" && <Category from={from} to={to} />}
       {sub === "dishes" && <TopDishes from={from} to={to} />}
       {sub === "waiters" && <Waiters from={from} to={to} />}
+      {sub === "cashiers" && <Cashiers from={from} to={to} />}
     </div>
   );
 }
@@ -296,6 +298,59 @@ function Waiters({ from, to }: { from: string; to: string }) {
           ))}
         </div>
       )}
+      </div>
+    </div>
+  );
+}
+
+type CashierRow = { cashierId: string; name: string; revenue: number; debtIssued: number; checks: number };
+
+function Cashiers({ from, to }: { from: string; to: string }) {
+  const [rows, setRows] = useState<CashierRow[] | null>(null);
+  const [err, setErr] = useState(false);
+  function load() {
+    setErr(false);
+    setRows(null);
+    trpc.report.byCashier.query({ from, to }).then(setRows).catch(() => setErr(true));
+  }
+  useEffect(load, [from, to]);
+
+  if (err) return <ErrBox onRetry={load} />;
+  if (!rows) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-zinc-400">Ким ёпди · ким кўп қарзга берди (сохта қарз назорати)</p>
+        <CsvBtn rows={rows} name="кассирлар" />
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-white">
+        {rows.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-zinc-400">бу даврда ёпилган чек йўқ</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+              <tr>
+                <th className="px-4 py-2 font-medium">Кассир</th>
+                <th className="px-3 py-2 text-right font-medium">Чек</th>
+                <th className="px-3 py-2 text-right font-medium">Тушум</th>
+                <th className="px-4 py-2 text-right font-medium">Қарзга берди</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((r) => (
+                <tr key={r.cashierId}>
+                  <td className="px-4 py-2 font-medium">{r.name}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-zinc-500">{r.checks}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmt(r.revenue)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">
+                    {r.debtIssued > 0 ? <span className="text-amber-600">{fmt(r.debtIssued)}</span> : <span className="text-zinc-300">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
