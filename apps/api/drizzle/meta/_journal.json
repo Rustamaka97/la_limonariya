@@ -225,6 +225,13 @@
       "when": 1783081419778,
       "tag": "0031_client_ops",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1783089130680,
+      "tag": "0032_expenses_staff",
+      "breakpoints": true
     }
   ]
 }

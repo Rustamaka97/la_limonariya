@@ -3196,6 +3196,7 @@ export const appRouter = router({
             method: z.enum(["cash", "card", "click", "payme", "debt"]).optional(),
             recurring: z.boolean().optional(),
             note: z.string().optional(),
+            staffId: z.string().uuid().optional(), // кунлик иш ҳақи — ходим
             day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
           }),
         )
@@ -3213,12 +3214,40 @@ export const appRouter = router({
                 method: input.method ?? "cash",
                 recurring: input.recurring ?? false,
                 note: input.note ?? null,
+                staffId: input.staffId ?? null,
                 spentAt,
                 createdById: ctx.user.id,
               })
               .returning({ id: expenses.id })
           )[0];
           return { id: row?.id };
+        }),
+
+      // Кунлик иш ҳақи: актив ходимлар + бугун тўланган сумма (ish_haqi + staffId).
+      wages: directorProcedure
+        .input(z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).optional())
+        .query(async ({ input }) => {
+          const { startUTC, endUTC, dayKey } = businessDayBounds(input?.day);
+          const staff = await db
+            .select({ id: users.id, name: users.name, role: users.role })
+            .from(users)
+            .where(eq(users.active, true))
+            .orderBy(users.role, users.name);
+          const paidRows = await db
+            .select({ staffId: expenses.staffId, amount: expenses.amount })
+            .from(expenses)
+            .where(
+              and(
+                eq(expenses.category, "ish_haqi"),
+                isNotNull(expenses.staffId),
+                gte(expenses.spentAt, startUTC),
+                lt(expenses.spentAt, endUTC),
+              ),
+            );
+          const paidBy: Record<string, number> = {};
+          for (const r of paidRows) if (r.staffId) paidBy[r.staffId] = (paidBy[r.staffId] ?? 0) + r.amount;
+          const rows = staff.map((s) => ({ ...s, paidToday: paidBy[s.id] ?? 0 }));
+          return { dayKey, rows, total: rows.reduce((a, r) => a + r.paidToday, 0) };
         }),
 
       delete: directorProcedure

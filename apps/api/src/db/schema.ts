@@ -449,6 +449,8 @@ export const expenses = pgTable(
     method: paymentMethod("method").notNull().default("cash"),
     recurring: boolean("recurring").notNull().default(false),
     note: text("note"),
+    // Кунлик иш ҳақи — қайси ходимга (ish_haqi категорияда). Бошқа харажатларда null.
+    staffId: uuid("staff_id").references(() => users.id),
     spentAt: timestamp("spent_at", { withTimezone: true }).notNull().defaultNow(),
     branchId: uuid("branch_id").references(() => branches.id),
     createdById: uuid("created_by_id").references(() => users.id),

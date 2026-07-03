@@ -46,13 +46,14 @@ function ErrBox({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-type Sub = "day" | "expense" | "pnl" | "debt";
+type Sub = "day" | "expense" | "wage" | "pnl" | "debt";
 
 export function Moliya() {
   const [sub, setSub] = useState<Sub>("day");
   const tabs: { k: Sub; label: string }[] = [
     { k: "day", label: "Кунлик ёпилиш" },
     { k: "expense", label: "Харажат" },
+    { k: "wage", label: "Иш ҳақи" },
     { k: "pnl", label: "P&L" },
     { k: "debt", label: "Қарзлар" },
   ];
@@ -73,6 +74,7 @@ export function Moliya() {
       </div>
       {sub === "day" && <DayClose />}
       {sub === "expense" && <Expenses />}
+      {sub === "wage" && <Wages />}
       {sub === "pnl" && <Pnl />}
       {sub === "debt" && <Debts />}
     </div>
@@ -446,6 +448,110 @@ type Exp = {
   note: string | null;
   spentAt: string;
 };
+
+const ROLE_LABEL: Record<string, string> = {
+  director: "Директор",
+  manager: "Менежер",
+  buyer: "Бозорчи",
+  cashier: "Кассир",
+  waiter: "Официант",
+};
+type WageStaff = { id: string; name: string; role: string; paidToday: number };
+
+// Кунлик иш ҳақи: ходимни танла → сумма (салатчи/повар/шашликчи ҳар куни).
+function Wages() {
+  const [day, setDay] = useState(todayBiz());
+  const [data, setData] = useState<{ rows: WageStaff[]; total: number } | null>(null);
+  const [err, setErr] = useState(false);
+  const refresh = useCallback(() => {
+    setData(null);
+    setErr(false);
+    trpc.finance.expenses.wages
+      .query({ day })
+      .then((d) => setData({ rows: d.rows, total: d.total }))
+      .catch(() => setErr(true));
+  }, [day]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return (
+    <div className="space-y-4">
+      <DayPicker day={day} setDay={setDay} />
+      <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="flex items-center justify-between border-b px-4 py-2.5 text-sm">
+          <span className="font-semibold">💵 Кунлик иш ҳақи</span>
+          <span className="font-medium tabular-nums">{fmt(data?.total ?? 0)} so'm</span>
+        </div>
+        {err ? (
+          <div className="px-4 py-6 text-center text-sm text-zinc-500">
+            Юкланмади.{" "}
+            <button onClick={refresh} className="font-medium text-emerald-600 underline">қайта</button>
+          </div>
+        ) : !data ? (
+          <div className="px-4 py-6 text-center text-zinc-400">⏳</div>
+        ) : (
+          <div className="divide-y">
+            {data.rows.map((s) => (
+              <WageRow key={s.id} staff={s} day={day} onPaid={refresh} />
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="px-1 text-xs text-zinc-400">
+        Тўлов «Харажат (OPEX)» сифатида ҳисобланади ва кассадан чиқади (ish_haqi).
+      </p>
+    </div>
+  );
+}
+
+function WageRow({ staff, day, onPaid }: { staff: WageStaff; day: string; onPaid: () => void }) {
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function pay() {
+    const amt = Math.round(Number(amount) || 0);
+    if (amt <= 0) return;
+    setBusy(true);
+    try {
+      await trpc.finance.expenses.create.mutate({
+        category: "ish_haqi",
+        amount: amt,
+        staffId: staff.id,
+        day,
+      });
+      setAmount("");
+      onPaid();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="flex items-center gap-2 px-4 py-2.5 text-sm">
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-medium">{staff.name}</div>
+        <div className="text-xs text-zinc-400">
+          {ROLE_LABEL[staff.role] ?? staff.role}
+          {staff.paidToday > 0 && <span className="text-emerald-600"> · бугун {fmt(staff.paidToday)} ✓</span>}
+        </div>
+      </div>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="сумма"
+        className="w-24 rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand"
+      />
+      <button
+        onClick={pay}
+        disabled={busy || !(Number(amount) > 0)}
+        className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+      >
+        Тўлаш
+      </button>
+    </div>
+  );
+}
 
 function Expenses() {
   const [day, setDay] = useState(todayBiz());
