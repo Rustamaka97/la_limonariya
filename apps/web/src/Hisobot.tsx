@@ -51,6 +51,11 @@ export function Hisobot() {
     setTo(todayBiz());
     setFrom(shiftDay(todayBiz(), -(n - 1)));
   };
+  const setRange = (f: string, t: string) => {
+    setFrom(f);
+    setTo(t);
+  };
+  const monthStart = () => `${todayBiz().slice(0, 7)}-01`;
 
   return (
     <div className="space-y-4">
@@ -70,8 +75,11 @@ export function Hisobot() {
 
       {sub !== "trend" && (
         <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => setRange(todayBiz(), todayBiz())} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">Бугун</button>
+          <button onClick={() => setRange(shiftDay(todayBiz(), -1), shiftDay(todayBiz(), -1))} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">Кеча</button>
           <button onClick={() => quick(7)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">7 кун</button>
           <button onClick={() => quick(30)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">30 кун</button>
+          <button onClick={() => setRange(monthStart(), todayBiz())} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">Ой</button>
           <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
           <span className="text-zinc-400">—</span>
           <input type="date" value={to} max={todayBiz()} onChange={(e) => e.target.value && setTo(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
