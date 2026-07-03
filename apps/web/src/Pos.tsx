@@ -346,6 +346,16 @@ function FloorView({
             onOpen(oid);
           }}
           onClose={() => setConflict(null)}
+          canMerge={online && ["director", "manager"].includes(user.role)}
+          onMerge={async (fromId, toId) => {
+            try {
+              await trpc.pos.mergeOrders.mutate({ fromId, toId });
+            } catch {
+              /* 403/BAD_REQUEST — жим, refresh ҳақиқий ҳолатни кўрсатади */
+            }
+            setConflict(null);
+            refresh();
+          }}
         />
       )}
     </div>
@@ -358,11 +368,16 @@ function ConflictSheet({
   data,
   onPick,
   onClose,
+  canMerge,
+  onMerge,
 }: {
   data: { table: string; orders: OpenOrder[] };
   onPick: (orderId: string) => void;
   onClose: () => void;
+  canMerge: boolean;
+  onMerge: (fromId: string, toId: string) => void;
 }) {
+  const [busy, setBusy] = useState(false);
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
@@ -382,6 +397,82 @@ function ConflictSheet({
               <span className="tabular-nums font-semibold text-brand-ink">{fmt(o.total)}</span>
             </button>
           ))}
+        </div>
+        {canMerge && data.orders.length === 2 && data.orders[0] && data.orders[1] && (
+          <button
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              // 2-чини 1-чига бирлаштириш (итемлар қўшилади, 2-чи cancelled).
+              onMerge(data.orders[1]!.id, data.orders[0]!.id);
+            }}
+            className="mt-3 w-full rounded-xl bg-brand-gold py-2.5 text-sm font-semibold text-brand-ink disabled:opacity-40"
+          >
+            🔗 Битта заказга бирлаштириш
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Заказни бошқа зал/столга кўчириш (столни нотўғри танлаган бўлса).
+function MoveSheet({
+  onClose,
+  onMove,
+}: {
+  onClose: () => void;
+  onMove: (hallId: string, tableNo?: string) => void;
+}) {
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [tbls, setTbls] = useState<Table[]>([]);
+  const [hallId, setHallId] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    swr("pos.halls", () => trpc.pos.halls.query(), (h) => {
+      setHalls(h);
+      setHallId((cur) => cur || h[0]?.id || "");
+    }).catch(() => {});
+    swr("pos.tables", () => trpc.pos.tables.query(), setTbls).catch(() => {});
+  }, []);
+  const hallTables = tbls.filter((t) => t.hallId === hallId);
+  const pick = (tableNo?: string) => {
+    setBusy(true);
+    onMove(hallId, tableNo);
+  };
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-semibold text-brand-ink">⇄ Бошқа столга кўчириш</h3>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {halls.map((h) => (
+            <button
+              key={h.id}
+              onClick={() => setHallId(h.id)}
+              className={`rounded-lg px-3 py-1.5 text-sm ${hallId === h.id ? "bg-brand text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+            >
+              {h.name}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {hallTables.map((t) => (
+            <button
+              key={t.id}
+              disabled={busy}
+              onClick={() => pick(t.name)}
+              className="rounded-xl border border-brand-cream-soft bg-white px-2 py-3 text-center text-xs font-medium leading-tight text-brand-ink/80 transition hover:border-brand hover:text-brand disabled:opacity-40"
+            >
+              <span className="line-clamp-2">{t.name}</span>
+            </button>
+          ))}
+          <button
+            disabled={busy}
+            onClick={() => pick(undefined)}
+            className="rounded-xl border border-dashed border-brand-cream-soft px-2 py-3 text-center text-xs text-zinc-400 transition hover:text-brand disabled:opacity-40"
+          >
+            Столсиз
+          </button>
         </div>
       </div>
     </div>
@@ -575,6 +666,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelErr, setCancelErr] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
   const [note, setNote] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
   const [online, setOnline] = useState(isOnline());
@@ -806,6 +898,14 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             </span>
           )}
           <button
+            onClick={() => setMoving(true)}
+            disabled={!online}
+            title={online ? "Бошқа столга кўчириш" : "Оффлайн — уланганда"}
+            className="grid h-9 w-9 place-items-center rounded-lg text-base text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+          >
+            ⇄
+          </button>
+          <button
             onClick={() => setCancelling((v) => !v)}
             disabled={!online}
             title={online ? "Заказни бекор қилиш" : "Оффлайн — уланганда"}
@@ -815,6 +915,22 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           </button>
         </div>
       </div>
+
+      {moving && (
+        <MoveSheet
+          onClose={() => setMoving(false)}
+          onMove={async (hallId, tableNo) => {
+            try {
+              await trpc.pos.moveTable.mutate({ id, hallId, tableNo });
+              setMoving(false);
+              onBack();
+            } catch {
+              setSyncErr("Кўчириш бажарилмади");
+              setMoving(false);
+            }
+          }}
+        />
+      )}
 
       {syncErr && (
         <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">⚠️ {syncErr} — синхронизация тўхтади.</div>

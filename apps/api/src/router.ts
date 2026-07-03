@@ -2239,6 +2239,77 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    // Стол кўчириш: очиқ заказни бошқа зал/столга. servicePct янги залдан олинади.
+    moveTable: protectedProcedure
+      .input(
+        z.object({
+          id: z.string().uuid(),
+          hallId: z.string().uuid(),
+          tableNo: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const hall = (
+          await db.select().from(halls).where(eq(halls.id, input.hallId)).limit(1)
+        )[0];
+        if (!hall) throw new TRPCError({ code: "NOT_FOUND", message: "Зал топилмади" });
+        const done = await db
+          .update(orders)
+          .set({ hallId: hall.id, tableNo: input.tableNo ?? null, servicePct: hall.servicePct })
+          .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
+          .returning({ id: orders.id });
+        if (!done.length) throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
+        return { ok: true };
+      }),
+
+    // Заказларни бирлаштириш: from → to. Итемлар (қиймати бирлашади) ва кухня
+    // тикетлари to'га кўчади; from "cancelled" бўлади (ўчирилмайди → аудит,
+    // cascade хавфи йўқ). Иккиси ҳам очиқ бўлиши шарт. Менежер/директор.
+    mergeOrders: managerProcedure
+      .input(z.object({ fromId: z.string().uuid(), toId: z.string().uuid() }))
+      .mutation(async ({ input }) => {
+        if (input.fromId === input.toId)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Бир хил заказ" });
+        return db.transaction(async (tx) => {
+          const [lockA, lockB] = [input.fromId, input.toId].sort();
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${lockA}))`);
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${lockB}))`);
+
+          // FOR UPDATE — параллел pos.close заказ қаторини қулфлаб турсин
+          // (мерге тугагунча ёпилмасин → item йўқолмасин).
+          const both = await tx
+            .select({ id: orders.id, status: orders.status })
+            .from(orders)
+            .where(inArray(orders.id, [input.fromId, input.toId]))
+            .for("update");
+          if (both.length !== 2 || both.some((o) => o.status !== "open"))
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Иккала заказ ҳам очиқ бўлиши шарт" });
+
+          const fromItems = await tx.select().from(orderItems).where(eq(orderItems.orderId, input.fromId));
+          const toItems = await tx.select().from(orderItems).where(eq(orderItems.orderId, input.toId));
+          const toByProduct = new Map(
+            toItems.filter((i) => i.productId).map((i) => [i.productId, i]),
+          );
+          for (const fi of fromItems) {
+            const match = fi.productId ? toByProduct.get(fi.productId) : undefined;
+            if (match) {
+              await tx.update(orderItems).set({ qty: match.qty + fi.qty }).where(eq(orderItems.id, match.id));
+              await tx.delete(orderItems).where(eq(orderItems.id, fi.id));
+            } else {
+              await tx.update(orderItems).set({ orderId: input.toId }).where(eq(orderItems.id, fi.id));
+            }
+          }
+          // Кухня тикетлари to'га (юборилган-миқдор назорати ҳам кўчади).
+          await tx.update(kitchenTickets).set({ orderId: input.toId }).where(eq(kitchenTickets.orderId, input.fromId));
+          // from — бўш cancelled шелл (ўчирилмайди: cascade йўқ, аудит қолади).
+          await tx
+            .update(orders)
+            .set({ status: "cancelled", closedAt: new Date(), note: `Бирлаштирилди → ${input.toId.slice(0, 5).toUpperCase()}` })
+            .where(eq(orders.id, input.fromId));
+          return { ok: true };
+        });
+      }),
+
     addItem: protectedProcedure
       .input(
         z.object({
