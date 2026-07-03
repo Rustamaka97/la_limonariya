@@ -356,6 +356,7 @@ function MenuTahlil() {
     return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
   };
   const [days, setDays] = useState(14);
+  const [reload, setReload] = useState(0);
   const [data, setData] = useState<{
     medQty: number;
     medMargin: number;
@@ -372,9 +373,9 @@ function MenuTahlil() {
       .then(setData)
       .catch(() => setErr(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days]);
+  }, [days, reload]);
 
-  if (err) return <ErrBox onRetry={() => setDays((d) => d)} />;
+  if (err) return <ErrBox onRetry={() => setReload((n) => n + 1)} />;
 
   return (
     <div className="space-y-4">
