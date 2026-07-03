@@ -10,4 +10,4 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 WORKDIR /repo/apps/api
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm exec tsx src/db/migrate.ts && pnpm exec tsx src/db/seed.ts && pnpm exec tsx src/db/import-catalog.ts && pnpm exec tsx src/db/import-recipes.ts && pnpm exec tsx src/db/import-parttypes.ts && pnpm exec tsx src/db/import-halls.ts && pnpm exec tsx src/db/seed-tables.ts && pnpm exec tsx src/db/seed-stock.ts && pnpm exec tsx src/index.ts"]
+CMD ["sh", "-c", "pnpm exec tsx src/db/migrate.ts && pnpm exec tsx src/db/seed.ts && pnpm exec tsx src/db/import-catalog.ts && pnpm exec tsx src/db/import-recipes.ts && pnpm exec tsx src/db/import-parttypes.ts && pnpm exec tsx src/db/import-halls.ts && pnpm exec tsx src/db/seed-tables.ts && pnpm exec tsx src/db/seed-stock.ts && pnpm exec tsx src/db/seed-gramnorm.ts && pnpm exec tsx src/index.ts"]
