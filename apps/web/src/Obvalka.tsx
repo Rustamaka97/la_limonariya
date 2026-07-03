@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import type { SessionUser } from "./App";
 import { trpc } from "./trpc";
 
 type PartType = {
@@ -35,7 +36,7 @@ type Result = {
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
 
-export function Obvalka() {
+export function Obvalka({ user }: { user: SessionUser }) {
   const [carcass, setCarcass] = useState<"qoy" | "mol">("qoy");
   const [weight, setWeight] = useState("");
   const [price, setPrice] = useState("");
@@ -127,6 +128,19 @@ export function Obvalka() {
           </button>
         ))}
       </div>
+
+      {["director", "manager"].includes(user.role) && (
+        <NormLearnPanel
+          carcass={carcass}
+          user={user}
+          onApplied={() =>
+            trpc.obvalka.partTypes
+              .query({ carcassType: carcass })
+              .then(setParts)
+              .catch(() => {})
+          }
+        />
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="Туша вазни (кг)">
@@ -302,6 +316,214 @@ function MarinadeForm() {
       >
         Маринад сақлаш
       </button>
+    </div>
+  );
+}
+
+type Suggestion = {
+  partTypeId: string;
+  name: string;
+  isWaste: boolean;
+  currentMin: number | null;
+  currentMax: number | null;
+  n: number;
+  median: number | null;
+  mad: number | null;
+  learnedMin: number | null;
+  learnedMax: number | null;
+  suggestedMin: number | null;
+  suggestedMax: number | null;
+  enough: boolean;
+  changed: boolean;
+  wouldWiden: boolean;
+  disjoint: boolean;
+};
+type SuggestResp = {
+  sampleCarcasses: number;
+  minSamples: number;
+  parts: Suggestion[];
+};
+
+// Ўз-ўзидан ўрганадиган норма: рестораннинг ЎЗ сўнгги тоза тушаларидан ҳар қисм
+// учун чиқиш% банди. Директор кўриб бир тугма билан қўллайди (авто-ёзмайди —
+// икки ёмон обвалка нормани "кенгайтириб", ўғирликни яшириб қўймасин).
+function NormLearnPanel({
+  carcass,
+  user,
+  onApplied,
+}: {
+  carcass: "qoy" | "mol";
+  user: SessionUser;
+  onApplied: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<SuggestResp | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const isDirector = user.role === "director";
+
+  useEffect(() => {
+    if (!open) return;
+    setBusy(true);
+    setMsg(null);
+    setData(null);
+    trpc.obvalka.normSuggestions
+      .query({ carcassType: carcass })
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setBusy(false));
+  }, [open, carcass]);
+
+  const changes = data?.parts.filter((p) => p.enough && p.changed) ?? [];
+
+  async function apply() {
+    if (!changes.length) return;
+    if (!confirm(`${changes.length} та қисм нормаси янгиланади. Давом этамизми?`))
+      return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await trpc.obvalka.applyNorms.mutate({
+        updates: changes.map((p) => ({
+          partTypeId: p.partTypeId,
+          normMinPct: p.suggestedMin!,
+          normMaxPct: p.suggestedMax!,
+        })),
+      });
+      setMsg(`✓ ${res.updated} норма янгиланди`);
+      onApplied();
+      setData(await trpc.obvalka.normSuggestions.query({ carcassType: carcass }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-indigo-200 bg-indigo-50/50">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-indigo-800"
+      >
+        <span>
+          🧠 Норма ўрганиш{" "}
+          <span className="text-xs font-normal text-indigo-400">
+            — сўнгги тоза тушалардан
+          </span>
+        </span>
+        <span className="text-indigo-400">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="space-y-3 border-t border-indigo-100 p-3">
+          {busy && !data && (
+            <div className="text-sm text-zinc-400">юкланмоқда…</div>
+          )}
+          {data && (
+            <>
+              <div className="text-xs text-zinc-500">
+                {data.sampleCarcasses} та тоза туша (кам-келтириш ±5% ичида) ·
+                норма = медиана ± MAD. Норма фақат{" "}
+                <b>торайтирилади</b> — детекция сусаймайди.
+                {data.sampleCarcasses < data.minSamples &&
+                  " — маълумот кам, ишончсиз."}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs text-zinc-400">
+                    <tr>
+                      <th className="py-1 pr-2 font-medium">Қисм</th>
+                      <th className="px-2 py-1 text-right font-medium">Жорий</th>
+                      <th className="px-2 py-1 text-right font-medium">
+                        Data
+                      </th>
+                      <th className="px-2 py-1 text-right font-medium">
+                        Янги банд
+                      </th>
+                      <th className="px-2 py-1 text-center font-medium">N</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-indigo-100">
+                    {data.parts.map((p) => (
+                      <tr
+                        key={p.partTypeId}
+                        className={p.enough && p.changed ? "bg-indigo-100/40" : ""}
+                      >
+                        <td className="py-1.5 pr-2">
+                          {p.name}
+                          {p.isWaste && (
+                            <span className="ml-1 text-xs text-zinc-300">
+                              чиқ.
+                            </span>
+                          )}
+                          {p.disjoint && (
+                            <span
+                              className="ml-1 text-xs text-red-500"
+                              title="Data жорий нормадан бутунлай ташқарида — текширинг"
+                            >
+                              ⚠
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums text-zinc-400">
+                          {p.currentMin != null
+                            ? `${p.currentMin}–${p.currentMax}%`
+                            : "—"}
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums text-zinc-400">
+                          {p.enough && p.learnedMin != null ? (
+                            <span title={`медиана ${p.median}%`}>
+                              {p.learnedMin}–{p.learnedMax}%
+                              {p.wouldWiden && (
+                                <span
+                                  className="ml-0.5 text-zinc-300"
+                                  title="Data кенгроқ — торайтирилмайди"
+                                >
+                                  🔒
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-300">
+                              кам ({p.n}/{data.minSamples})
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">
+                          {p.enough && p.changed ? (
+                            <span className="font-semibold text-indigo-700">
+                              {p.suggestedMin}–{p.suggestedMax}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5 text-center text-xs tabular-nums text-zinc-400">
+                          {p.n}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {msg && <div className="text-sm text-emerald-700">{msg}</div>}
+              {isDirector ? (
+                <button
+                  onClick={apply}
+                  disabled={busy || changes.length === 0}
+                  className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white disabled:opacity-40"
+                >
+                  {changes.length
+                    ? `${changes.length} қисм нормасини торайтириш`
+                    : "торайтириш йўқ"}
+                </button>
+              ) : (
+                <div className="text-xs text-zinc-400">
+                  Қўллашни директор бажаради.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

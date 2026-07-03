@@ -351,6 +351,27 @@ export const reprintLog = pgTable(
   (t) => [index("rl_created_idx").on(t.createdAt)],
 );
 
+// Норма ўзгариши журнали (immutable audit): ким, қачон, қайси қисм нормасини
+// нимадан-нимага ўзгартирди. Анти-ўғирлик назорати базасини ким ва қачон
+// ўзгартиргани изланиши учун.
+export const normChanges = pgTable(
+  "norm_changes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    partTypeId: uuid("part_type_id").references(() => partTypes.id),
+    oldMinPct: integer("old_min_pct"),
+    oldMaxPct: integer("old_max_pct"),
+    newMinPct: integer("new_min_pct"),
+    newMaxPct: integer("new_max_pct"),
+    source: text("source").notNull(), // "learned" | "manual"
+    changedById: uuid("changed_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("nc_created_idx").on(t.createdAt)],
+);
+
 export const paymentMethod = pgEnum("payment_method", [
   "cash",
   "card",

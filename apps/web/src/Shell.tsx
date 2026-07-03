@@ -142,7 +142,7 @@ export function Shell({
         {tab === "pos" && <Pos user={user} />}
         {tab === "chekQidirish" && <ChekQidirish />}
         {tab === "harid" && <Purchases />}
-        {tab === "obvalka" && <Obvalka />}
+        {tab === "obvalka" && <Obvalka user={user} />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}

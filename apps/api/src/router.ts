@@ -30,6 +30,7 @@ import {
   kitchenTicketItems,
   kitchenTickets,
   marinadeBatches,
+  normChanges,
   obvalka,
   obvalkaParts,
   orderItems,
@@ -52,6 +53,12 @@ import {
   voidedItems,
 } from "./db/schema";
 import { computeObvalka } from "./obvalka-calc";
+import {
+  bandsFromCarcasses,
+  intersectBand,
+  NORM_MIN_SAMPLES,
+  type CleanCarcass,
+} from "./obvalka-norms";
 import {
   type CheckData,
   printCheck,
@@ -1998,6 +2005,176 @@ export const appRouter = router({
           void sendTelegram(lines.join("\n"));
         }
         return { id: result.id };
+      }),
+
+    // Маълумотдан норма (data-informed): рестораннинг ЎЗ сўнгги тоза тушаларидан
+    // ҳар қисм учун чиқиш% банди (медиана ± MAD). ХАВФСИЗЛИК: банд фақат ТОРАЯДИ —
+    // директор қўлласа детекция кучаяди, ҳеч қачон сусаймайди (жорий/seed банд =
+    // ҳалол таянч; ўрганиш ундан кенгайтира олмайди). Тахминий эмас — тасдиқлаб.
+    normSuggestions: managerProcedure
+      .input(
+        z.object({
+          carcassType: z.enum(["qoy", "mol"]),
+          lastN: z.number().int().positive().max(200).optional(),
+        }),
+      )
+      .query(async ({ input }) => {
+        const N = input.lastN ?? 30;
+        const heads = await db
+          .select({ id: obvalka.id, weightG: obvalka.weightG })
+          .from(obvalka)
+          .where(eq(obvalka.carcassType, input.carcassType))
+          .orderBy(desc(obvalka.createdAt))
+          .limit(400);
+        const partsByObv = new Map<
+          string,
+          { partTypeId: string | null; weightG: number }[]
+        >();
+        if (heads.length) {
+          const partRows = await db
+            .select({
+              obvalkaId: obvalkaParts.obvalkaId,
+              partTypeId: obvalkaParts.partTypeId,
+              weightG: obvalkaParts.weightG,
+            })
+            .from(obvalkaParts)
+            .where(
+              inArray(
+                obvalkaParts.obvalkaId,
+                heads.map((h) => h.id),
+              ),
+            );
+          for (const r of partRows) {
+            const item = { partTypeId: r.partTypeId, weightG: r.weightG };
+            const a = partsByObv.get(r.obvalkaId);
+            if (a) a.push(item);
+            else partsByObv.set(r.obvalkaId, [item]);
+          }
+        }
+        // Newest-first, keep only carcasses that balance within ±5%, take N.
+        const clean: CleanCarcass[] = [];
+        for (const h of heads) {
+          const parts = partsByObv.get(h.id) ?? [];
+          const sum = parts.reduce((s, p) => s + p.weightG, 0);
+          const lossPct =
+            h.weightG > 0 ? ((h.weightG - sum) / h.weightG) * 100 : 0;
+          if (Math.abs(lossPct) <= 5) clean.push({ weightG: h.weightG, parts });
+          if (clean.length >= N) break;
+        }
+        const bands = bandsFromCarcasses(clean);
+        const pts = await db
+          .select({
+            id: partTypes.id,
+            name: partTypes.name,
+            isWaste: partTypes.isWaste,
+            normMinPct: partTypes.normMinPct,
+            normMaxPct: partTypes.normMaxPct,
+          })
+          .from(partTypes)
+          .where(eq(partTypes.carcassType, input.carcassType))
+          .orderBy(partTypes.sort);
+        return {
+          sampleCarcasses: clean.length,
+          minSamples: NORM_MIN_SAMPLES,
+          parts: pts.map((pt) => {
+            const b = bands.get(pt.id);
+            const enough = !!b && b.n >= NORM_MIN_SAMPLES;
+            // Effective (apply-able) band = learned ∩ current → never widens.
+            const eff = enough
+              ? intersectBand(
+                  { minPct: pt.normMinPct, maxPct: pt.normMaxPct },
+                  { minPct: b!.minPct, maxPct: b!.maxPct },
+                )
+              : null;
+            const changed =
+              !!eff &&
+              !eff.disjoint &&
+              (eff.minPct !== pt.normMinPct || eff.maxPct !== pt.normMaxPct);
+            return {
+              partTypeId: pt.id,
+              name: pt.name,
+              isWaste: pt.isWaste,
+              currentMin: pt.normMinPct,
+              currentMax: pt.normMaxPct,
+              n: b?.n ?? 0,
+              median: b?.median ?? null,
+              mad: b?.mad ?? null,
+              // Raw learned band (what the data alone says — shown for transparency).
+              learnedMin: b?.minPct ?? null,
+              learnedMax: b?.maxPct ?? null,
+              // Apply-able band (never wider than current).
+              suggestedMin: eff?.minPct ?? null,
+              suggestedMax: eff?.maxPct ?? null,
+              enough,
+              changed,
+              // Data пастроқ/юқорироқ диапазонни таклиф қилди, лекин ТОРАЙТИРИЛМАЙДИ.
+              wouldWiden: !!eff && eff.widerSides,
+              // Data жорий нормадан бутунлай ташқарида — кучли аномалия, текширинг.
+              disjoint: !!eff && eff.disjoint,
+            };
+          }),
+        };
+      }),
+
+    // Норма қўллаш (директор тасдиғи). ХАВФСИЗЛИК: сервер ҳам жорий банд билан
+    // кесиштиради → клиент кенгроқ банд юборса ҳам детекция сусаймайди. Ҳар
+    // ўзгариш norm_changes журналига ёзилади (ким, нимадан-нимага).
+    applyNorms: directorProcedure
+      .input(
+        z.object({
+          updates: z
+            .array(
+              z.object({
+                partTypeId: z.string().uuid(),
+                normMinPct: z.number().int().min(0),
+                normMaxPct: z.number().int().positive(),
+              }),
+            )
+            .min(1)
+            .max(100),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        let updated = 0;
+        await db.transaction(async (tx) => {
+          for (const u of input.updates) {
+            if (u.normMinPct > u.normMaxPct) continue;
+            const cur = (
+              await tx
+                .select({
+                  normMinPct: partTypes.normMinPct,
+                  normMaxPct: partTypes.normMaxPct,
+                })
+                .from(partTypes)
+                .where(eq(partTypes.id, u.partTypeId))
+                .limit(1)
+            )[0];
+            if (!cur) continue;
+            // Authoritative never-widen: clamp the requested band to within current.
+            const eff = intersectBand(
+              { minPct: cur.normMinPct, maxPct: cur.normMaxPct },
+              { minPct: u.normMinPct, maxPct: u.normMaxPct },
+            );
+            if (eff.disjoint) continue; // data wholly outside current — refuse
+            if (eff.minPct === cur.normMinPct && eff.maxPct === cur.normMaxPct)
+              continue; // no-op
+            await tx
+              .update(partTypes)
+              .set({ normMinPct: eff.minPct, normMaxPct: eff.maxPct })
+              .where(eq(partTypes.id, u.partTypeId));
+            await tx.insert(normChanges).values({
+              partTypeId: u.partTypeId,
+              oldMinPct: cur.normMinPct,
+              oldMaxPct: cur.normMaxPct,
+              newMinPct: eff.minPct,
+              newMaxPct: eff.maxPct,
+              source: "learned",
+              changedById: ctx.user.id,
+            });
+            updated++;
+          }
+        });
+        return { updated };
       }),
   }),
 
