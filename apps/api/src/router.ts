@@ -2652,6 +2652,121 @@ export const appRouter = router({
         .orderBy(products.type, products.name);
       return rows.map((r) => ({ ...r, onHand: Number(r.onHand) }));
     }),
+
+    // Омбор ораси кўчириш (Локация): net-zero жуфт ҳаракат — from'дан −, to'га +.
+    // Глобал қолдиққа таъсир қилмайди (икки музлаткич кунлик саноғи билан
+    // реконсиляция қилинади), фақат ким-нима-қаердан-қаерга кўчирганини ёзади.
+    transfer: managerProcedure
+      .input(
+        z.object({
+          productId: z.string().uuid(),
+          qty: z.number().positive(), // кўрсатиладиган бирликда (кг/дона/л)
+          fromStorage: z.enum(STORAGES),
+          toStorage: z.enum(STORAGES),
+          note: z.string().trim().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (input.fromStorage === input.toStorage)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Бир хил омбор танланди" });
+
+        const prod = (
+          await db
+            .select({ unit: products.unit })
+            .from(products)
+            .where(eq(products.id, input.productId))
+            .limit(1)
+        )[0];
+        if (!prod) throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
+
+        const factor = prod.unit === "kg" || prod.unit === "l" ? 1000 : 1;
+        const base = Math.round(input.qty * factor);
+        if (base <= 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Миқдор нотўғри" });
+        const baseUnit =
+          prod.unit === "dona" ? "dona" : prod.unit === "l" || prod.unit === "ml" ? "ml" : "g";
+
+        // мавжуд глобал қолдиқдан кўп кўчириб бўлмайди
+        const onHand = Number(
+          (
+            await db
+              .select({ s: sql<number>`coalesce(sum(${stockMovements.qty}), 0)` })
+              .from(stockMovements)
+              .where(eq(stockMovements.productId, input.productId))
+          )[0]?.s ?? 0,
+        );
+        if (base > onHand)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Қолдиқ етарли эмас (бор: ${onHand} ${baseUnit})`,
+          });
+
+        const refId = crypto.randomUUID();
+        const label = `${input.fromStorage}→${input.toStorage}`;
+        const note = input.note ? `${label} · ${input.note}` : label;
+        await db.insert(stockMovements).values([
+          {
+            productId: input.productId,
+            type: "transfer" as const,
+            qty: -base,
+            unit: baseUnit,
+            storage: input.fromStorage,
+            refType: "transfer",
+            refId,
+            note,
+            createdById: ctx.user.id,
+          },
+          {
+            productId: input.productId,
+            type: "transfer" as const,
+            qty: base,
+            unit: baseUnit,
+            storage: input.toStorage,
+            refType: "transfer",
+            refId,
+            note,
+            createdById: ctx.user.id,
+          },
+        ]);
+        return { ok: true };
+      }),
+
+    transfers: managerProcedure.query(async () => {
+      const rows = await db
+        .select({
+          refId: stockMovements.refId,
+          name: products.name,
+          unit: stockMovements.unit,
+          qty: stockMovements.qty,
+          storage: stockMovements.storage,
+          createdAt: stockMovements.createdAt,
+          by: users.name,
+        })
+        .from(stockMovements)
+        .leftJoin(products, eq(products.id, stockMovements.productId))
+        .leftJoin(users, eq(users.id, stockMovements.createdById))
+        .where(eq(stockMovements.type, "transfer"))
+        .orderBy(desc(stockMovements.createdAt))
+        .limit(100);
+
+      // жуфтни refId бўйича бирлаштириш: qty<0 = from, qty>0 = to
+      const byRef = new Map<
+        string,
+        { refId: string; name: string; unit: string; qty: number; from: string | null; to: string | null; createdAt: Date; by: string | null }
+      >();
+      for (const r of rows) {
+        if (!r.refId) continue;
+        const g =
+          byRef.get(r.refId) ??
+          { refId: r.refId, name: r.name ?? "?", unit: r.unit, qty: 0, from: null, to: null, createdAt: r.createdAt, by: r.by };
+        if (r.qty < 0) g.from = r.storage;
+        else {
+          g.to = r.storage;
+          g.qty = r.qty;
+        }
+        byRef.set(r.refId, g);
+      }
+      return [...byRef.values()].slice(0, 50);
+    }),
   }),
 
   purchase: router({

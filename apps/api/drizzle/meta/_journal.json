@@ -211,6 +211,13 @@
       "when": 1783078532538,
       "tag": "0029_owner_draw_expense",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1783079986304,
+      "tag": "0030_stock_storage_col",
+      "breakpoints": true
     }
   ]
 }

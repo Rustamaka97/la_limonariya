@@ -404,6 +404,9 @@ export const stockMovements = pgTable(
     type: movementType("type").notNull(),
     qty: integer("qty").notNull(),
     unit: productUnit("unit").notNull(),
+    // Локация (омбор) — ҳозирча фақат transfer ҳаракатлари тўлдиради (кўчириш
+    // қайси музлаткичдан-қайси музлаткичга). Бошқа ҳаракатларда null.
+    storage: text("storage"),
     refType: text("ref_type"),
     refId: uuid("ref_id"),
     note: text("note"),
