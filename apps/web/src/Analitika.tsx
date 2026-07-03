@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { trpc } from "./trpc";
+import { Skeleton, SkeletonCard, SkeletonRow } from "./Skeleton";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("ru-RU");
 const fmtDate = (s: string) => {
@@ -49,7 +50,7 @@ export function Analitika() {
   useEffect(() => { load(); }, []);
 
   if (err) return <ErrBox onRetry={load} />;
-  if (!d || !s) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!d || !s) return <AnalitikaSkeleton />;
 
   return (
     <div className="space-y-5">
@@ -297,6 +298,32 @@ function ErrBox({ onRetry }: { onRetry: () => void }) {
       <button onClick={onRetry} className="font-medium text-emerald-600 underline">
         Қайта уриниш
       </button>
+    </div>
+  );
+}
+
+function AnalitikaSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-xl border bg-white">
+            <div className="border-b px-4 py-2.5">
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="divide-y">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <SkeletonRow key={j} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

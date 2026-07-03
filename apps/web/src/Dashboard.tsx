@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { trpc } from "./trpc";
+import { Skeleton, SkeletonCard, SkeletonRow } from "./Skeleton";
+import { useCountUp } from "./lib/useCountUp";
 
 type ThinDish = {
   id: string;
@@ -98,7 +100,13 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
     }
   }
 
-  if (!s) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  const revenueToday = useCountUp(today?.revenueToday ?? 0);
+  const estProfit = useCountUp(today?.estProfit ?? 0);
+  const cashToday = useCountUp(today?.cashToday ?? 0);
+  const anomalyCount = useCountUp(today?.anomalyCount ?? 0);
+  const debtToday = useCountUp(today?.debtToday ?? 0);
+
+  if (!s) return <DashboardSkeleton />;
 
   const noMeat = s.meatCost.qoy === null && s.meatCost.mol === null;
 
@@ -111,12 +119,18 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
             <span className="text-xs text-zinc-400">жонли ҳолат</span>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <Big label="Тушум" value={fmt(today.revenueToday)} sub="so'm" accent />
-            <Big label="Фойда ~" value={fmt(today.estProfit)} sub={`тахминий · COGS ${Math.round(today.estCogsPct * 100)}%`} accent={today.estProfit >= 0} danger={today.estProfit < 0} />
-            <Big label="Нақд" value={fmt(today.cashToday)} sub="so'm" />
+            <Big label="Тушум" value={fmt(revenueToday)} sub="so'm" accent />
+            <Big label="Фойда ~" value={fmt(estProfit)} sub={`тахминий · COGS ${Math.round(today.estCogsPct * 100)}%`} accent={today.estProfit >= 0} danger={today.estProfit < 0} />
+            <Big label="Нақд" value={fmt(cashToday)} sub="so'm" />
             <Big label="Очиқ столлар" value={String(today.openTables)} sub={today.openValue ? `${fmt(today.openValue)} so'm` : "бўш"} />
-            <Big label="Аномалия" value={String(today.anomalyCount)} sub={today.lowStock ? `${today.lowStock} кам қолдиқ` : "белги"} danger={today.anomalyCount > 0} />
-            <Big label="Қарз" value={fmt(today.debtToday)} sub={`етк. ${fmt(today.supplierDebt)} · меҳ. ${fmt(today.guestDebt)}`} danger={today.debtToday > 0} />
+            <Big
+              label="Аномалия"
+              value={String(anomalyCount)}
+              sub={today.lowStock ? `${today.lowStock} кам қолдиқ` : "белги"}
+              danger={today.anomalyCount > 0}
+              className={today.anomalyCount > 0 ? "animate-anomaly-glow" : ""}
+            />
+            <Big label="Қарз" value={fmt(debtToday)} sub={`етк. ${fmt(today.supplierDebt)} · меҳ. ${fmt(today.guestDebt)}`} danger={today.debtToday > 0} />
           </div>
         </div>
       )}
@@ -264,9 +278,9 @@ const AUDIT_LABEL: Record<string, string> = {
   "expense.delete": "🗑️ Харажат ўчди",
 };
 
-function Big({ label, value, sub, accent, danger }: { label: string; value: string; sub?: string; accent?: boolean; danger?: boolean }) {
+function Big({ label, value, sub, accent, danger, className }: { label: string; value: string; sub?: string; accent?: boolean; danger?: boolean; className?: string }) {
   return (
-    <div className={`rounded-xl border p-3 ${danger ? "border-red-200 bg-red-50" : accent ? "border-green-200 bg-green-50" : "bg-white"}`}>
+    <div className={`rounded-xl border p-3 ${danger ? "border-red-200 bg-red-50" : accent ? "border-green-200 bg-green-50" : "bg-white"} ${className ?? ""}`}>
       <div className="text-xs text-zinc-500">{label}</div>
       <div className={`mt-0.5 text-xl font-bold tabular-nums ${danger ? "text-red-600" : accent ? "text-green-700" : ""}`}>{value}</div>
       {sub && <div className="text-xs text-zinc-400">{sub}</div>}
@@ -288,4 +302,35 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 
 function Empty({ children }: { children: ReactNode }) {
   return <div className="px-4 py-8 text-center text-sm text-zinc-400">{children}</div>;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-xl border bg-white">
+            <div className="border-b px-4 py-2.5">
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="divide-y">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <SkeletonRow key={j} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

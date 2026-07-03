@@ -32,18 +32,18 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
   }
 
   const key =
-    "rounded-2xl bg-brand-soft py-4 text-2xl font-semibold active:bg-brand disabled:opacity-40";
+    "rounded-2xl bg-brand-soft py-4 text-2xl font-mono font-semibold transition-transform active:bg-brand active:scale-95 disabled:opacity-40";
 
   return (
     <main className="grid min-h-dvh place-items-center bg-brand-deep text-white">
       <div className="w-full max-w-xs space-y-8 px-6 text-center">
-        <div>
+        <div className="animate-brand-fade">
           <img
-            src={BRAND.logoSmall}
+            src="/brand/logo-320.png"
             alt=""
-            className="mx-auto mb-3 h-16 w-16 rounded-full object-cover ring-2 ring-brand-gold/40"
+            className="mx-auto mb-3 h-32 w-32 rounded-full object-cover ring-4 ring-brand-gold/40 shadow-[0_0_24px_rgba(243,183,89,0.35)]"
           />
-          <h1 className="text-2xl font-bold">{BRAND.name}</h1>
+          <h1 className="font-display text-2xl font-bold">{BRAND.name}</h1>
           <p className="mt-1 text-sm text-brand-cream-soft/70">PIN кодни киритинг</p>
         </div>
 
@@ -75,7 +75,7 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
               setPin((p) => p.slice(0, -1));
             }}
             disabled={busy}
-            className="rounded-2xl py-4 text-2xl active:bg-brand-soft disabled:opacity-40"
+            className="rounded-2xl py-4 text-2xl transition-transform active:bg-brand-soft active:scale-95 disabled:opacity-40"
           >
             ⌫
           </button>

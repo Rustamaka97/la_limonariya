@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { downloadCsv } from "./lib/csv";
 import { trpc } from "./trpc";
+import { Skeleton, SkeletonCard, SkeletonRow } from "./Skeleton";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("ru-RU");
 
@@ -119,7 +120,7 @@ function Trend() {
   useEffect(load, []);
 
   if (err) return <ErrBox onRetry={load} />;
-  if (!data) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!data) return <TrendSkeleton />;
   const { rows, breakEvenHint } = data;
 
   const max = Math.max(1, ...rows.map((r) => r.revenue));
@@ -177,7 +178,7 @@ function Category({ from, to }: { from: string; to: string }) {
   useEffect(load, [from, to]);
 
   if (err) return <ErrBox onRetry={load} />;
-  if (!rows) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!rows) return <ListSkeleton />;
 
   return (
     <div className="space-y-3">
@@ -234,7 +235,7 @@ function TopDishes({ from, to }: { from: string; to: string }) {
       {err ? (
         <ErrBox onRetry={load} />
       ) : !rows ? (
-        <div className="p-6 text-center text-zinc-400">⏳</div>
+        <TableSkeleton />
       ) : (
         <div className="overflow-hidden rounded-xl border bg-white">
           {rows.length === 0 ? (
@@ -285,7 +286,7 @@ function Waiters({ from, to }: { from: string; to: string }) {
   useEffect(load, [from, to]);
 
   if (err) return <ErrBox onRetry={load} />;
-  if (!rows) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!rows) return <ListSkeleton />;
 
   return (
     <div className="space-y-3">
@@ -326,7 +327,7 @@ function Cashiers({ from, to }: { from: string; to: string }) {
   useEffect(load, [from, to]);
 
   if (err) return <ErrBox onRetry={load} />;
-  if (!rows) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!rows) return <TableSkeleton />;
 
   return (
     <div className="space-y-3">
@@ -387,7 +388,7 @@ function Matrix({ from, to }: { from: string; to: string }) {
   useEffect(load, [from, to]);
 
   if (err) return <ErrBox onRetry={load} />;
-  if (!data) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!data) return <TableSkeleton />;
   if (!data.rows.length) return <div className="p-6 text-center text-sm text-zinc-400">бу даврда ҳаракат йўқ</div>;
 
   const csvRows = data.rows.flatMap((r) => r.cells.map((c) => ({ маҳсулот: r.name, сана: c.date, приход: c.in, расход: c.out, остаток: c.close })));
@@ -434,6 +435,43 @@ function Matrix({ from, to }: { from: string; to: string }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function TrendSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <div className="space-y-2 rounded-xl border bg-white p-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-5 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border bg-white">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <SkeletonRow key={i} />
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border bg-white">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <SkeletonRow key={i} />
+      ))}
     </div>
   );
 }
