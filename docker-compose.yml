@@ -20,12 +20,15 @@ services:
     build:
       context: .
       dockerfile: docker/api.Dockerfile
+    image: limonariya-api
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://limon:${POSTGRES_PASSWORD:-limon_dev}@postgres:5432/limonariya
       PORT: 3000
       PIN_PEPPER: ${PIN_PEPPER:-dev-pepper-change-me}
       BOOTSTRAP_DIRECTOR_PIN: ${BOOTSTRAP_DIRECTOR_PIN:-1234}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_IDS: ${TELEGRAM_CHAT_IDS:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,6 +37,7 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
+    image: limonariya-web
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:80"

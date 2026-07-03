@@ -1,7 +1,20 @@
 import { useEffect, useState } from "react";
+import { downloadCsv } from "./lib/csv";
 import { trpc } from "./trpc";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("ru-RU");
+
+function CsvBtn({ rows, name }: { rows: Record<string, unknown>[]; name: string }) {
+  if (!rows.length) return null;
+  return (
+    <button
+      onClick={() => downloadCsv(`${name}.csv`, rows)}
+      className="rounded-lg border px-3 py-1.5 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
+    >
+      ⬇ CSV
+    </button>
+  );
+}
 const pad = (n: number) => String(n).padStart(2, "0");
 function todayBiz(): string {
   const n = new Date();
@@ -155,7 +168,11 @@ function Category({ from, to }: { from: string; to: string }) {
   if (!rows) return <div className="p-6 text-center text-zinc-400">⏳</div>;
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-white">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <CsvBtn rows={rows} name="категория" />
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-white">
       {rows.length === 0 ? (
         <div className="px-4 py-8 text-center text-sm text-zinc-400">бу даврда савдо йўқ</div>
       ) : (
@@ -172,6 +189,7 @@ function Category({ from, to }: { from: string; to: string }) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -198,6 +216,7 @@ function TopDishes({ from, to }: { from: string; to: string }) {
         <button onClick={() => setBy("qty")} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${by === "qty" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"}`}>
           Сотув бўйича
         </button>
+        <span className="ml-auto">{rows && <CsvBtn rows={rows} name="топ-таомлар" />}</span>
       </div>
       <p className="text-xs text-zinc-400">Фойда жорий гўшт нархи асосида тахминланади (тарихий эмас)</p>
       {err ? (
@@ -257,7 +276,11 @@ function Waiters({ from, to }: { from: string; to: string }) {
   if (!rows) return <div className="p-6 text-center text-zinc-400">⏳</div>;
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-white">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <CsvBtn rows={rows} name="официантлар" />
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-white">
       {rows.length === 0 ? (
         <div className="px-4 py-8 text-center text-sm text-zinc-400">бу даврда савдо йўқ</div>
       ) : (
@@ -273,6 +296,7 @@ function Waiters({ from, to }: { from: string; to: string }) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
