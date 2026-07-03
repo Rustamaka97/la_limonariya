@@ -4446,6 +4446,68 @@ export const appRouter = router({
           }))
           .sort((a, b) => b.revenue - a.revenue);
       }),
+
+    // Эга'нинг Excel'и: ҳар маҳсулот × ҳар кун — приход / расход / остаток.
+    // stock_movements'дан ҳосил (06:00 бизнес-кун чегараси). Faqat ҳаракатли/қолдиқли.
+    stockMatrix: managerProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const dkey = (t: Date) =>
+          `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+        const { endUTC } = businessRangeBounds(input.from, input.to);
+        const startUTC = businessDayBounds(input.from).startUTC;
+        const days: string[] = [];
+        for (let d = new Date(startUTC); d < endUTC; d = new Date(d.getTime() + 24 * 3600 * 1000))
+          days.push(dkey(d)); // d = 01:00 UTC ҳар кун → санаси = бизнес-кун калити
+
+        const opening = await db
+          .select({
+            productId: stockMovements.productId,
+            s: sql<number>`coalesce(sum(${stockMovements.qty}), 0)`,
+          })
+          .from(stockMovements)
+          .where(lt(stockMovements.createdAt, startUTC))
+          .groupBy(stockMovements.productId);
+        const openMap = new Map(opening.map((o) => [o.productId, Number(o.s)]));
+
+        const movs = await db
+          .select({
+            productId: stockMovements.productId,
+            qty: stockMovements.qty,
+            createdAt: stockMovements.createdAt,
+          })
+          .from(stockMovements)
+          .where(and(gte(stockMovements.createdAt, startUTC), lt(stockMovements.createdAt, endUTC)));
+        // ҳаракат кун калити = createdAt − 1соат нинг UTC санаси (01:00 чегарасига мос).
+        const cell = new Map<string, { in: number; out: number }>();
+        for (const m of movs) {
+          const k = `${m.productId}|${dkey(new Date(m.createdAt.getTime() - 3600 * 1000))}`;
+          const c = cell.get(k) ?? { in: 0, out: 0 };
+          if (m.qty > 0) c.in += m.qty;
+          else c.out += -m.qty;
+          cell.set(k, c);
+        }
+
+        const prods = await stockableOnHand();
+        const rows = prods
+          .filter((p) => openMap.get(p.id) || days.some((d) => cell.has(`${p.id}|${d}`)))
+          .map((p) => {
+            let close = openMap.get(p.id) ?? 0;
+            const cells = days.map((d) => {
+              const c = cell.get(`${p.id}|${d}`) ?? { in: 0, out: 0 };
+              close += c.in - c.out;
+              return { date: d, in: c.in, out: c.out, close };
+            });
+            return { productId: p.id, name: p.name, unit: p.unit, cells };
+          });
+        return { days, rows };
+      }),
   }),
 });
 

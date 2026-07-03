@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { downloadCsv } from "./lib/csv";
 import { trpc } from "./trpc";
 
@@ -31,7 +31,7 @@ function fmtShort(dayKey: string): string {
   return `${d}.${m}`;
 }
 
-type Sub = "trend" | "category" | "dishes" | "waiters" | "cashiers";
+type Sub = "trend" | "category" | "dishes" | "waiters" | "cashiers" | "matrix";
 
 export function Hisobot() {
   const [sub, setSub] = useState<Sub>("trend");
@@ -44,6 +44,7 @@ export function Hisobot() {
     { k: "dishes", label: "Топ таомлар" },
     { k: "waiters", label: "Официантлар" },
     { k: "cashiers", label: "Кассирлар" },
+    { k: "matrix", label: "Ҳаракат" },
   ];
 
   const quick = (n: number) => {
@@ -82,6 +83,7 @@ export function Hisobot() {
       {sub === "dishes" && <TopDishes from={from} to={to} />}
       {sub === "waiters" && <Waiters from={from} to={to} />}
       {sub === "cashiers" && <Cashiers from={from} to={to} />}
+      {sub === "matrix" && <Matrix from={from} to={to} />}
     </div>
   );
 }
@@ -351,6 +353,78 @@ function Cashiers({ from, to }: { from: string; to: string }) {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+type MatrixCell = { date: string; in: number; out: number; close: number };
+type MatrixData = { days: string[]; rows: { productId: string; name: string; unit: string; cells: MatrixCell[] }[] };
+
+const uq = (base: number, unit: string) => {
+  if (unit === "dona") return String(base);
+  const liquid = unit === "l" || unit === "ml";
+  return Math.abs(base) >= 1000 ? (base / 1000).toFixed(1) + (liquid ? "л" : "") : String(base) + (liquid ? "мл" : "г");
+};
+const dmd = (d: string) => d.slice(5); // MM-DD
+
+function Matrix({ from, to }: { from: string; to: string }) {
+  const [data, setData] = useState<MatrixData | null>(null);
+  const [err, setErr] = useState(false);
+  function load() {
+    setErr(false);
+    setData(null);
+    trpc.report.stockMatrix.query({ from, to }).then(setData).catch(() => setErr(true));
+  }
+  useEffect(load, [from, to]);
+
+  if (err) return <ErrBox onRetry={load} />;
+  if (!data) return <div className="p-6 text-center text-zinc-400">⏳</div>;
+  if (!data.rows.length) return <div className="p-6 text-center text-sm text-zinc-400">бу даврда ҳаракат йўқ</div>;
+
+  const csvRows = data.rows.flatMap((r) => r.cells.map((c) => ({ маҳсулот: r.name, сана: c.date, приход: c.in, расход: c.out, остаток: c.close })));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-zinc-400">Приход / Расход / Остаток — ҳар маҳсулот, ҳар кун (кг/дона)</p>
+        <CsvBtn rows={csvRows} name="ҳаракат-жадвали" />
+      </div>
+      <div className="overflow-x-auto rounded-xl border bg-white">
+        <table className="text-xs">
+          <thead className="bg-zinc-50 text-zinc-500">
+            <tr>
+              <th className="sticky left-0 z-10 bg-zinc-50 px-3 py-2 text-left font-medium">Маҳсулот</th>
+              {data.days.map((d) => (
+                <th key={d} className="px-2 py-2 text-center font-medium" colSpan={3}>{dmd(d)}</th>
+              ))}
+            </tr>
+            <tr className="text-[10px] text-zinc-400">
+              <th className="sticky left-0 z-10 bg-zinc-50" />
+              {data.days.map((d) => (
+                <Fragment key={d}>
+                  <th className="px-1 py-1 text-right font-normal text-emerald-600">+</th>
+                  <th className="px-1 py-1 text-right font-normal text-red-500">−</th>
+                  <th className="px-1.5 py-1 text-right font-medium">ост</th>
+                </Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {data.rows.map((r) => (
+              <tr key={r.productId}>
+                <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-1.5 font-medium">{r.name}</td>
+                {r.cells.map((c) => (
+                  <Fragment key={c.date}>
+                    <td className="px-1 py-1.5 text-right tabular-nums text-emerald-600">{c.in ? uq(c.in, r.unit) : ""}</td>
+                    <td className="px-1 py-1.5 text-right tabular-nums text-red-500">{c.out ? uq(c.out, r.unit) : ""}</td>
+                    <td className={`px-1.5 py-1.5 text-right tabular-nums font-medium ${c.close < 0 ? "text-red-600" : ""}`}>{uq(c.close, r.unit)}</td>
+                  </Fragment>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
