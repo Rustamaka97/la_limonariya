@@ -10,3 +10,7 @@ docker-compose.override.yml
 # device password 11111) + customer/staff PII. Local seed source only, do NOT commit.
 docs/clopos-api/
 .gstack/
+
+# Шифрланган бэкаплар — репога кирмайди
+backups/
+*.sql.gz.enc
