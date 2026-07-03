@@ -234,7 +234,74 @@ export function Obvalka() {
         Ҳисоблаш ва сақлаш
       </button>
 
+      <MarinadeForm />
+
       <style>{`.num{width:100%;border:1px solid #e4e4e7;border-radius:.6rem;padding:.55rem .75rem;text-align:right;font-variant-numeric:tabular-nums;outline:none}.num:focus{border-color:#22c55e}`}</style>
+    </div>
+  );
+}
+
+// Маринад партияси: хом лаҳм → маринадланган гўшт (сих грамм назорати учун).
+function MarinadeForm() {
+  const GROWTH: Record<"qoy" | "mol", number> = { qoy: 15, mol: 13 };
+  const [ct, setCt] = useState<"qoy" | "mol">("qoy");
+  const [rawKg, setRawKg] = useState("");
+  const [growth, setGrowth] = useState("15");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+
+  const rawG = Math.round((parseFloat(rawKg) || 0) * 1000);
+  const g = parseInt(growth || "0", 10) || 0;
+  const marinatedG = Math.round(rawG * (1 + g / 100));
+
+  async function submit() {
+    if (rawG <= 0) return;
+    setBusy(true);
+    setDone(null);
+    try {
+      await trpc.marinade.create.mutate({ carcassType: ct, rawG, growthPct: g });
+      setDone(`${(rawG / 1000).toFixed(1)} кг хом → ${(marinatedG / 1000).toFixed(1)} кг маринад`);
+      setRawKg("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+      <div className="text-sm font-semibold text-zinc-700">🍢 Маринад партияси</div>
+      <div className="inline-flex rounded-lg border bg-white p-0.5">
+        {(["qoy", "mol"] as const).map((c) => (
+          <button
+            key={c}
+            onClick={() => { setCt(c); setGrowth(String(GROWTH[c])); }}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium ${ct === c ? "bg-zinc-900 text-white" : "text-zinc-500"}`}
+          >
+            {c === "qoy" ? "Қўй" : "Мол"}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Хом лаҳм (кг)">
+          <input inputMode="decimal" value={rawKg} onChange={(e) => setRawKg(e.target.value)} className="num" placeholder="0" />
+        </Field>
+        <Field label="Маринад ўсиши (%)">
+          <input inputMode="numeric" value={growth} onChange={(e) => setGrowth(e.target.value.replace(/\D/g, ""))} className="num" placeholder="15" />
+        </Field>
+      </div>
+      {rawG > 0 && (
+        <div className="text-sm text-zinc-600">
+          → маринад: <b className="tabular-nums">{(marinatedG / 1000).toFixed(1)}</b> кг
+        </div>
+      )}
+      {done && <div className="text-sm text-emerald-700">✓ {done}</div>}
+      <button
+        onClick={submit}
+        disabled={busy || rawG <= 0}
+        className="w-full rounded-xl bg-amber-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+      >
+        Маринад сақлаш
+      </button>
     </div>
   );
 }

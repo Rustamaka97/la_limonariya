@@ -12,6 +12,7 @@ export type Product = {
   price: number;
   costPrice: number | null;
   soldByWeight: boolean;
+  gramNorm?: number | null;
   active: boolean;
   categoryId: string | null;
   stationId: string | null;
@@ -299,6 +300,7 @@ export function ProductModal({
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [stationId, setStationId] = useState(product?.stationId ?? "");
   const [soldByWeight, setSoldByWeight] = useState(product?.soldByWeight ?? false);
+  const [gramNorm, setGramNorm] = useState(product?.gramNorm != null ? String(product.gramNorm) : "");
   const [active, setActive] = useState(product?.active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -347,6 +349,7 @@ export function ProductModal({
           categoryId: categoryId || null,
           stationId: stationId || null,
           soldByWeight,
+          gramNorm: gramNorm ? Math.round(Number(gramNorm)) : null,
           active,
         });
       } else {
@@ -358,6 +361,7 @@ export function ProductModal({
           categoryId: categoryId || undefined,
           stationId: stationId || undefined,
           soldByWeight,
+          gramNorm: gramNorm ? Math.round(Number(gramNorm)) : undefined,
         });
         productId = created.id;
       }
@@ -456,6 +460,17 @@ export function ProductModal({
         <label className="flex items-center gap-2 text-sm text-zinc-600">
           <input type="checkbox" checked={soldByWeight} onChange={(e) => setSoldByWeight(e.target.checked)} />
           Оғирлик бўйича сотилади (масалан, балиқ)
+        </label>
+
+        <label className="block text-sm text-zinc-600">
+          1 сихга гўшт (г) — сих грамм назорати учун (ихтиёрий)
+          <input
+            inputMode="numeric"
+            value={gramNorm}
+            onChange={(e) => setGramNorm(e.target.value.replace(/\D/g, ""))}
+            placeholder="масалан 140 (шашлик)"
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm tabular-nums outline-none focus:border-brand"
+          />
         </label>
 
         {isRecipeType && (

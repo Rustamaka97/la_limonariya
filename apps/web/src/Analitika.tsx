@@ -32,6 +32,7 @@ type Signals = {
   compFlag: boolean;
   staleOrders: { id: string; tableNo: string | null; hall: string | null; waiter: string | null; createdAt: string; minutesOpen: number }[];
   underDelivery: { id: string; carcassType: string; weightG: number; sumPartsG: number; lossPct: number; missingG: number; missingCost: number; shortReason: string | null; supplier: string | null; createdAt: string }[];
+  grammLeak: { carcassType: string; marinatedG: number; soldSikh: number; usedG: number; expectedSikh: number; leakG: number; leakPct: number; flag: boolean }[];
 };
 
 export function Analitika() {
@@ -183,6 +184,30 @@ export function Analitika() {
             </div>
             {s.compFlag && <p className="mt-2 text-xs text-red-600">🔴 кунлик лимитдан ошди (500 000)</p>}
           </div>
+        </Section>
+
+        <Section title="🍢 Сих грамм оқмаси" hint="маринад vs сотилган сих">
+          {s.grammLeak.length === 0 ? (
+            <Empty>маринад партияси йўқ</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.grammLeak.map((g) => (
+                <li key={g.carcassType} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>
+                    <span className="font-medium">{g.carcassType === "qoy" ? "Қўй" : "Мол"}</span>{" "}
+                    <span className="text-zinc-400">
+                      маринад {(g.marinatedG / 1000).toFixed(1)}кг · сотилди {g.soldSikh} сих
+                    </span>
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs tabular-nums ${g.flag ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
+                  >
+                    {g.flag ? "🔴" : "🟢"} {g.leakG > 0 ? "−" : "+"}{Math.abs(g.leakG / 1000).toFixed(1)}кг · {g.leakPct}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
 
         <Section title="🚩 Кам келтириш" hint="харид − обвалка > 5%">

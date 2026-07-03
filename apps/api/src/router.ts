@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
@@ -22,6 +22,7 @@ import {
   inventoryItems,
   kitchenTicketItems,
   kitchenTickets,
+  marinadeBatches,
   obvalka,
   obvalkaParts,
   orderItems,
@@ -426,6 +427,7 @@ const THIN_MARGIN_PCT = 60;
 const MEAT_PRICE_SPIKE_PCT = 1.15;
 const COMP_DAILY_CAP = 500_000; // owner-stated daily текин/ходим volume limit
 const STALE_ORDER_MINUTES = 90; // open table this long with no close → possible walked-out guest
+const GRAMM_LEAK_TOLERANCE_PCT = 5; // маринад vs сотилган сих: >5% фарқ → грамм оқмаси
 
 async function computeSignals() {
   const recentObv = await db
@@ -649,6 +651,76 @@ async function computeSignals() {
     minutesOpen: Math.floor((Date.now() - r.createdAt.getTime()) / 60_000),
   }));
 
+  // ── Сих грамм-оқма сигнали (M3): маринадланган гўшт (кг) vs сотилган сих ──
+  // Ошпаз ҳар сихга нормадан кўп гўшт қўйса (ёки сих йўқолса), маринад кўп,
+  // сотилган сих кам → оқма. Кунлик дарча, faqat qoy/mol лаҳм (товуқ/помидор
+  // алоҳида омбор — киритилмайди).
+  const marRows = await db
+    .select({ carcassType: marinadeBatches.carcassType, marinatedG: marinadeBatches.marinatedG })
+    .from(marinadeBatches)
+    .where(and(gte(marinadeBatches.createdAt, startUTC), lt(marinadeBatches.createdAt, endUTC)));
+  const marinated: Record<"qoy" | "mol", number> = { qoy: 0, mol: 0 };
+  for (const m of marRows) marinated[m.carcassType] += m.marinatedG;
+
+  // productId → carcassType (рецепт гўшт stockHint'идан)
+  const meatHints = await db
+    .select({ productId: recipes.productId, stockHint: recipeItems.stockHint })
+    .from(recipeItems)
+    .innerJoin(recipes, eq(recipeItems.recipeId, recipes.id))
+    .where(isNotNull(recipes.productId));
+  const prodCarcass = new Map<string, "qoy" | "mol">();
+  for (const h of meatHints) {
+    if (!h.productId) continue;
+    const s = h.stockHint ?? "";
+    if (/мол/i.test(s)) prodCarcass.set(h.productId, "mol");
+    else if (/қўй|қуй|куй/i.test(s)) prodCarcass.set(h.productId, "qoy");
+  }
+
+  const soldRows = await db
+    .select({ productId: orderItems.productId, qty: orderItems.qty, gramNorm: products.gramNorm })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(products, eq(orderItems.productId, products.id))
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        isNotNull(products.gramNorm),
+        gte(orders.closedAt, startUTC),
+        lt(orders.closedAt, endUTC),
+      ),
+    );
+  const sold: Record<"qoy" | "mol", { qty: number; usedG: number }> = {
+    qoy: { qty: 0, usedG: 0 },
+    mol: { qty: 0, usedG: 0 },
+  };
+  for (const r of soldRows) {
+    const ct = r.productId ? prodCarcass.get(r.productId) : undefined;
+    if (!ct || r.gramNorm == null) continue;
+    sold[ct].qty += r.qty;
+    sold[ct].usedG += r.qty * r.gramNorm;
+  }
+
+  const grammLeak = (["qoy", "mol"] as const)
+    .map((ct) => {
+      const marinatedG = marinated[ct];
+      const { qty: soldSikh, usedG } = sold[ct];
+      const avgNormG = soldSikh > 0 ? Math.round(usedG / soldSikh) : 0;
+      const expectedSikh = avgNormG > 0 ? Math.round(marinatedG / avgNormG) : 0;
+      const leakG = marinatedG - usedG;
+      const leakPct = marinatedG > 0 ? Math.round((leakG / marinatedG) * 100) : 0;
+      return {
+        carcassType: ct,
+        marinatedG,
+        soldSikh,
+        usedG,
+        expectedSikh,
+        leakG,
+        leakPct,
+        flag: marinatedG > 0 && Math.abs(leakPct) > GRAMM_LEAK_TOLERANCE_PCT,
+      };
+    })
+    .filter((g) => g.marinatedG > 0 || g.soldSikh > 0);
+
   return {
     obvalkaFlags,
     thinDishes,
@@ -662,6 +734,7 @@ async function computeSignals() {
     compFlag,
     staleOrders,
     underDelivery,
+    grammLeak,
   };
 }
 
@@ -1267,6 +1340,7 @@ export const appRouter = router({
             categoryId: z.string().uuid().optional(),
             stationId: z.string().uuid().optional(),
             soldByWeight: z.boolean().optional(),
+            gramNorm: z.number().int().positive().nullable().optional(),
           }),
         )
         .mutation(async ({ input }) => {
@@ -1281,6 +1355,7 @@ export const appRouter = router({
                 categoryId: input.categoryId ?? null,
                 stationId: input.stationId ?? null,
                 soldByWeight: input.soldByWeight ?? false,
+                gramNorm: input.gramNorm ?? null,
               })
               .returning({ id: products.id })
           )[0];
@@ -1298,6 +1373,7 @@ export const appRouter = router({
             categoryId: z.string().uuid().nullable().optional(),
             stationId: z.string().uuid().nullable().optional(),
             soldByWeight: z.boolean().optional(),
+            gramNorm: z.number().int().positive().nullable().optional(),
             active: z.boolean().optional(),
           }),
         )
@@ -1321,6 +1397,7 @@ export const appRouter = router({
                 price: products.price,
                 costPrice: products.costPrice,
                 soldByWeight: products.soldByWeight,
+                gramNorm: products.gramNorm,
                 active: products.active,
                 categoryId: products.categoryId,
                 stationId: products.stationId,
@@ -1704,6 +1781,74 @@ export const appRouter = router({
           return { id: row.id };
         });
       }),
+  }),
+
+  // Маринад партияси (M3): хом лаҳм омбордан чиқади, маринадланган гўшт чиқади.
+  // Сих грамм-оқма сигнали шу партиялардан ҳисобланади (computeSignals.grammLeak).
+  marinade: router({
+    create: managerProcedure
+      .input(
+        z.object({
+          carcassType: z.enum(["qoy", "mol"]),
+          rawG: z.number().int().positive(),
+          growthPct: z.number().int().min(0).max(50),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const marinatedG = Math.round(input.rawG * (1 + input.growthPct / 100));
+        return db.transaction(async (tx) => {
+          const carcassName = input.carcassType === "mol" ? "Мол лаҳм" : "Қўй лаҳм";
+          const cp = (
+            await tx
+              .select({ id: products.id })
+              .from(products)
+              .where(eq(products.name, carcassName))
+              .limit(1)
+          )[0];
+          const batch = (
+            await tx
+              .insert(marinadeBatches)
+              .values({
+                carcassType: input.carcassType,
+                rawG: input.rawG,
+                growthPct: input.growthPct,
+                marinatedG,
+                note: input.note ?? null,
+                createdById: ctx.user.id,
+              })
+              .returning({ id: marinadeBatches.id })
+          )[0];
+          if (!batch) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+          // Хом лаҳм омбордан чиқади (production): pooled лаҳм камаяди.
+          if (cp)
+            await tx.insert(stockMovements).values({
+              productId: cp.id,
+              type: "production",
+              qty: -input.rawG,
+              unit: "g",
+              refType: "marinade",
+              refId: batch.id,
+              createdById: ctx.user.id,
+            });
+          return { id: batch.id, marinatedG };
+        });
+      }),
+
+    list: protectedProcedure.query(async () => {
+      return db
+        .select({
+          id: marinadeBatches.id,
+          carcassType: marinadeBatches.carcassType,
+          rawG: marinadeBatches.rawG,
+          growthPct: marinadeBatches.growthPct,
+          marinatedG: marinadeBatches.marinatedG,
+          createdAt: marinadeBatches.createdAt,
+        })
+        .from(marinadeBatches)
+        .orderBy(desc(marinadeBatches.createdAt))
+        .limit(50);
+    }),
   }),
 
   taannarx: router({
@@ -3387,7 +3532,8 @@ export const appRouter = router({
         sig.shortagePattern.length +
         (sig.compFlag ? 1 : 0) +
         sig.staleOrders.length +
-        sig.underDelivery.length;
+        sig.underDelivery.length +
+        sig.grammLeak.filter((g) => g.flag).length;
 
       return {
         revenueToday: todayFin.revenue,

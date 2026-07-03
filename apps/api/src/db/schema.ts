@@ -95,6 +95,9 @@ export const products = pgTable("products", {
   price: integer("price").notNull().default(0),
   costPrice: integer("cost_price"),
   soldByWeight: boolean("sold_by_weight").notNull().default(false),
+  // 1 сихга/порцияга кетадиган гўшт нормаси (г). Faqat сих таомларда тўлади;
+  // null = грамм назорати йўқ. Сих грамм-оқма сигнали учун (M3).
+  gramNorm: integer("gram_norm"),
   active: boolean("active").notNull().default(true),
   branchId: uuid("branch_id").references(() => branches.id),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -125,6 +128,23 @@ export const recipeItems = pgTable("recipe_items", {
 });
 
 export const carcassType = pgEnum("carcass_type", ["qoy", "mol"]);
+
+// Маринад партияси: хом лаҳм омбордан ЧИҚАДИ, ўсиш% қўшилиб маринадланган
+// гўшт чиқади. Сих грамм-оқма сигнали шу партиялар vs сотилган сихдан
+// ҳисобланади. (M3, MVP: pooled лаҳм — алоҳида ярим-тайёр SKU эмас.)
+export const marinadeBatches = pgTable("marinade_batches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  carcassType: carcassType("carcass_type").notNull(),
+  rawG: integer("raw_g").notNull(),
+  growthPct: integer("growth_pct").notNull(),
+  marinatedG: integer("marinated_g").notNull(),
+  note: text("note"),
+  branchId: uuid("branch_id").references(() => branches.id),
+  createdById: uuid("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const partTypes = pgTable(
   "part_types",
