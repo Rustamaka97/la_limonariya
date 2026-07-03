@@ -44,6 +44,11 @@ export function Obvalka() {
   const [pw, setPw] = useState<Record<string, string>>({});
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
+  const [purchaseList, setPurchaseList] = useState<
+    { id: string; supplier: string | null; total: number; createdAt: string; alreadyLinked: boolean }[]
+  >([]);
+  const [purchaseId, setPurchaseId] = useState("");
+  const [shortReason, setShortReason] = useState("");
 
   useEffect(() => {
     trpc.obvalka.partTypes
@@ -52,6 +57,10 @@ export function Obvalka() {
       .catch(() => setParts([]));
     setPw({});
   }, [carcass]);
+
+  useEffect(() => {
+    trpc.obvalka.purchases.query().then(setPurchaseList).catch(() => setPurchaseList([]));
+  }, []);
 
   const sumKg = useMemo(
     () => Object.values(pw).reduce((s, v) => s + (parseFloat(v) || 0), 0),
@@ -75,6 +84,8 @@ export function Obvalka() {
         weightG: Math.round(wKg * 1000),
         pricePerKg: Math.round(parseFloat(price) || 0),
         supplier: supplier || undefined,
+        purchaseId: purchaseId || undefined,
+        shortReason: diff > 5 && shortReason.trim() ? shortReason.trim() : undefined,
         parts: payload,
       });
       setResult((await trpc.obvalka.get.query({ id })) as Result);
@@ -92,7 +103,10 @@ export function Obvalka() {
           setWeight("");
           setPrice("");
           setSupplier("");
+          setPurchaseId("");
+          setShortReason("");
           setPw({});
+          trpc.obvalka.purchases.query().then(setPurchaseList).catch(() => {});
         }}
       />
     );
@@ -143,6 +157,25 @@ export function Obvalka() {
         </Field>
       </div>
 
+      {purchaseList.length > 0 && (
+        <Field label="Харид (ихтиёрий боғлаш)">
+          <select
+            value={purchaseId}
+            onChange={(e) => setPurchaseId(e.target.value)}
+            className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+          >
+            <option value="">— боғланмаган —</option>
+            {purchaseList.map((p) => (
+              <option key={p.id} value={p.id} disabled={p.alreadyLinked}>
+                {(p.supplier ?? "базар")} · {fmt(p.total)} so'm ·{" "}
+                {new Date(p.createdAt).toLocaleDateString("ru-RU")}
+                {p.alreadyLinked ? " (уланган)" : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
       <div className="overflow-hidden rounded-xl border bg-white">
         <div className="grid grid-cols-2 gap-x-4 p-2 sm:grid-cols-3">
           {parts.map((p) => (
@@ -183,6 +216,15 @@ export function Obvalka() {
           </span>
         </div>
       </div>
+
+      {diff > 5 && (
+        <input
+          value={shortReason}
+          onChange={(e) => setShortReason(e.target.value)}
+          placeholder="Сабаб — кам келди (ихтиёрий): бозорчи кам олиб келди / ёзувда йўқ ..."
+          className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm outline-none focus:border-red-400"
+        />
+      )}
 
       <button
         onClick={submit}

@@ -145,6 +145,12 @@ export const obvalka = pgTable("obvalka", {
   pricePerKg: integer("price_per_kg").notNull().default(0),
   supplier: text("supplier"),
   note: text("note"),
+  // Бозорчи киритган расмий харидга ихтиёрий боғлаш (бир харид = бир обвалка,
+  // аудит изи учун). Гўшт харидда product сифатида сақланмайди — обвалканинг
+  // ЎЗИ харид ёзуви (weightG = харид вазни).
+  purchaseId: uuid("purchase_id").references(() => purchases.id),
+  // Кам-келтириш сабаби (баланс ±5%дан ошса менежер изоҳи).
+  shortReason: text("short_reason"),
   branchId: uuid("branch_id").references(() => branches.id),
   createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true })

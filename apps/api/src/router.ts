@@ -437,6 +437,18 @@ async function computeSignals() {
     balanceFlag: boolean;
     anomalies: number;
   }[] = [];
+  const underDelivery: {
+    id: string;
+    carcassType: string;
+    weightG: number;
+    sumPartsG: number;
+    lossPct: number;
+    missingG: number;
+    missingCost: number;
+    shortReason: string | null;
+    supplier: string | null;
+    createdAt: Date;
+  }[] = [];
   for (const o of recentObv) {
     const parts = await db
       .select({
@@ -470,6 +482,21 @@ async function computeSignals() {
         lossPct: c.lossPct,
         balanceFlag: c.balanceFlag,
         anomalies,
+      });
+    // Кам келтириш: обвалка вазни (харид) − қисмлар йиғиндиси > 5% (КАМ келди).
+    // Бозорчи қассобдан кам гўшт олиб келган ёки ёзувда йўқ бўлган бўлиши мумкин.
+    if (c.lossPct > 5)
+      underDelivery.push({
+        id: o.id,
+        carcassType: o.carcassType,
+        weightG: o.weightG,
+        sumPartsG: c.totalPartsG,
+        lossPct: c.lossPct,
+        missingG: c.lossG,
+        missingCost: Math.round((c.lossG / 1000) * o.pricePerKg),
+        shortReason: o.shortReason,
+        supplier: o.supplier,
+        createdAt: o.createdAt,
       });
   }
 
@@ -629,6 +656,7 @@ async function computeSignals() {
     compToday,
     compFlag,
     staleOrders,
+    underDelivery,
   };
 }
 
@@ -1402,6 +1430,31 @@ export const appRouter = router({
         .limit(50);
     }),
 
+    // Обвалкани расмий харидга улаш учун — сўнгги харидлар рўйхати (менежер
+    // танлайди). Гўшт харидда product сифатида сақланмайди, шунинг учун барча
+    // сўнгги харид кўрсатилади; аллақачон уланганлари белгиланади.
+    purchases: protectedProcedure.query(async () => {
+      const rows = await db
+        .select({
+          id: purchases.id,
+          supplier: purchases.supplier,
+          total: purchases.total,
+          createdAt: purchases.createdAt,
+          linkedId: obvalka.id,
+        })
+        .from(purchases)
+        .leftJoin(obvalka, eq(obvalka.purchaseId, purchases.id))
+        .orderBy(desc(purchases.createdAt))
+        .limit(30);
+      return rows.map((r) => ({
+        id: r.id,
+        supplier: r.supplier,
+        total: r.total,
+        createdAt: r.createdAt,
+        alreadyLinked: r.linkedId != null,
+      }));
+    }),
+
     get: protectedProcedure
       .input(z.object({ id: z.string().uuid() }))
       .query(async ({ input }) => {
@@ -1450,6 +1503,8 @@ export const appRouter = router({
           pricePerKg: z.number().int().nonnegative(),
           supplier: z.string().optional(),
           note: z.string().optional(),
+          purchaseId: z.string().uuid().optional(),
+          shortReason: z.string().optional(),
           parts: z
             .array(
               z.object({
@@ -1462,6 +1517,22 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         return db.transaction(async (tx) => {
+          // Бир харид = бир обвалка (тасдиқланган модель): агар шу харид
+          // аллақачон бошқа обвалкага уланган бўлса — рад этамиз.
+          if (input.purchaseId) {
+            const dup = (
+              await tx
+                .select({ id: obvalka.id })
+                .from(obvalka)
+                .where(eq(obvalka.purchaseId, input.purchaseId))
+                .limit(1)
+            )[0];
+            if (dup)
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Бу харид аллақачон обвалкага уланган",
+              });
+          }
           const row = (
             await tx
               .insert(obvalka)
@@ -1471,6 +1542,8 @@ export const appRouter = router({
                 pricePerKg: input.pricePerKg,
                 supplier: input.supplier ?? null,
                 note: input.note ?? null,
+                purchaseId: input.purchaseId ?? null,
+                shortReason: input.shortReason ?? null,
                 createdById: ctx.user.id,
               })
               .returning()
@@ -3166,7 +3239,8 @@ export const appRouter = router({
         sig.priceSpikes.length +
         sig.shortagePattern.length +
         (sig.compFlag ? 1 : 0) +
-        sig.staleOrders.length;
+        sig.staleOrders.length +
+        sig.underDelivery.length;
 
       return {
         revenueToday: todayFin.revenue,

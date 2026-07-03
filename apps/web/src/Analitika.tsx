@@ -31,6 +31,7 @@ type Signals = {
   compToday: number;
   compFlag: boolean;
   staleOrders: { id: string; tableNo: string | null; hall: string | null; waiter: string | null; createdAt: string; minutesOpen: number }[];
+  underDelivery: { id: string; carcassType: string; weightG: number; sumPartsG: number; lossPct: number; missingG: number; missingCost: number; shortReason: string | null; supplier: string | null; createdAt: string }[];
 };
 
 export function Analitika() {
@@ -182,6 +183,27 @@ export function Analitika() {
             </div>
             {s.compFlag && <p className="mt-2 text-xs text-red-600">🔴 кунлик лимитдан ошди (500 000)</p>}
           </div>
+        </Section>
+
+        <Section title="🚩 Кам келтириш" hint="харид − обвалка > 5%">
+          {s.underDelivery.length === 0 ? (
+            <Empty>кам келтириш йўқ 🟢</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.underDelivery.map((u) => (
+                <li key={u.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>
+                    <span className="font-medium">{u.carcassType === "qoy" ? "Қўй" : "Мол"}</span>{" "}
+                    <span className="text-zinc-400">{(u.weightG / 1000).toFixed(1)}кг · {fmtDate(u.createdAt)}</span>
+                    {u.shortReason && <div className="text-xs text-zinc-400">{u.shortReason}</div>}
+                  </span>
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 tabular-nums">
+                    −{(u.missingG / 1000).toFixed(1)}кг · {fmt(u.missingCost)} so'm · {u.lossPct}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
 
         <Section title="⏰ Узоқ очиқ столлар" hint="90 дақиқадан кўп">
