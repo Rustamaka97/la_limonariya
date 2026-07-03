@@ -30,6 +30,13 @@ type RecentVoid = {
   createdAt: string;
   performedByName: string | null;
 };
+type RecentDiscount = {
+  id: string;
+  amount: number;
+  reason: string | null;
+  closedAt: string | null;
+  performedByName: string | null;
+};
 type Summary = {
   meatCost: { qoy: number | null; mol: number | null };
   catalog: Record<string, number>;
@@ -37,6 +44,7 @@ type Summary = {
   recentObvalka: RecentObvalka[];
   thinDishes: ThinDish[];
   recentVoids: RecentVoid[];
+  recentDiscounts: RecentDiscount[];
 };
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
@@ -130,6 +138,25 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
                   {v.note && <span className="text-zinc-400"> · {v.note}</span>}
                 </span>
                 <span className="text-xs text-zinc-400">{v.performedByName ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section title="🏷️ Чегирмалар" hint="ким берди — сохта чегирма назорати">
+        {s.recentDiscounts.length === 0 ? (
+          <Empty>ҳали йўқ</Empty>
+        ) : (
+          <ul className="divide-y">
+            {s.recentDiscounts.map((d) => (
+              <li key={d.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <span>
+                  <span className="font-medium tabular-nums text-amber-700">−{fmt(d.amount)}</span>{" "}
+                  <span className="text-zinc-400">{d.closedAt ? fmtDate(d.closedAt) : ""}</span>
+                  {d.reason && <span className="text-zinc-400"> · {d.reason}</span>}
+                </span>
+                <span className="text-xs text-zinc-400">{d.performedByName ?? "—"}</span>
               </li>
             ))}
           </ul>

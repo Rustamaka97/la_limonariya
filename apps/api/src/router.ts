@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
@@ -809,6 +809,20 @@ async function financeForWindow(start: Date, end: Date) {
     .where(and(gte(refunds.createdAt, start), lt(refunds.createdAt, end)));
   const refundTotal = refundRows.reduce((s, r) => s + r.amount, 0);
 
+  // Чегирма — фақат informational (revenue аллақачон камроқ тўловни акс
+  // эттиради, шунинг учун sofFoyda'дан ҚАЙТА айирилмайди). Директор кўради.
+  const discountRows = await db
+    .select({ amount: orders.discountAmount })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, start),
+        lt(orders.closedAt, end),
+      ),
+    );
+  const discountTotal = discountRows.reduce((s, r) => s + r.amount, 0);
+
   const sofFoyda = revenue - cogsRes.cogs - opex - cardTax - refundTotal;
   return {
     revenue,
@@ -827,6 +841,7 @@ async function financeForWindow(start: Date, end: Date) {
     opex,
     opexByCat,
     refundTotal,
+    discountTotal,
     sofFoyda,
   };
 }
@@ -1111,6 +1126,7 @@ async function firePrintCheck(orderId: string): Promise<void> {
           createdAt: orders.createdAt,
           isComp: orders.isComp,
           compReason: orders.compReason,
+          discountAmount: orders.discountAmount,
           hall: halls.name,
           waiter: users.name,
         })
@@ -1147,7 +1163,8 @@ async function firePrintCheck(orderId: string): Promise<void> {
       subtotal,
       service,
       servicePct: head.servicePct,
-      total: subtotal + service,
+      discount: head.discountAmount,
+      total: subtotal + service - head.discountAmount,
       payments: pays,
     };
     printCheck(check, barIp);
@@ -1965,7 +1982,22 @@ export const appRouter = router({
         .orderBy(desc(voidedItems.createdAt))
         .limit(10);
 
-      return { meatCost, catalog, recipeCount, recentObvalka, thinDishes, recentVoids };
+      // Чегирма журнали (ким берди — closedById): сохта чегирма назорати №12.
+      const recentDiscounts = await db
+        .select({
+          id: orders.id,
+          amount: orders.discountAmount,
+          reason: orders.discountReason,
+          closedAt: orders.closedAt,
+          performedByName: users.name,
+        })
+        .from(orders)
+        .leftJoin(users, eq(users.id, orders.closedById))
+        .where(and(eq(orders.status, "closed"), gt(orders.discountAmount, 0)))
+        .orderBy(desc(orders.closedAt))
+        .limit(10);
+
+      return { meatCost, catalog, recipeCount, recentObvalka, thinDishes, recentVoids, recentDiscounts };
     }),
   }),
 
@@ -2045,6 +2077,8 @@ export const appRouter = router({
               closedAt: orders.closedAt,
               isComp: orders.isComp,
               compReason: orders.compReason,
+              discountAmount: orders.discountAmount,
+              discountReason: orders.discountReason,
               guests: orders.guests,
               note: orders.note,
               hall: halls.name,
@@ -2340,6 +2374,9 @@ export const appRouter = router({
             .optional(),
           customerId: z.string().uuid().optional(),
           comp: z.object({ reason: z.string().trim().min(1) }).optional(),
+          discount: z
+            .object({ amount: z.number().int().positive(), reason: z.string().trim().min(1) })
+            .optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -2358,6 +2395,19 @@ export const appRouter = router({
             code: "BAD_REQUEST",
             message: "Қарзга ёпишда мижоз танланг",
           });
+        // Чегирма — фақат директор/менежер, comp билан бирга эмас (текин=бепул).
+        if (input.discount) {
+          if (!["director", "manager"].includes(ctx.user.role))
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Чегирма фақат директор/менежер",
+            });
+          if (input.comp)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Текин заказга чегирма қўшиб бўлмайди",
+            });
+        }
         if (input.comp) {
           if (!["director", "manager", "cashier"].includes(ctx.user.role))
             throw new TRPCError({ code: "FORBIDDEN" });
@@ -2394,11 +2444,17 @@ export const appRouter = router({
               .where(eq(orderItems.orderId, input.id));
             const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
             const total = subtotal + Math.round((subtotal * head.servicePct) / 100);
-            const paid = pays.reduce((s, p) => s + p.amount, 0);
-            if (paid !== total)
+            const discount = input.discount?.amount ?? 0;
+            if (discount > total)
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `Тўлов суммаси (${paid}) чек жамига (${total}) тенг эмас.`,
+                message: `Чегирма (${discount}) чек жамидан (${total}) катта`,
+              });
+            const paid = pays.reduce((s, p) => s + p.amount, 0);
+            if (paid !== total - discount)
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Тўлов суммаси (${paid}) чек жамига (${total - discount}) тенг эмас.`,
               });
           }
 
@@ -2411,6 +2467,9 @@ export const appRouter = router({
               closedById: ctx.user.id,
               ...(hasDebt ? { customerId: input.customerId } : {}),
               ...(input.comp ? { isComp: true, compReason: input.comp.reason } : {}),
+              ...(input.discount
+                ? { discountAmount: input.discount.amount, discountReason: input.discount.reason }
+                : {}),
             })
             .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
             .returning({ id: orders.id });

@@ -255,6 +255,10 @@ export const orders = pgTable(
     // distinct from debt (which is revenue expected later); comp never is.
     isComp: boolean("is_comp").notNull().default(false),
     compReason: text("comp_reason"),
+    // Чегирма (директор/менежер рухсати билан): чек жамидан айирилади,
+    // мижоз кам тўлайди. Сабаб мажбурий. Ким берди = closedById. Тешик №12.
+    discountAmount: integer("discount_amount").notNull().default(0),
+    discountReason: text("discount_reason"),
     guests: integer("guests"),
     note: text("note"),
   },

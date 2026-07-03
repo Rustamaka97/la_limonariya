@@ -36,6 +36,8 @@ type Order = {
   createdAt: string;
   isComp: boolean;
   compReason: string | null;
+  discountAmount: number;
+  discountReason: string | null;
   items: {
     id: string;
     productId: string | null;
@@ -415,6 +417,7 @@ function NewOrderSheet({
 // ── ORDER SCREEN ────────────────────────────────────────────────────────────
 function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack: () => void }) {
   const canComp = ["director", "manager", "cashier"].includes(user.role);
+  const canDiscount = ["director", "manager"].includes(user.role);
   const [order, setOrder] = useState<Order | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [paying, setPaying] = useState(false);
@@ -423,6 +426,10 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [showSplit, setShowSplit] = useState(false);
   const [splits, setSplits] = useState<Record<string, string>>({});
   const [pendingDebt, setPendingDebt] = useState<{ method: PayMethod; amount: number }[] | null>(null);
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountInput, setDiscountInput] = useState("");
+  const [discountReasonInput, setDiscountReasonInput] = useState("");
+  const [discount, setDiscount] = useState<{ amount: number; reason: string } | null>(null);
   const [closing, setClosing] = useState(false);
   const [closeErr, setCloseErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -495,7 +502,12 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     setCloseErr(null);
     setClosing(true);
     try {
-      await trpc.pos.close.mutate({ id, payments, ...(customerId ? { customerId } : {}) });
+      await trpc.pos.close.mutate({
+        id,
+        payments,
+        ...(customerId ? { customerId } : {}),
+        ...(discount ? { discount } : {}),
+      });
       cancelPay();
       refresh();
     } catch (e: unknown) {
@@ -507,7 +519,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
 
   function pay(method: PayMethod) {
     if (!order || closing) return;
-    const payments = [{ method, amount: order.total }];
+    const payments = [{ method, amount: payTotal }];
     // Қарз танланса — аввал мижоз танлаш (МАЖБУРИЙ).
     if (method === "debt") { setPendingDebt(payments); return; }
     submitClose(payments);
@@ -520,6 +532,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       .filter((p) => p.amount > 0);
     if (payments.some((p) => p.method === "debt")) { setPendingDebt(payments); return; }
     submitClose(payments);
+  }
+
+  function applyDiscount() {
+    const amt = Math.round(Number(discountInput) || 0);
+    if (!order || amt <= 0 || amt > order.total || !discountReasonInput.trim()) return;
+    setDiscount({ amount: amt, reason: discountReasonInput.trim() });
+    setShowDiscount(false);
   }
 
   async function payComp() {
@@ -556,9 +575,14 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     setShowSplit(false);
     setSplits({});
     setPendingDebt(null);
+    setShowDiscount(false);
+    setDiscount(null);
+    setDiscountInput("");
+    setDiscountReasonInput("");
     setCloseErr(null);
   }
 
+  const payTotal = order.total - (discount?.amount ?? 0);
   const splitSum = (Object.values(splits) as string[]).reduce(
     (s, v) => s + Math.round(Number(v) || 0),
     0,
@@ -893,9 +917,23 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             <div className="flex items-baseline justify-between">
               <h3 className="font-semibold text-brand-ink">Тўлов усули</h3>
               <span className="text-lg font-bold tabular-nums text-brand-ink">
-                {fmt(order.total)} <span className="text-xs font-normal text-zinc-400">so'm</span>
+                {discount ? (
+                  <>
+                    <span className="mr-1 text-xs font-normal text-zinc-400 line-through">{fmt(order.total)}</span>
+                    {fmt(payTotal)}
+                  </>
+                ) : (
+                  fmt(order.total)
+                )}{" "}
+                <span className="text-xs font-normal text-zinc-400">so'm</span>
               </span>
             </div>
+            {discount && (
+              <div className="flex items-center justify-between rounded-lg bg-brand-gold/10 px-3 py-1.5 text-xs text-brand-gold-deep">
+                <span>Чегирма: −{fmt(discount.amount)} · {discount.reason}</span>
+                <button onClick={() => setDiscount(null)} className="font-medium underline">олиб ташлаш</button>
+              </div>
+            )}
 
             {pendingDebt ? (
               <CustomerPicker
@@ -923,9 +961,9 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 <div className="flex items-center justify-between pt-1 text-sm">
                   <span className="text-zinc-500">Йиғилди</span>
                   <span
-                    className={`tabular-nums font-semibold ${splitSum === order.total ? "text-emerald-600" : "text-zinc-700"}`}
+                    className={`tabular-nums font-semibold ${splitSum === payTotal ? "text-emerald-600" : "text-zinc-700"}`}
                   >
-                    {fmt(splitSum)} / {fmt(order.total)}
+                    {fmt(splitSum)} / {fmt(payTotal)}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -938,7 +976,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                   </button>
                   <button
                     onClick={paySplit}
-                    disabled={closing || splitSum !== order.total}
+                    disabled={closing || splitSum !== payTotal}
                     className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
                   >
                     Ёпиш
@@ -973,13 +1011,58 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                     </button>
                   )}
                 </div>
-                <button
-                  onClick={() => setShowSplit(true)}
-                  disabled={closing}
-                  className="w-full rounded-xl border border-brand-cream-soft py-2 text-sm font-medium text-zinc-600 transition hover:border-brand hover:text-brand disabled:opacity-40"
-                >
-                  Аралаш тўлов (бўлиб)
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowSplit(true)}
+                    disabled={closing}
+                    className="flex-1 rounded-xl border border-brand-cream-soft py-2 text-sm font-medium text-zinc-600 transition hover:border-brand hover:text-brand disabled:opacity-40"
+                  >
+                    Аралаш тўлов (бўлиб)
+                  </button>
+                  {canDiscount && !discount && (
+                    <button
+                      onClick={() => setShowDiscount(true)}
+                      disabled={closing}
+                      className="flex-1 rounded-xl border border-brand-gold/40 py-2 text-sm font-medium text-brand-gold-deep transition hover:bg-brand-gold/10 disabled:opacity-40"
+                    >
+                      Чегирма
+                    </button>
+                  )}
+                </div>
+                {showDiscount && (
+                  <div className="space-y-2 rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3">
+                    <p className="text-xs font-semibold text-brand-gold-deep">Чегирма — сумма ва сабаб</p>
+                    <input
+                      autoFocus
+                      inputMode="numeric"
+                      value={discountInput}
+                      onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))}
+                      placeholder="сумма (so'm)"
+                      className="w-full rounded-xl border border-brand-gold/40 px-3 py-2.5 text-right text-sm tabular-nums outline-none focus:border-brand-gold-deep"
+                    />
+                    <input
+                      value={discountReasonInput}
+                      onChange={(e) => setDiscountReasonInput(e.target.value)}
+                      placeholder="сабаб (мажбурий)"
+                      className="w-full rounded-xl border border-brand-gold/40 px-3 py-2.5 text-sm outline-none focus:border-brand-gold-deep"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowDiscount(false)}
+                        className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600"
+                      >
+                        Орқага
+                      </button>
+                      <button
+                        onClick={applyDiscount}
+                        disabled={!discountInput || !discountReasonInput.trim()}
+                        className="flex-1 rounded-xl bg-brand-gold-deep py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+                      >
+                        Қўллаш
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {closing && <p className="text-center text-xs text-zinc-400">ёпилмоқда…</p>}
               </>
             ) : (
@@ -1320,9 +1403,12 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
         <Hr />
         <Line l="Полная сумма" r={fmt(order.subtotal)} />
         <Line l={`Плата за услугу ${order.servicePct}%`} r={fmt(order.service)} />
+        {order.discountAmount > 0 && (
+          <Line l={`Чегирма${order.discountReason ? ` (${order.discountReason})` : ""}`} r={`−${fmt(order.discountAmount)}`} />
+        )}
         <div className="my-1 flex justify-between text-base font-bold">
           <span>ИТОГО</span>
-          <span className="tabular-nums">{fmt(order.total)}</span>
+          <span className="tabular-nums">{fmt(order.total - order.discountAmount)}</span>
         </div>
         <Hr />
         {order.payments.map((pm, i) => (

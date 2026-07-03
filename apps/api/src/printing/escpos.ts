@@ -106,6 +106,7 @@ export type CheckData = {
   subtotal: number;
   service: number;
   servicePct: number;
+  discount?: number;
   total: number;
   payments: { method: string; amount: number }[];
 };
@@ -137,6 +138,9 @@ export function buildCheck(o: CheckData): Buffer {
     hr(),
     twoCol("Оралиқ сумма", fmt(o.subtotal)),
     twoCol(`Хизмат ${o.servicePct}%`, fmt(o.service)),
+  );
+  if (o.discount && o.discount > 0) parts.push(twoCol("Чегирма", `-${fmt(o.discount)}`));
+  parts.push(
     ESC.boldOn,
     twoCol("ЖАМИ", `${fmt(o.total)} so'm`),
     ESC.boldOff,
