@@ -65,6 +65,7 @@ import {
   type CheckData,
   printCheck,
   printKitchenTicket,
+  printPrecheck,
 } from "./printing/escpos";
 import { sendTelegram, telegramEnabled } from "./telegram";
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
@@ -1399,6 +1400,56 @@ async function firePrintCheck(orderId: string): Promise<void> {
     printCheck(check, barIp);
   } catch (e) {
     console.error("[print] firePrintCheck:", e instanceof Error ? e.message : e);
+  }
+}
+
+// Пречек (ҳали очиқ стол) — платежлар йўқ, статус ўзгармайди.
+async function firePrintPrecheck(orderId: string): Promise<void> {
+  try {
+    const head = (
+      await db
+        .select({
+          checkNo: orders.id,
+          tableNo: orders.tableNo,
+          servicePct: orders.servicePct,
+          createdAt: orders.createdAt,
+          discountAmount: orders.discountAmount,
+          hall: halls.name,
+          waiter: users.name,
+        })
+        .from(orders)
+        .leftJoin(halls, eq(orders.hallId, halls.id))
+        .leftJoin(users, eq(orders.waiterId, users.id))
+        .where(eq(orders.id, orderId))
+        .limit(1)
+    )[0];
+    if (!head) return;
+    const items = await db
+      .select({ name: orderItems.name, price: orderItems.price, qty: orderItems.qty })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+    const service = Math.round((subtotal * head.servicePct) / 100);
+    const barIp = (await stationIpMap()).get(BAR_STATION) ?? null;
+    const check: Omit<CheckData, "payments" | "isComp" | "compReason"> = {
+      brandName: BRAND_PRINT.name,
+      brandCity: BRAND_PRINT.city,
+      brandPhone: BRAND_PRINT.phone,
+      checkNo: head.checkNo.slice(0, 5).toUpperCase(),
+      hall: head.hall,
+      tableNo: head.tableNo,
+      waiter: head.waiter,
+      createdAt: head.createdAt,
+      items,
+      subtotal,
+      service,
+      servicePct: head.servicePct,
+      discount: head.discountAmount,
+      total: subtotal + service - head.discountAmount,
+    };
+    printPrecheck(check, barIp);
+  } catch (e) {
+    console.error("[print] firePrintPrecheck:", e instanceof Error ? e.message : e);
   }
 }
 
@@ -3251,6 +3302,18 @@ export const appRouter = router({
           performedById: ctx.user.id,
         });
         void firePrintCheck(input.orderId);
+        return { ok: true };
+      }),
+
+    precheck: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        const head = (await db.select({ status: orders.status }).from(orders).where(eq(orders.id, input.orderId)).limit(1))[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган — пречек керак эмас" });
+        await db.insert(reprintLog).values({ orderId: input.orderId, kind: "precheck", reason: null, performedById: ctx.user.id });
+        void firePrintPrecheck(input.orderId);
         return { ok: true };
       }),
 

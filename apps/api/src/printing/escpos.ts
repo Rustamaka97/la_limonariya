@@ -198,3 +198,54 @@ export function printCheck(order: CheckData, barIp: string | null): void {
     console.error(`[print] check ip=${barIp}:`, e instanceof Error ? e.message : e),
   );
 }
+
+// ── Пречек (тўлов олдидан ҳисоб танишув, ҳали очиқ стол) ──────────────────
+export function buildPrecheck(o: Omit<CheckData, "payments" | "isComp" | "compReason">): Buffer {
+  const parts: Buffer[] = [
+    ESC.init,
+    ESC.alignC,
+    ESC.boldOn,
+    txt(o.brandName), nl,
+    ESC.boldOff,
+    txt(`${o.brandCity} · ${o.brandPhone}`), nl,
+    hr(),
+    ESC.boldOn,
+    txt("*** ПРЕЧЕК ***"), nl,
+    ESC.boldOff,
+    txt("Тўлов эмас — ҳисоб танишув учун"), nl,
+    ESC.alignL, hr(),
+    twoCol("Зал", o.hall ?? "—"),
+  ];
+  if (o.tableNo) parts.push(twoCol("Стол", o.tableNo));
+  parts.push(
+    twoCol("Заказ №", o.checkNo),
+    twoCol("Вақт", hhmm(o.createdAt)),
+    twoCol("Официант", o.waiter ?? "—"),
+    hr(),
+  );
+  for (const it of o.items) parts.push(twoCol(it.name, `${it.qty}x${fmt(it.price)}`));
+  parts.push(
+    hr(),
+    twoCol("Оралиқ сумма", fmt(o.subtotal)),
+    twoCol(`Хизмат ${o.servicePct}%`, fmt(o.service)),
+  );
+  if (o.discount && o.discount > 0) parts.push(twoCol("Чегирма", `-${fmt(o.discount)}`));
+  parts.push(
+    ESC.boldOn,
+    twoCol("ЖАМИ", `${fmt(o.total)} so'm`),
+    ESC.boldOff,
+    hr(),
+    ESC.alignC,
+    txt("*** ПРЕЧЕК — тўлов эмас ***"), nl,
+    ESC.alignL,
+    ESC.feedCut,
+  );
+  return Buffer.concat(parts);
+}
+
+export function printPrecheck(order: Omit<CheckData, "payments" | "isComp" | "compReason">, barIp: string | null): void {
+  if (!barIp) return;
+  sendToPrinter(barIp, buildPrecheck(order)).catch((e) =>
+    console.error(`[print] precheck ip=${barIp}:`, e instanceof Error ? e.message : e),
+  );
+}

@@ -982,6 +982,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [noteOpen, setNoteOpen] = useState(false);
   const [online, setOnline] = useState(isOnline());
   const [syncErr, setSyncErr] = useState<string | null>(null);
+  const [precheckBusy, setPrecheckBusy] = useState(false);
+  const [precheckOk, setPrecheckOk] = useState(false);
 
   const refresh = useCallback(async () => {
     const ov = await getOverlay(id);
@@ -1121,6 +1123,20 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
   }
 
+  async function doPrecheck() {
+    setPrecheckBusy(true);
+    try {
+      await trpc.pos.precheck.mutate({ orderId: id });
+      vibrate([10]);
+      setPrecheckOk(true);
+      setTimeout(() => setPrecheckOk(false), 2000);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Пречек босилмади");
+    } finally {
+      setPrecheckBusy(false);
+    }
+  }
+
   async function submitClose(payments: { method: PayMethod; amount: number }[], customerId?: string) {
     if (!order || closing) return;
     setCloseErr(null);
@@ -1239,6 +1255,14 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             className="grid h-9 w-9 place-items-center rounded-lg text-base text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
           >
             ⇄
+          </button>
+          <button
+            onClick={doPrecheck}
+            disabled={precheckBusy}
+            title="Пречек чоп этиш"
+            className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+          >
+            {precheckOk ? "✓ Пречек босилди" : "🧾 Пречек"}
           </button>
           <button
             onClick={() => setCancelling((v) => !v)}
