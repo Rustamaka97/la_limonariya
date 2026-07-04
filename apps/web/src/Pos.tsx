@@ -470,7 +470,10 @@ function FloorView({
               .catch((e: unknown) => {
                 alert(e instanceof Error ? e.message : "Кўчириш бажарилмади");
                 console.error("moveTable failed", e);
-              });
+              })
+              // Хатода ҳам, муваффақиятда ҳам — серверга солиштириб чиқамиз
+              // (иккита тезкор кўчиришда ким ютганини ҳам шу тиклайди).
+              .finally(refresh);
           }}
           onGuests={(orderId, guests) => {
             setOrders((os) => (os ? os.map((o) => (o.id === orderId ? { ...o, guests } : o)) : os));
@@ -753,6 +756,9 @@ function TableTile({
     pressTimer.current = null;
     pressStart.current = null;
   };
+  // Плитка (масалан заказ ёпилиб/кўчирилиб бошқа рендер турига ўтганда) ушлаб
+  // турилган ҳолатда unmount бўлса — кутилаётган таймер ҳали жонли қолмасин.
+  useEffect(() => clearPress, []);
 
   const onPointerDown = (e: ReactPointerEvent) => {
     if (!onLongPress) return;

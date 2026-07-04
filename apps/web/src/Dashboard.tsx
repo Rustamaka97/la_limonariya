@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "./trpc";
 import { Skeleton, SkeletonCard, SkeletonRow } from "./Skeleton";
 import { useCountUp } from "./lib/useCountUp";
@@ -89,8 +89,14 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
   const [today, setToday] = useState<Today | null>(null);
   const [trend, setTrend] = useState<TrendRow[] | null>(null);
 
+  const todayReqId = useRef(0);
   function refetchToday() {
-    trpc.analytics.digest.query().then(setToday).catch(() => {});
+    // in-flight guard: 30с интервал ва visibilitychange бир вақтда ишга тушса,
+    // эски (кечроқ қайтган) жавоб янгисини ЕЗИБ ЮБОРМАСЛИГИ учун.
+    const id = ++todayReqId.current;
+    trpc.analytics.digest.query().then((r) => {
+      if (id === todayReqId.current) setToday(r);
+    }).catch(() => {});
   }
 
   useEffect(() => {
@@ -167,7 +173,10 @@ export function Dashboard({ onGoObvalka }: { onGoObvalka: () => void }) {
             <div className="mt-3 grid grid-cols-3 gap-3">
               <SparklineCard label="14 кун · тушум" points={trend.map((t) => t.revenue)} />
               <SparklineCard label="14 кун · чек" points={trend.map((t) => t.checks)} />
-              <SparklineCard label="14 кун · фойда" points={trend.map((t) => t.estProfit)} color="#0e4037" />
+              {/* "ялпи фойда" — фақат COGS айирилган, харажат/солиқ/қайтариш ҳисобга олинмаган
+                  (юқоридаги "Фойда ~" эса тўлиқ ҳисоб — иккиси ТУРЛИ методология, шунинг
+                  учун ном англи фарқлаб турилиши керак). */}
+              <SparklineCard label="14 кун · ялпи фойда" points={trend.map((t) => t.estProfit)} color="#0e4037" />
             </div>
           )}
         </div>

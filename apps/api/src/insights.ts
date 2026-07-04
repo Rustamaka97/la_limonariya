@@ -23,7 +23,9 @@ export function marginDropInsight(
     if (!(r0.marginPct > r1.marginPct && r1.marginPct > r2.marginPct)) continue;
     const drop = r0.marginPct - r2.marginPct;
     if (drop < 5) continue;
-    if (!worst || drop > worst.drop) {
+    // Тенг drop'да исм бўйича детерминистик танлов — history массиви қандай
+    // тартибда келишидан (DB query'да ORDER BY йўқ) натижа боғлиқ бўлмаслиги учун.
+    if (!worst || drop > worst.drop || (drop === worst.drop && r0.name < worst.name)) {
       worst = { name: r0.name, d0: r0.marginPct, d1: r1.marginPct, d2: r2.marginPct, drop };
     }
   }

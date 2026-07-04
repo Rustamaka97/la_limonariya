@@ -1,6 +1,6 @@
 // Operational day cuts at 06:00 Asia/Tashkent (UTC+5, no DST). Late-night sales
 // land on the correct business day. The single tz primitive every aggregate uses.
-const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
+export const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function parseDay(day?: string): { y: number; m: number; d: number } {

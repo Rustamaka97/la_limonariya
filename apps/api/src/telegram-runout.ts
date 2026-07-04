@@ -6,9 +6,8 @@ import { sql } from "drizzle-orm";
 import { db } from "./db/client";
 import { products, stockMovements } from "./db/schema";
 import { sendTelegram, telegramEnabled } from "./telegram";
-import { businessDayBounds } from "./time";
+import { businessDayBounds, TZ_OFFSET_MS } from "./time";
 
-const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
 function fmtTashkent(d: Date): string {
@@ -28,8 +27,12 @@ async function checkRunout(): Promise<string[]> {
   console.log(`[runout] сейчас=${now.toISOString()} 11:00Тошкент=${cutoff11.toISOString()} 23:00Тошкент=${end23.toISOString()}`);
 
   const hoursElapsed = (now.getTime() - cutoff11.getTime()) / HOUR_MS;
-  if (hoursElapsed <= 0) {
-    console.log(`[runout] ҳали 11:00 бўлмади (hoursElapsed=${hoursElapsed.toFixed(2)}) — ўтказиб юборилди`);
+  // 1 соатдан кам — экстраполяция шов-шов маълумотдан (битта сотувдан) бўлиб
+  // қолади (rate ноаниқ катта чиқади). Штатда cron 16:00 да ишлайди (hoursElapsed=5) —
+  // бу чегара фақат қўлда/эрта қайта ишга туширишдан ҳимоя қилади.
+  const MIN_HOURS_ELAPSED = 1;
+  if (hoursElapsed < MIN_HOURS_ELAPSED) {
+    console.log(`[runout] 11:00дан кейин ${hoursElapsed.toFixed(2)}соат — ҳали кам, экстраполяция ишончли эмас — ўтказиб юборилди`);
     return [];
   }
 

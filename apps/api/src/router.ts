@@ -1608,8 +1608,11 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
             and o.closed_at < ${weekStartUTC.toISOString()}
           group by 1`,
     );
-    const priorMax = histRows.reduce((m, r) => Math.max(m, Number(r.revenue)), 0);
-    if (bestDayRevenue > priorMax) weekRecordLine = "🏆 Рекорд тушум!";
+    // Тарих йўқ (янги ресторан, шу ҳафтадан олдин ёпилган кун йўқ) — "рекорд"
+    // деб эълон қилмаймиз, солиштирадиган нарса йўқ (акс ҳолда биринчи бир неча
+    // якшанба ҳар доим "рекорд" бўлиб чиқади — сохта сигнал).
+    const priorMax = histRows.length ? histRows.reduce((m, r) => Math.max(m, Number(r.revenue)), 0) : null;
+    if (priorMax !== null && bestDayRevenue > priorMax) weekRecordLine = "🏆 Рекорд тушум!";
   }
 
   const lines = [
@@ -4174,7 +4177,8 @@ export const appRouter = router({
         const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
         const pad = (n: number) => String(n).padStart(2, "0");
         const dm = (t: Date) => `${pad(t.getUTCDate())}.${pad(t.getUTCMonth() + 1)}`;
-        const WEEK_MS = 7 * 24 * 3600 * 1000;
+        const DAY_MS = 24 * 3600 * 1000;
+        const WEEK_MS = 7 * DAY_MS;
         const weeks: {
           label: string;
           from: string;
@@ -4193,7 +4197,10 @@ export const appRouter = router({
           const ishHaqi = fin.opexByCat.ish_haqi ?? 0;
           const opexOther = fin.opex - ishHaqi;
           weeks.push({
-            label: `${dm(weekStart)}–${dm(new Date(weekEnd.getTime() - 1))}`,
+            // weekEnd — кейинги (ичига кирмайдиган) бизнес-кун бошланиши (01:00 UTC).
+            // Охирги ЧИНДАН ҳам ичига кирган бизнес-кунни олиш учун 1мс эмас, бутун
+            // суткани (24соат) айириш керак — акс ҳолда сана бир кун олдинга силжийди.
+            label: `${dm(weekStart)}–${dm(new Date(weekEnd.getTime() - DAY_MS))}`,
             from: weekStart.toISOString().slice(0, 10),
             to: weekEnd.toISOString().slice(0, 10),
             revenue: fin.revenue,
