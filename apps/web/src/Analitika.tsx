@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { trpc } from "./trpc";
+import { swr } from "./lib/cache";
 import { Skeleton, SkeletonCard, SkeletonRow } from "./Skeleton";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("ru-RU");
@@ -43,9 +44,8 @@ export function Analitika() {
 
   function load() {
     setErr(false);
-    Promise.all([trpc.analytics.digest.query(), trpc.analytics.signals.query()])
-      .then(([dd, ss]) => { setD(dd); setS(ss); })
-      .catch(() => setErr(true));
+    swr("analytics.digest", () => trpc.analytics.digest.query(), setD).catch(() => setErr(true));
+    swr("analytics.signals", () => trpc.analytics.signals.query(), setS).catch(() => setErr(true));
   }
   useEffect(() => { load(); }, []);
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { trpc } from "./trpc";
+import { swr } from "./lib/cache";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("ru-RU");
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -227,7 +228,7 @@ function DayClose() {
   const load = useCallback(() => {
     setF(null);
     setErr(false);
-    trpc.finance.dayClose.query({ day }).then(setF).catch(() => setErr(true));
+    swr(`finance.dayClose:${day}`, () => trpc.finance.dayClose.query({ day }), setF).catch(() => setErr(true));
   }, [day]);
   useEffect(() => {
     load();
@@ -290,7 +291,7 @@ function TillCount({ day }: { day: string }) {
       .query({ day })
       .then((d) => { setT(d); setCounted(d.countedCash != null ? String(d.countedCash) : ""); })
       .catch(() => { setT(null); setErr(true); });
-    trpc.finance.cashCollections.query({ from: day, to: day }).then(setCollections).catch(() => setCollections([]));
+    swr(`finance.cashCollections:${day}`, () => trpc.finance.cashCollections.query({ from: day, to: day }), setCollections).catch(() => setCollections([]));
   }, [day]);
   useEffect(() => {
     setT(null);
@@ -702,7 +703,7 @@ function Pnl() {
   const load = useCallback(() => {
     setP(null);
     setErr(false);
-    trpc.finance.pnl.query({ from, to }).then(setP).catch(() => setErr(true));
+    swr(`finance.pnl:${from}:${to}`, () => trpc.finance.pnl.query({ from, to }), setP).catch(() => setErr(true));
   }, [from, to]);
   useEffect(() => {
     load();
@@ -767,7 +768,7 @@ function Debts() {
   const [pay, setPay] = useState<PayTarget | null>(null);
   const refresh = useCallback(() => {
     setErr(false);
-    trpc.finance.debts.query().then(setD).catch(() => setErr(true));
+    swr("finance.debts", () => trpc.finance.debts.query(), setD).catch(() => setErr(true));
   }, []);
   useEffect(() => {
     refresh();

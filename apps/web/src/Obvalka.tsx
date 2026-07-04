@@ -2,6 +2,12 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { SessionUser } from "./App";
 import { trpc } from "./trpc";
+import { Skeleton } from "./Skeleton";
+import { swr } from "./lib/cache";
+
+function vibrate(pattern: number | number[]) {
+  if ("vibrate" in navigator) navigator.vibrate(pattern);
+}
 
 type PartType = {
   id: string;
@@ -60,7 +66,7 @@ export function Obvalka({ user }: { user: SessionUser }) {
   }, [carcass]);
 
   useEffect(() => {
-    trpc.obvalka.purchases.query().then(setPurchaseList).catch(() => setPurchaseList([]));
+    swr("obvalka.purchases", () => trpc.obvalka.purchases.query(), setPurchaseList).catch(() => {});
   }, []);
 
   const sumKg = useMemo(
@@ -90,6 +96,7 @@ export function Obvalka({ user }: { user: SessionUser }) {
         parts: payload,
       });
       setResult((await trpc.obvalka.get.query({ id })) as Result);
+      vibrate([20, 40, 20]);
     } finally {
       setBusy(false);
     }
@@ -107,9 +114,28 @@ export function Obvalka({ user }: { user: SessionUser }) {
           setPurchaseId("");
           setShortReason("");
           setPw({});
-          trpc.obvalka.purchases.query().then(setPurchaseList).catch(() => {});
+          swr("obvalka.purchases", () => trpc.obvalka.purchases.query(), setPurchaseList).catch(() => {});
         }}
       />
+    );
+  }
+
+  if (busy) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-zinc-500">
+          <Skeleton className="h-4 w-4 rounded-full" />
+          Ҳисобланмоқда…
+        </div>
+        <Skeleton className="h-9 w-40" />
+        <div className="grid grid-cols-3 gap-3">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+        </div>
+        <Skeleton className="h-40" />
+        <Skeleton className="h-12" />
+      </div>
     );
   }
 

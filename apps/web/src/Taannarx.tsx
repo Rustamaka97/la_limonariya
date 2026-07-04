@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { swr } from "./lib/cache";
 import { trpc } from "./trpc";
 
 type Dish = {
@@ -25,7 +26,7 @@ const fmt = (n: number) => n.toLocaleString("ru-RU");
 export function Taannarx() {
   const [data, setData] = useState<Data | null>(null);
   useEffect(() => {
-    trpc.taannarx.list.query().then(setData).catch(() => {});
+    swr("taannarx.list", () => trpc.taannarx.list.query(), setData).catch(() => {});
   }, []);
 
   if (!data) return <div className="p-6 text-center text-zinc-400">⏳</div>;

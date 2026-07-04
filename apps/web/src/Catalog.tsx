@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import type { SessionUser } from "./App";
+import { swr } from "./lib/cache";
 import { trpc } from "./trpc";
 
 export type Category = { id: string; name: string; position: number; active: boolean };
@@ -57,23 +58,24 @@ export function Catalog({ user }: { user: SessionUser }) {
   const [editingCat, setEditingCat] = useState<Category | "new" | null>(null);
 
   const refreshCats = useCallback(() => {
-    trpc.catalog.categories.list
-      .query({ includeInactive: isDirector && showInactive })
-      .then(setCats)
-      .catch(() => {});
+    swr(
+      `catalog.categories:${isDirector && showInactive}`,
+      () => trpc.catalog.categories.list.query({ includeInactive: isDirector && showInactive }),
+      setCats,
+    ).catch(() => {});
   }, [isDirector, showInactive]);
   const refreshProducts = useCallback(() => {
-    setProducts(null);
-    trpc.catalog.products.list
-      .query({ categoryId: cat ?? undefined, includeInactive: isDirector && showInactive })
-      .then(setProducts)
-      .catch(() => setProducts([]));
+    swr(
+      `catalog.products:${cat ?? "all"}:${isDirector && showInactive}`,
+      () => trpc.catalog.products.list.query({ categoryId: cat ?? undefined, includeInactive: isDirector && showInactive }),
+      setProducts,
+    ).catch(() => setProducts([]));
   }, [cat, isDirector, showInactive]);
 
   useEffect(refreshCats, [refreshCats]);
   useEffect(refreshProducts, [refreshProducts]);
   useEffect(() => {
-    if (isDirector) trpc.catalog.stations.query().then(setStationsList).catch(() => {});
+    if (isDirector) swr("catalog.stations", () => trpc.catalog.stations.query(), setStationsList).catch(() => {});
   }, [isDirector]);
 
   return (
@@ -208,7 +210,7 @@ export function Catalog({ user }: { user: SessionUser }) {
       {isDirector && stationsList.length > 0 && (
         <PrintersSection
           stations={stationsList}
-          onChanged={() => trpc.catalog.stations.query().then(setStationsList).catch(() => {})}
+          onChanged={() => swr("catalog.stations", () => trpc.catalog.stations.query(), setStationsList).catch(() => {})}
         />
       )}
     </div>
@@ -310,7 +312,7 @@ export function ProductModal({
   const isRecipeType = type === "dish" || type === "semi";
 
   useEffect(() => {
-    trpc.catalog.components.query().then(setComponents).catch(() => {});
+    swr("catalog.components", () => trpc.catalog.components.query(), setComponents).catch(() => {});
     if (product) {
       trpc.catalog.recipeForProduct
         .query({ productId: product.id })

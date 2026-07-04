@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { trpc } from "./trpc";
+import { swr } from "./lib/cache";
 
 type Prod = {
   id: string;
@@ -46,16 +47,14 @@ export function Purchases() {
   const [error, setError] = useState<string | null>(null);
 
   function refresh() {
-    trpc.purchase.list
-      .query()
-      .then(setRecent)
-      .catch(() => setRecent([]));
+    swr("purchase.list", () => trpc.purchase.list.query(), setRecent).catch(() =>
+      setRecent([]),
+    );
   }
   useEffect(() => {
-    trpc.purchase.products
-      .query()
-      .then(setProds)
-      .catch(() => setProds([]));
+    swr("purchase.products", () => trpc.purchase.products.query(), setProds).catch(
+      () => setProds([]),
+    );
     refresh();
   }, []);
 

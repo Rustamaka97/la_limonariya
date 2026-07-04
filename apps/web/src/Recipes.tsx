@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { type Category, type Product, ProductModal, type Station } from "./Catalog";
+import { swr } from "./lib/cache";
 import { trpc } from "./trpc";
 
 type Recipe = {
@@ -36,7 +37,7 @@ export function Recipes() {
   useEffect(() => {
     refresh();
     trpc.catalog.categories.list.query().then(setCats).catch(() => {});
-    trpc.catalog.stations.query().then(setStations).catch(() => {});
+    swr("catalog.stations", () => trpc.catalog.stations.query(), setStations).catch(() => {});
   }, [refresh]);
 
   async function toggle(id: string) {
@@ -46,8 +47,11 @@ export function Recipes() {
     }
     setOpen(id);
     if (!items[id]) {
-      const it = await trpc.catalog.recipe.query({ recipeId: id });
-      setItems((prev) => ({ ...prev, [id]: it }));
+      await swr(
+        `catalog.recipe:${id}`,
+        () => trpc.catalog.recipe.query({ recipeId: id }),
+        (it) => setItems((prev) => ({ ...prev, [id]: it })),
+      );
     }
   }
 

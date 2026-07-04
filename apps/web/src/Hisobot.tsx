@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { downloadCsv } from "./lib/csv";
 import { trpc } from "./trpc";
+import { swr } from "./lib/cache";
 import { Skeleton, SkeletonCard, SkeletonRow } from "./Skeleton";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("ru-RU");
@@ -115,7 +116,7 @@ function Trend() {
   const [err, setErr] = useState(false);
   function load() {
     setErr(false);
-    trpc.report.salesDaily.query({ days: 14 }).then(setData).catch(() => setErr(true));
+    swr("report.salesDaily:14", () => trpc.report.salesDaily.query({ days: 14 }), setData).catch(() => setErr(true));
   }
   useEffect(load, []);
 
@@ -173,7 +174,7 @@ function Category({ from, to }: { from: string; to: string }) {
   function load() {
     setErr(false);
     setRows(null);
-    trpc.report.byCategory.query({ from, to }).then(setRows).catch(() => setErr(true));
+    swr(`report.byCategory:${from}:${to}`, () => trpc.report.byCategory.query({ from, to }), setRows).catch(() => setErr(true));
   }
   useEffect(load, [from, to]);
 
@@ -216,7 +217,7 @@ function TopDishes({ from, to }: { from: string; to: string }) {
   function load() {
     setErr(false);
     setRows(null);
-    trpc.report.topDishes.query({ from, to, by, limit: 15 }).then(setRows).catch(() => setErr(true));
+    swr(`report.topDishes:${from}:${to}:${by}`, () => trpc.report.topDishes.query({ from, to, by, limit: 15 }), setRows).catch(() => setErr(true));
   }
   useEffect(load, [from, to, by]);
 
@@ -281,7 +282,7 @@ function Waiters({ from, to }: { from: string; to: string }) {
   function load() {
     setErr(false);
     setRows(null);
-    trpc.report.byWaiter.query({ from, to }).then(setRows).catch(() => setErr(true));
+    swr(`report.byWaiter:${from}:${to}`, () => trpc.report.byWaiter.query({ from, to }), setRows).catch(() => setErr(true));
   }
   useEffect(load, [from, to]);
 
@@ -322,7 +323,7 @@ function Cashiers({ from, to }: { from: string; to: string }) {
   function load() {
     setErr(false);
     setRows(null);
-    trpc.report.byCashier.query({ from, to }).then(setRows).catch(() => setErr(true));
+    swr(`report.byCashier:${from}:${to}`, () => trpc.report.byCashier.query({ from, to }), setRows).catch(() => setErr(true));
   }
   useEffect(load, [from, to]);
 
@@ -383,7 +384,7 @@ function Matrix({ from, to }: { from: string; to: string }) {
   function load() {
     setErr(false);
     setData(null);
-    trpc.report.stockMatrix.query({ from, to }).then(setData).catch(() => setErr(true));
+    swr(`report.stockMatrix:${from}:${to}`, () => trpc.report.stockMatrix.query({ from, to }), setData).catch(() => setErr(true));
   }
   useEffect(load, [from, to]);
 

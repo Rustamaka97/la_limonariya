@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
 import { swr } from "./lib/cache";
@@ -78,6 +78,10 @@ const PAY_LABEL: Record<string, string> = {
 };
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
+
+function vibrate(pattern: number | number[]) {
+  if ("vibrate" in navigator) navigator.vibrate(pattern);
+}
 
 // Category colour-coding — fast visual scanning (Clopos has none).
 const CAT_COLORS: [RegExp, string][] = [
@@ -171,6 +175,7 @@ function FloorView({
   const [orders, setOrders] = useState<OpenOrder[] | null>(null);
   const [newFor, setNewFor] = useState<{ hall: Hall; table?: string } | null>(null);
   const [conflict, setConflict] = useState<{ table: string; orders: OpenOrder[] } | null>(null);
+  const [quickFor, setQuickFor] = useState<OpenOrder | null>(null);
   const [online, setOnline] = useState(isOnline());
 
   const refresh = useCallback(async () => {
@@ -305,6 +310,7 @@ function FloorView({
                         onClick={() =>
                           os.length > 1 ? setConflict({ table: t.name, orders: os }) : onOpen(first.id)
                         }
+                        onLongPress={() => setQuickFor(first)}
                       />
                     );
                   })}
@@ -323,6 +329,7 @@ function FloorView({
                     table={o.tableNo || o.hall || "заказ"}
                     order={o}
                     onClick={() => onOpen(o.id)}
+                    onLongPress={() => setQuickFor(o)}
                   />
                 ))}
               </div>
@@ -357,6 +364,38 @@ function FloorView({
             }
             setConflict(null);
             refresh();
+          }}
+        />
+      )}
+
+      {quickFor && (
+        <QuickActionsSheet
+          order={quickFor}
+          onClose={() => setQuickFor(null)}
+          onMoved={(orderId, hall, tableNo) => {
+            // Оптимистик — кўчириш оддий присвоение, дарҳол кўрсатамиз.
+            setOrders((os) =>
+              os
+                ? os.map((o) => (o.id === orderId ? { ...o, hallId: hall.id, hall: hall.name, tableNo: tableNo ?? null } : o))
+                : os,
+            );
+            setQuickFor(null);
+            trpc.pos.moveTable
+              .mutate({ id: orderId, hallId: hall.id, tableNo })
+              .then(() => vibrate([15]))
+              .catch((e: unknown) => {
+                alert(e instanceof Error ? e.message : "Кўчириш бажарилмади");
+                console.error("moveTable failed", e);
+              });
+          }}
+          onGuests={(orderId, guests) => {
+            setOrders((os) => (os ? os.map((o) => (o.id === orderId ? { ...o, guests } : o)) : os));
+            setQuickFor(null);
+            enqueueMeta(orderId, { guests }).then(() => void flush()).catch(() => {});
+          }}
+          onNote={(orderId, note) => {
+            setQuickFor(null);
+            enqueueMeta(orderId, { note }).then(() => void flush()).catch(() => {});
           }}
         />
       )}
@@ -424,7 +463,7 @@ function MoveSheet({
   onMove,
 }: {
   onClose: () => void;
-  onMove: (hallId: string, tableNo?: string) => void;
+  onMove: (hall: Hall, tableNo?: string) => void;
 }) {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [tbls, setTbls] = useState<Table[]>([]);
@@ -439,8 +478,10 @@ function MoveSheet({
   }, []);
   const hallTables = tbls.filter((t) => t.hallId === hallId);
   const pick = (tableNo?: string) => {
+    const hall = halls.find((h) => h.id === hallId);
+    if (!hall) return;
     setBusy(true);
-    onMove(hallId, tableNo);
+    onMove(hall, tableNo);
   };
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
@@ -481,20 +522,185 @@ function MoveSheet({
   );
 }
 
+// Пол харитасидан long-press билан очиладиган тезкор амаллар — тўлиқ заказ
+// экранига ўтмасдан кўчириш/меҳмонлар/изоҳ. Ҳаммаси оптимистик (сервер ҳисоблашсиз).
+function QuickActionsSheet({
+  order,
+  onClose,
+  onMoved,
+  onGuests,
+  onNote,
+}: {
+  order: OpenOrder;
+  onClose: () => void;
+  onMoved: (orderId: string, hall: Hall, tableNo?: string) => void;
+  onGuests: (orderId: string, guests: number) => void;
+  onNote: (orderId: string, note: string) => void;
+}) {
+  const [mode, setMode] = useState<"menu" | "move" | "guests" | "note">("menu");
+  const [guests, setGuestsInput] = useState(order.guests ?? 1);
+  const [note, setNoteInput] = useState("");
+
+  if (mode === "move") {
+    return (
+      <MoveSheet
+        onClose={() => setMode("menu")}
+        onMove={(hall, tableNo) => onMoved(order.id, hall, tableNo)}
+      />
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        {mode === "menu" && (
+          <>
+            <h3 className="font-semibold text-brand-ink">Тезкор амаллар</h3>
+            <div className="mt-3 space-y-2">
+              <button
+                onClick={() => setMode("move")}
+                className="flex w-full items-center gap-2 rounded-xl border border-brand-cream-soft px-4 py-3 text-left text-sm font-medium text-brand-ink transition hover:border-brand hover:bg-brand-cream/40"
+              >
+                🔄 Кўчириш
+              </button>
+              <button
+                onClick={() => { setGuestsInput(order.guests ?? 1); setMode("guests"); }}
+                className="flex w-full items-center gap-2 rounded-xl border border-brand-cream-soft px-4 py-3 text-left text-sm font-medium text-brand-ink transition hover:border-brand hover:bg-brand-cream/40"
+              >
+                👥 Меҳмонлар
+              </button>
+              <button
+                onClick={() => { setNoteInput(""); setMode("note"); }}
+                className="flex w-full items-center gap-2 rounded-xl border border-brand-cream-soft px-4 py-3 text-left text-sm font-medium text-brand-ink transition hover:border-brand hover:bg-brand-cream/40"
+              >
+                📝 Изоҳ
+              </button>
+            </div>
+            <button onClick={onClose} className="mt-3 w-full py-1 text-xs text-zinc-400 transition hover:text-zinc-600">
+              Бекор
+            </button>
+          </>
+        )}
+
+        {mode === "guests" && (
+          <>
+            <h3 className="font-semibold text-brand-ink">👥 Меҳмонлар сони</h3>
+            <div className="mt-3 flex items-center justify-center gap-4">
+              <Step onClick={() => setGuestsInput((g) => Math.max(1, g - 1))}>
+                <IMinus className="h-4 w-4" />
+              </Step>
+              <span className="w-10 text-center text-2xl font-bold tabular-nums text-brand-ink">{guests}</span>
+              <Step onClick={() => setGuestsInput((g) => Math.min(99, g + 1))}>
+                <IPlus className="h-4 w-4" />
+              </Step>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setMode("menu")}
+                className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600"
+              >
+                Орқага
+              </button>
+              <button
+                onClick={() => onGuests(order.id, guests)}
+                className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
+              >
+                Сақлаш
+              </button>
+            </div>
+          </>
+        )}
+
+        {mode === "note" && (
+          <>
+            <h3 className="font-semibold text-brand-ink">📝 Изоҳ</h3>
+            <input
+              autoFocus
+              value={note}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="масалан: аччиқ эмас, музсиз..."
+              className="mt-3 w-full rounded-xl border border-brand-cream-soft px-3 py-2.5 text-sm outline-none focus:border-brand"
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setMode("menu")}
+                className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600"
+              >
+                Орқага
+              </button>
+              <button
+                onClick={() => onNote(order.id, note)}
+                className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
+              >
+                Сақлаш
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
+
 function TableTile({
   table,
   order,
   onClick,
+  onLongPress,
   conflict,
 }: {
   table: string;
   order: OpenOrder;
   onClick: () => void;
+  onLongPress?: () => void;
   conflict?: boolean;
 }) {
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressStart = useRef<{ x: number; y: number } | null>(null);
+  const longPressed = useRef(false);
+
+  const clearPress = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+    pressStart.current = null;
+  };
+
+  const onPointerDown = (e: ReactPointerEvent) => {
+    if (!onLongPress) return;
+    longPressed.current = false;
+    pressStart.current = { x: e.clientX, y: e.clientY };
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      pressTimer.current = null;
+      onLongPress();
+    }, LONG_PRESS_MS);
+  };
+  const onPointerMove = (e: ReactPointerEvent) => {
+    if (!pressStart.current) return;
+    const dx = e.clientX - pressStart.current.x;
+    const dy = e.clientY - pressStart.current.y;
+    if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_TOLERANCE) clearPress();
+  };
+  const onPointerUp = () => clearPress();
+  const onPointerLeave = () => clearPress();
+  const handleClick = () => {
+    if (longPressed.current) {
+      longPressed.current = false; // long-press ишлаган — оддий tap'ни ўтказмаймиз
+      return;
+    }
+    onClick();
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerLeave}
       className={`flex min-h-[76px] flex-col justify-between rounded-xl p-2.5 text-left text-white shadow-sm transition active:scale-95 motion-reduce:active:scale-100 ${
         conflict ? "bg-amber-600 hover:bg-amber-700" : "bg-brand hover:bg-brand-deep"
       }`}
@@ -755,12 +961,14 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
         return;
       }
       refresh();
+      vibrate([10]);
       return;
     }
     const local = await deriveOrder(id);
     if (local) setOrder(local as unknown as Order); // оптимистик
     await flush().catch(() => {});
     refresh();
+    vibrate([10]);
   }
 
   async function setGuests(n: number) {
@@ -784,12 +992,14 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
         await enqueueSendToKitchen(id);
         setUnsent(await localUnsent(id)); // send'дан кейин қўшилганлар қолади
         void flush();
+        vibrate([20]);
         return;
       }
       // ticketId — retry replay икки марта кухняга юбормайди (мавжудни қайтаради).
       const t = await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: crypto.randomUUID() });
       if (t.id) setTicketId(t.id);
       refresh();
+      vibrate([20]);
     } finally {
       setSending(false);
     }
@@ -821,6 +1031,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       });
       cancelPay();
       refresh();
+      vibrate([30, 50, 30]);
     } catch (e: unknown) {
       setCloseErr(e instanceof Error ? e.message : "Хато");
     } finally {
@@ -940,15 +1151,19 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       {moving && (
         <MoveSheet
           onClose={() => setMoving(false)}
-          onMove={async (hallId, tableNo) => {
-            try {
-              await trpc.pos.moveTable.mutate({ id, hallId, tableNo });
-              setMoving(false);
-              onBack();
-            } catch {
-              setSyncErr("Кўчириш бажарилмади");
-              setMoving(false);
-            }
+          onMove={(hall, tableNo) => {
+            // Оптимистик: кўчириш — оддий присвоение (сервер ҳисоблашсиз), шунинг
+            // учун натижани дарҳол кўрсатиш мумкин (пул/ҳисоб эмас).
+            setOrder((o) => (o ? { ...o, hall: hall.name, hallId: hall.id, tableNo: tableNo ?? null, servicePct: hall.servicePct } : o));
+            setMoving(false);
+            onBack();
+            trpc.pos.moveTable
+              .mutate({ id, hallId: hall.id, tableNo })
+              .then(() => vibrate([15]))
+              .catch((e: unknown) => {
+                alert(e instanceof Error ? e.message : "Кўчириш бажарилмади");
+                console.error("moveTable failed", e);
+              });
           }}
         />
       )}
