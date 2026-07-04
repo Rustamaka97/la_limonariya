@@ -68,6 +68,15 @@ import {
 } from "./printing/escpos";
 import { sendTelegram, telegramEnabled } from "./telegram";
 import { businessDayBounds, businessRangeBounds, previousDayKey } from "./time";
+import {
+  buildPurchaseForecast,
+  humanizeGrammLeak,
+  humanizePriceSpike,
+  humanizeUnderDelivery,
+  marginDropInsight,
+  type DishMarginDay,
+  type UnderDeliveryItem,
+} from "./insights";
 import { TRPCError } from "@trpc/server";
 import {
   buyerProcedure,
@@ -120,7 +129,7 @@ async function latestMeatCost(ct: "qoy" | "mol"): Promise<number | null> {
 
 // Per-dish meat cost: Σ (meat-ingredient grams × current per-kg meat cost).
 // Meat is detected from recipe item stock_hint; carcass from мол/қўй in hint/category.
-async function computeDishTaannarx(meatCost: {
+export async function computeDishTaannarx(meatCost: {
   qoy: number | null;
   mol: number | null;
 }) {
@@ -1393,6 +1402,64 @@ async function firePrintCheck(orderId: string): Promise<void> {
   }
 }
 
+export function shiftDayKey(dayKey: string, deltaDays: number): string {
+  const [y = 0, m = 1, d = 1] = dayKey.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+// Mirrors report.topDishes' per-dish margin calc, scoped to one closed business
+// day — used to build the 3-day margin-trend history for marginDropInsight().
+export async function dishMarginForDay(
+  dayKey: string,
+  dishes: Awaited<ReturnType<typeof computeDishTaannarx>>,
+): Promise<Map<string, { name: string; marginPct: number }>> {
+  const { startUTC, endUTC } = businessDayBounds(dayKey);
+  const frac = await orderRevenueFraction(startUTC, endUTC);
+  const rows = await db
+    .select({
+      orderId: orderItems.orderId,
+      productId: orderItems.productId,
+      name: orderItems.name,
+      qty: orderItems.qty,
+      price: orderItems.price,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, startUTC),
+        lt(orders.closedAt, endUTC),
+      ),
+    );
+  const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
+  for (const r of rows) {
+    if (!r.productId) continue;
+    const e = byProduct.get(r.productId) ?? { name: r.name, qty: 0, revenue: 0 };
+    e.qty += r.qty;
+    e.revenue += Math.round(r.qty * r.price * (frac.get(r.orderId) ?? 1));
+    byProduct.set(r.productId, e);
+  }
+  const meatPerUnit = new Map(
+    dishes
+      .filter(
+        (d) => d.productId && !(d.meatPct != null && d.meatPct > 100) && !d.hasUnpricedMeat,
+      )
+      .map((d) => [d.productId as string, d.meatCostTotal]),
+  );
+  const out = new Map<string, { name: string; marginPct: number }>();
+  for (const [productId, v] of byProduct) {
+    if (v.revenue <= 0) continue;
+    const perUnit = meatPerUnit.get(productId);
+    if (perUnit == null) continue;
+    const meatCostTotal = perUnit * v.qty;
+    const profit = v.revenue - meatCostTotal;
+    out.set(productId, { name: v.name, marginPct: Math.round((profit / v.revenue) * 100) });
+  }
+  return out;
+}
+
 // Кун охири хулосаси: тушум/фойда/чек + очиқ тешиклар → директорга Telegram.
 // telegram.digest procedure ва cron скрипти (telegram-digest.ts) шуни чақиради.
 export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }> {
@@ -1403,9 +1470,11 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
   const sig = await computeSignals();
   const holes: string[] = [];
   if (sig.obvalkaFlags.length) holes.push(`🩸 Обвалка баланс: ${sig.obvalkaFlags.length}`);
-  if (sig.underDelivery.length) holes.push(`🚩 Кам келтириш: ${sig.underDelivery.length}`);
-  if (sig.grammLeak.length) holes.push(`🍢 Сих грамм оқмаси: ${sig.grammLeak.length}`);
-  if (sig.priceSpikes.length) holes.push(`💸 Нарх аномалияси: ${sig.priceSpikes.length}`);
+  if (sig.underDelivery.length)
+    holes.push(...humanizeUnderDelivery(sig.underDelivery as UnderDeliveryItem[]));
+  const grammLeakFlagged = sig.grammLeak.filter((g) => g.flag);
+  if (grammLeakFlagged.length) holes.push(...humanizeGrammLeak(grammLeakFlagged));
+  if (sig.priceSpikes.length) holes.push(...humanizePriceSpike(sig.priceSpikes));
   if (sig.compFlag) holes.push(`🆓 Текин лимитдан ошди: ${som(sig.compToday)}`);
   if (sig.cashVariance && sig.cashVariance.variance < 0)
     holes.push(`💵 Касса камомади: ${som(sig.cashVariance.variance)}`);
@@ -1418,6 +1487,67 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
   const lastWeek = await lastWeekComparison(dayKey, fin.revenue);
   const weekdayNames = ["якшанба", "душанба", "сешанба", "чоршанба", "пайшанба", "жума", "шанба"];
   const weekdayName = weekdayNames[new Date(`${dayKey}T00:00:00Z`).getUTCDay()];
+
+  // 4.1 — 3-day margin-drop insight (d0=позавчера-позавчера .. d2=вчера, old→new).
+  const d2 = previousDayKey(dayKey);
+  const d1 = previousDayKey(d2);
+  const d0 = previousDayKey(d1);
+  const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+  const dishes = await computeDishTaannarx(meatCost);
+  const marginHistory: DishMarginDay[] = [];
+  for (const day of [d0, d1, d2]) {
+    const m = await dishMarginForDay(day, dishes);
+    for (const [productId, v] of m) {
+      marginHistory.push({ productId, name: v.name, dayKey: day, marginPct: v.marginPct });
+    }
+  }
+  const insight = marginDropInsight(marginHistory, [d0, d1, d2]);
+
+  // 4.2 — tomorrow's meat purchase forecast (median of same-weekday history).
+  const carc = await db
+    .select({ id: products.id, name: products.name })
+    .from(products)
+    .where(inArray(products.name, ["Мол лаҳм", "Қўй лаҳм"]));
+  const molId = carc.find((c) => c.name === "Мол лаҳм")?.id ?? null;
+  const qoyId = carc.find((c) => c.name === "Қўй лаҳм")?.id ?? null;
+  const tomorrowKey = shiftDayKey(dayKey, 1);
+  const tomorrowWeekdayName =
+    weekdayNames[new Date(`${tomorrowKey}T00:00:00Z`).getUTCDay()] ?? "";
+  const floorRows = await db.execute<{ floor: Date | null }>(
+    sql`select min(created_at) as floor from stock_movements`,
+  );
+  const floor = floorRows[0]?.floor ? new Date(floorRows[0].floor) : null;
+  async function historyKg(productId: string | null): Promise<number[]> {
+    if (!productId || !floor) return [];
+    const out: number[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const histKey = shiftDayKey(tomorrowKey, -7 * i);
+      const { startUTC: hStart, endUTC: hEnd } = businessDayBounds(histKey);
+      // Skip only if the WHOLE window predates the first-ever movement — if the
+      // floor timestamp falls inside this window (system went live mid-day), the
+      // window is still valid and the sum query below naturally returns real data.
+      if (hEnd <= floor) continue;
+      const row = (
+        await db
+          .select({ s: sql<number>`coalesce(sum(-${stockMovements.qty}), 0)` })
+          .from(stockMovements)
+          .where(
+            and(
+              eq(stockMovements.productId, productId),
+              lt(stockMovements.qty, 0),
+              gte(stockMovements.createdAt, hStart),
+              lt(stockMovements.createdAt, hEnd),
+            ),
+          )
+      )[0];
+      out.push(Number(row?.s ?? 0) / 1000);
+    }
+    return out;
+  }
+  const qoyHistoryKg = await historyKg(qoyId);
+  const molHistoryKg = await historyKg(molId);
+  const forecastLine = buildPurchaseForecast(tomorrowWeekdayName, qoyHistoryKg, molHistoryKg);
+
   const lines = [
     `🍋 La Limonariya — кун хулосаси (${dayKey})`,
     "",
@@ -1429,6 +1559,9 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
       : "",
     fin.guestDebt > 0 ? `🤝 Меҳмон қарзи (олинмаган): ${som(fin.guestDebt)}` : "",
     fin.ownerDraw > 0 ? `👑 Эга олди: ${som(fin.ownerDraw)}` : "",
+    "",
+    insight ? `💡 ${insight}` : "",
+    forecastLine ?? "",
     "",
     holes.length ? `⚠️ Тешиклар:\n${holes.map((h) => `• ${h}`).join("\n")}` : "✅ Тешик йўқ",
   ].filter(Boolean);
