@@ -104,6 +104,38 @@ function catColor(name?: string | null): string {
   return PALETTE[h % PALETTE.length] ?? "#0e4037";
 }
 
+// Директор иссиқ харитаси: 0 → cream, ярим → gold, макс → brand-deep (чизиқли).
+const HEAT_STOPS: [number, string][] = [
+  [0, "#fff0e5"],
+  [0.5, "#f3b759"],
+  [1, "#092f28"],
+];
+function hexToRgb(hex: string): [number, number, number] {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function lerpHeat(pct: number): string {
+  let lo = HEAT_STOPS[0]!;
+  let hi = HEAT_STOPS[HEAT_STOPS.length - 1]!;
+  for (let i = 0; i < HEAT_STOPS.length - 1; i++) {
+    const a = HEAT_STOPS[i]!;
+    const b = HEAT_STOPS[i + 1]!;
+    if (pct >= a[0] && pct <= b[0]) {
+      lo = a;
+      hi = b;
+      break;
+    }
+  }
+  const span = hi[0] - lo[0];
+  const t = span === 0 ? 0 : (pct - lo[0]) / span;
+  const [r1, g1, b1] = hexToRgb(lo[1]);
+  const [r2, g2, b2] = hexToRgb(hi[1]);
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const b = Math.round(b1 + (b2 - b1) * t);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function minsAgo(iso: string): string {
   const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
   if (m < 60) return `${m}м`;
@@ -177,6 +209,8 @@ function FloorView({
   const [conflict, setConflict] = useState<{ table: string; orders: OpenOrder[] } | null>(null);
   const [quickFor, setQuickFor] = useState<OpenOrder | null>(null);
   const [online, setOnline] = useState(isOnline());
+  const [heatOn, setHeatOn] = useState(false);
+  const [heat, setHeat] = useState<{ hallId: string; hallName: string; tableNo: string; revenue: number }[] | null>(null);
 
   const refresh = useCallback(async () => {
     // Сервер + локал (offline'да яратилган) очиқ заказларни бирлаштириш.
@@ -205,6 +239,29 @@ function FloorView({
     };
   }, [refresh]);
 
+  const key = (hallId: string, name: string | null) => `${hallId}::${name ?? ""}`;
+
+  useEffect(() => {
+    if (!heatOn) return;
+    const to = new Date();
+    const from = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    swr(
+      "report.byTable:30d",
+      () => trpc.report.byTable.query({ from: iso(from), to: iso(to) }),
+      setHeat,
+    ).catch(() => {});
+  }, [heatOn]);
+
+  const heatMax = heat ? Math.max(0, ...heat.map((h) => h.revenue)) : 0;
+  const heatByKey = new Map<string, number>();
+  for (const h of heat ?? []) heatByKey.set(key(h.hallId, h.tableNo), h.revenue);
+  const heatColor = (revenue: number) => {
+    if (heatMax === 0) return "#f5f0e6"; // cream — нейтрал (max===0 ҳимояси)
+    const pct = Math.max(0, Math.min(1, revenue / heatMax));
+    return lerpHeat(pct);
+  };
+
   async function create(hallId: string, table: string | undefined, guests: number) {
     // Offline-first: локал заказ + навбат; уланганда синхрон (идемпотент client id).
     const hall = halls.find((h) => h.id === hallId);
@@ -231,7 +288,6 @@ function FloorView({
     void flush();
   }
 
-  const key = (hallId: string, name: string | null) => `${hallId}::${name ?? ""}`;
   const byKey = new Map<string, OpenOrder[]>();
   for (const o of orders ?? []) {
     const k = key(o.hallId, o.tableNo);
@@ -252,13 +308,25 @@ function FloorView({
             {orders === null ? "…" : `${busy} банд · ${tbls.length} стол`}
           </p>
         </div>
-        <button
-          onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
-        >
-          <IPlus className="h-4 w-4" />
-          Тезкор заказ
-        </button>
+        <div className="flex items-center gap-2">
+          {user.role === "director" && (
+            <button
+              onClick={() => setHeatOn((v) => !v)}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[.98] motion-reduce:active:scale-100 ${
+                heatOn ? "bg-brand-gold text-brand-ink" : "bg-white text-brand-ink/70 hover:text-brand"
+              }`}
+            >
+              💰 Иссиқ харита
+            </button>
+          )}
+          <button
+            onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
+          >
+            <IPlus className="h-4 w-4" />
+            Тезкор заказ
+          </button>
+        </div>
       </div>
 
       {!online && (
@@ -290,11 +358,17 @@ function FloorView({
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
                   {hallTables.map((t) => {
                     const os = byKey.get(key(h.id, t.name)) ?? [];
+                    const rev = heatByKey.get(key(h.id, t.name)) ?? 0;
                     if (os.length === 0)
                       return (
                         <button
                           key={t.id}
-                          onClick={() => setNewFor({ hall: h, table: t.name })}
+                          style={heatOn ? { backgroundColor: heatColor(rev) } : undefined}
+                          onClick={() =>
+                            heatOn
+                              ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
+                              : setNewFor({ hall: h, table: t.name })
+                          }
                           className="grid min-h-[76px] place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
                         >
                           <span className="line-clamp-2">{t.name}</span>
@@ -307,10 +381,15 @@ function FloorView({
                         table={t.name}
                         order={first}
                         conflict={os.length > 1}
+                        heatColor={heatOn ? heatColor(rev) : undefined}
                         onClick={() =>
-                          os.length > 1 ? setConflict({ table: t.name, orders: os }) : onOpen(first.id)
+                          heatOn
+                            ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
+                            : os.length > 1
+                              ? setConflict({ table: t.name, orders: os })
+                              : onOpen(first.id)
                         }
-                        onLongPress={() => setQuickFor(first)}
+                        onLongPress={heatOn ? undefined : () => setQuickFor(first)}
                       />
                     );
                   })}
@@ -323,15 +402,20 @@ function FloorView({
             <section className="space-y-2.5">
               <h3 className="px-1 text-sm font-bold uppercase tracking-wide text-brand-ink">Бошқа очиқ</h3>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                {stray.map((o) => (
-                  <TableTile
-                    key={o.id}
-                    table={o.tableNo || o.hall || "заказ"}
-                    order={o}
-                    onClick={() => onOpen(o.id)}
-                    onLongPress={() => setQuickFor(o)}
-                  />
-                ))}
+                {stray.map((o) => {
+                  const label = o.tableNo || o.hall || "заказ";
+                  const rev = heatByKey.get(key(o.hallId, o.tableNo)) ?? 0;
+                  return (
+                    <TableTile
+                      key={o.id}
+                      table={label}
+                      order={o}
+                      heatColor={heatOn ? heatColor(rev) : undefined}
+                      onClick={() => (heatOn ? alert(`${label}: ${fmt(rev)} so'm за 30 кун`) : onOpen(o.id))}
+                      onLongPress={heatOn ? undefined : () => setQuickFor(o)}
+                    />
+                  );
+                })}
               </div>
             </section>
           )}
@@ -651,12 +735,14 @@ function TableTile({
   onClick,
   onLongPress,
   conflict,
+  heatColor,
 }: {
   table: string;
   order: OpenOrder;
   onClick: () => void;
   onLongPress?: () => void;
   conflict?: boolean;
+  heatColor?: string;
 }) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStart = useRef<{ x: number; y: number } | null>(null);
@@ -701,25 +787,36 @@ function TableTile({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerLeave}
-      className={`flex min-h-[76px] flex-col justify-between rounded-xl p-2.5 text-left text-white shadow-sm transition active:scale-95 motion-reduce:active:scale-100 ${
-        conflict ? "bg-amber-600 hover:bg-amber-700" : "bg-brand hover:bg-brand-deep"
+      style={heatColor ? { backgroundColor: heatColor } : undefined}
+      className={`flex min-h-[76px] flex-col justify-between rounded-xl p-2.5 text-left shadow-sm transition active:scale-95 motion-reduce:active:scale-100 ${
+        heatColor
+          ? "text-brand-ink"
+          : conflict
+            ? "bg-amber-600 hover:bg-amber-700 text-white"
+            : "bg-brand hover:bg-brand-deep text-white"
       }`}
     >
       <div className="flex items-start justify-between gap-1">
         <span className="line-clamp-2 text-xs font-semibold leading-tight">
-          {conflict ? "⚠ " : ""}
+          {conflict && !heatColor ? "⚠ " : ""}
           {table}
         </span>
         {order.guests ? (
-          <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-white/15 px-1 text-[10px] font-semibold">
+          <span
+            className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 text-[10px] font-semibold ${
+              heatColor ? "bg-brand-ink/10" : "bg-white/15"
+            }`}
+          >
             <IUser className="h-3 w-3" />
             {order.guests}
           </span>
         ) : null}
       </div>
       <div>
-        <div className="text-sm font-bold tabular-nums text-brand-gold">{fmt(order.total)}</div>
-        <div className="flex items-center gap-1 text-[10px] text-white/60">
+        <div className={`text-sm font-bold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
+          {fmt(order.total)}
+        </div>
+        <div className={`flex items-center gap-1 text-[10px] ${heatColor ? "text-brand-ink/60" : "text-white/60"}`}>
           <IClock className="h-3 w-3" />
           {minsAgo(order.createdAt)}
         </div>

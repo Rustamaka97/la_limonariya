@@ -1548,6 +1548,70 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
   const molHistoryKg = await historyKg(molId);
   const forecastLine = buildPurchaseForecast(tomorrowWeekdayName, qoyHistoryKg, molHistoryKg);
 
+  // 4.4 — ҳафта якуни (фақат якшанба): энг яхши кун + энг яхши официант + рекорд тушум.
+  let weekSummaryLine = "";
+  let weekRecordLine = "";
+  if (weekdayNames[new Date(`${dayKey}T00:00:00Z`).getUTCDay()] === "якшанба") {
+    let bestDayKey = dayKey;
+    let bestDayRevenue = -1;
+    let weekStartKey = dayKey;
+    for (let i = 0; i < 7; i++) {
+      const k = i === 0 ? dayKey : shiftDayKey(dayKey, -i);
+      const { startUTC: dS, endUTC: dE } = businessDayBounds(k);
+      const r = await revenueForWindow(dS, dE);
+      if (r.revenue > bestDayRevenue) {
+        bestDayRevenue = r.revenue;
+        bestDayKey = k;
+      }
+      weekStartKey = k;
+    }
+    const bestDayName = weekdayNames[new Date(`${bestDayKey}T00:00:00Z`).getUTCDay()];
+    const { startUTC: weekStartUTC } = businessDayBounds(weekStartKey);
+
+    const waiterRows = await db
+      .select({
+        waiterId: orders.waiterId,
+        waiterName: users.name,
+        amount: orderPayments.amount,
+        method: orderPayments.method,
+      })
+      .from(orderPayments)
+      .innerJoin(orders, eq(orderPayments.orderId, orders.id))
+      .leftJoin(users, eq(orders.waiterId, users.id))
+      .where(
+        and(
+          eq(orders.status, "closed"),
+          gte(orders.closedAt, weekStartUTC),
+          lt(orders.closedAt, endUTC),
+        ),
+      );
+    const byWaiterWeek = new Map<string, { name: string; amount: number }>();
+    for (const r of waiterRows) {
+      if (r.method === "debt" || !r.waiterId) continue;
+      const e = byWaiterWeek.get(r.waiterId) ?? { name: r.waiterName ?? "Номаълум", amount: 0 };
+      e.amount += r.amount;
+      byWaiterWeek.set(r.waiterId, e);
+    }
+    const bestWaiter = [...byWaiterWeek.values()].sort((a, b) => b.amount - a.amount)[0];
+
+    weekSummaryLine = bestWaiter
+      ? `🗓️ Ҳафта якуни: энг яхши кун — ${bestDayName} (${som(bestDayRevenue)}) · энг яхши официант — ${bestWaiter.name} (${som(bestWaiter.amount)})`
+      : "";
+
+    // рекорд: аввалги ҳафталардаги ЭНГ ЮҚОРИ business-кун тушуми (шу ҳафта бошланишидан олдин).
+    const histRows = await db.execute<{ dkey: string; revenue: number }>(
+      sql`select to_char((closed_at - interval '1 hour'), 'YYYY-MM-DD') as dkey,
+                 sum(amount) as revenue
+          from order_payments op
+          join orders o on o.id = op.order_id
+          where o.status = 'closed' and op.method != 'debt'
+            and o.closed_at < ${weekStartUTC.toISOString()}
+          group by 1`,
+    );
+    const priorMax = histRows.reduce((m, r) => Math.max(m, Number(r.revenue)), 0);
+    if (bestDayRevenue > priorMax) weekRecordLine = "🏆 Рекорд тушум!";
+  }
+
   const lines = [
     `🍋 La Limonariya — кун хулосаси (${dayKey})`,
     "",
@@ -1562,6 +1626,8 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
     "",
     insight ? `💡 ${insight}` : "",
     forecastLine ?? "",
+    weekSummaryLine,
+    weekRecordLine,
     "",
     holes.length ? `⚠️ Тешиклар:\n${holes.map((h) => `• ${h}`).join("\n")}` : "✅ Тешик йўқ",
   ].filter(Boolean);
@@ -4096,6 +4162,62 @@ export const appRouter = router({
         };
       }),
 
+    // Ойлик P&L'ни 7-кунлик ҳафталарга бўлиш (сўнгги ҳафта қисқароқ бўлиши мумкин).
+    pnlByWeek: directorProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const dm = (t: Date) => `${pad(t.getUTCDate())}.${pad(t.getUTCMonth() + 1)}`;
+        const WEEK_MS = 7 * 24 * 3600 * 1000;
+        const weeks: {
+          label: string;
+          from: string;
+          to: string;
+          revenue: number;
+          cogs: number;
+          opexOther: number;
+          ishHaqi: number;
+          ownerDraw: number;
+          sofFoyda: number;
+        }[] = [];
+        for (let ws = startUTC.getTime(); ws < endUTC.getTime(); ws += WEEK_MS) {
+          const weekStart = new Date(ws);
+          const weekEnd = new Date(Math.min(ws + WEEK_MS, endUTC.getTime()));
+          const fin = await financeForWindow(weekStart, weekEnd);
+          const ishHaqi = fin.opexByCat.ish_haqi ?? 0;
+          const opexOther = fin.opex - ishHaqi;
+          weeks.push({
+            label: `${dm(weekStart)}–${dm(new Date(weekEnd.getTime() - 1))}`,
+            from: weekStart.toISOString().slice(0, 10),
+            to: weekEnd.toISOString().slice(0, 10),
+            revenue: fin.revenue,
+            cogs: fin.cogs,
+            opexOther,
+            ishHaqi,
+            ownerDraw: fin.ownerDraw,
+            sofFoyda: fin.sofFoyda,
+          });
+        }
+        const totals = weeks.reduce(
+          (t, w) => ({
+            revenue: t.revenue + w.revenue,
+            cogs: t.cogs + w.cogs,
+            opexOther: t.opexOther + w.opexOther,
+            ishHaqi: t.ishHaqi + w.ishHaqi,
+            ownerDraw: t.ownerDraw + w.ownerDraw,
+            sofFoyda: t.sofFoyda + w.sofFoyda,
+          }),
+          { revenue: 0, cogs: 0, opexOther: 0, ishHaqi: 0, ownerDraw: 0, sofFoyda: 0 },
+        );
+        return { weeks, totals };
+      }),
+
     debts: directorProcedure.query(async () => {
       const supplierRows = await db
         .select({
@@ -5086,6 +5208,57 @@ export const appRouter = router({
           by === "qty" ? b.qty - a.qty : (b.profit ?? -Infinity) - (a.profit ?? -Infinity),
         );
         return result.slice(0, input.limit ?? 15);
+      }),
+
+    // Директор-luxury: тепловая карта — стол бўйича тушум. Стол бириктирилмаган
+    // (tableNo=null) буюртмалар киритилмайди — иссиқлик харитаси реал столлар учун.
+    byTable: directorProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const frac = await orderRevenueFraction(startUTC, endUTC);
+        const rows = await db
+          .select({
+            orderId: orderItems.orderId,
+            hallId: orders.hallId,
+            hallName: halls.name,
+            tableNo: orders.tableNo,
+            qty: orderItems.qty,
+            price: orderItems.price,
+          })
+          .from(orderItems)
+          .innerJoin(orders, eq(orderItems.orderId, orders.id))
+          .innerJoin(halls, eq(orders.hallId, halls.id))
+          .where(
+            and(
+              eq(orders.status, "closed"),
+              isNotNull(orders.tableNo),
+              gte(orders.closedAt, startUTC),
+              lt(orders.closedAt, endUTC),
+            ),
+          );
+        const byTable = new Map<
+          string,
+          { hallId: string; hallName: string; tableNo: string; revenue: number }
+        >();
+        for (const r of rows) {
+          if (!r.tableNo) continue;
+          const key = `${r.hallId}|${r.tableNo}`;
+          const e = byTable.get(key) ?? {
+            hallId: r.hallId,
+            hallName: r.hallName,
+            tableNo: r.tableNo,
+            revenue: 0,
+          };
+          e.revenue += Math.round(r.qty * r.price * (frac.get(r.orderId) ?? 1));
+          byTable.set(key, e);
+        }
+        return [...byTable.values()].sort((a, b) => b.revenue - a.revenue);
       }),
 
     byWaiter: managerProcedure

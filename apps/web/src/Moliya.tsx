@@ -700,6 +700,7 @@ function Pnl() {
   const [to, setTo] = useState(todayBiz());
   const [p, setP] = useState<Pnl | null>(null);
   const [err, setErr] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
   const load = useCallback(() => {
     setP(null);
     setErr(false);
@@ -723,7 +724,10 @@ function Pnl() {
         <input type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
         <span className="text-zinc-400">—</span>
         <input type="date" value={to} max={todayBiz()} onChange={(e) => e.target.value && setTo(e.target.value)} className="rounded-lg border px-2 py-1.5 text-sm outline-none focus:border-brand" />
+        <button onClick={() => setShowPrint(true)} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-zinc-100">🖨 P&L лист</button>
       </div>
+
+      {showPrint && <PnlPrintView from={from} to={to} onClose={() => setShowPrint(false)} />}
 
       {err ? (
         <ErrBox onRetry={load} />
@@ -744,6 +748,95 @@ function Pnl() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+type PnlWeek = {
+  label: string;
+  from: string;
+  to: string;
+  revenue: number;
+  cogs: number;
+  opexOther: number;
+  ishHaqi: number;
+  ownerDraw: number;
+  sofFoyda: number;
+};
+type PnlWeeks = {
+  weeks: PnlWeek[];
+  totals: Omit<PnlWeek, "label" | "from" | "to">;
+};
+
+function PnlPrintView({ from, to, onClose }: { from: string; to: string; onClose: () => void }) {
+  const [w, setW] = useState<PnlWeeks | null>(null);
+  const [err, setErr] = useState(false);
+  const load = useCallback(() => {
+    setW(null);
+    setErr(false);
+    swr(`finance.pnlByWeek:${from}:${to}`, () => trpc.finance.pnlByWeek.query({ from, to }), setW).catch(() => setErr(true));
+  }, [from, to]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const rowLabel: Record<keyof PnlWeeks["totals"], string> = {
+    revenue: "Тушум",
+    cogs: "Себестоимость",
+    opexOther: "Харажат (бошқа)",
+    ishHaqi: "Иш ҳақи",
+    ownerDraw: "Эга олди",
+    sofFoyda: "Соф фойда",
+  };
+  const rows: (keyof PnlWeeks["totals"])[] = ["revenue", "cogs", "opexOther", "ishHaqi", "ownerDraw", "sofFoyda"];
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-auto bg-white">
+      <style>{`
+        @media print {
+          @page { size: A4; margin: 12mm; }
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { position: absolute; inset: 0; }
+        }
+      `}</style>
+      <div className="flex items-center justify-end gap-2 border-b bg-zinc-50 px-4 py-2.5 print:hidden">
+        <button onClick={() => window.print()} className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-white">🖨 Печать</button>
+        <button onClick={onClose} className="rounded-lg border px-4 py-1.5 text-sm hover:bg-zinc-100">✕ Ёпиш</button>
+      </div>
+
+      <div className="mx-auto max-w-3xl p-8 print:p-0 print-area">
+        <h1 className="text-lg font-bold">La Limonariya · P&L · {from} — {to}</h1>
+
+        {err ? (
+          <ErrBox onRetry={load} />
+        ) : !w ? (
+          <div className="p-6 text-center text-zinc-400">⏳</div>
+        ) : (
+          <table className="mt-4 w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b text-left">
+                <th className="py-1.5 pr-2">Кўрсаткич</th>
+                {w.weeks.map((wk) => (
+                  <th key={wk.from} className="px-2 py-1.5 text-right tabular-nums">{wk.label}</th>
+                ))}
+                <th className="px-2 py-1.5 text-right tabular-nums">Жами</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r} className="border-b">
+                  <td className="py-1.5 pr-2">{rowLabel[r]}</td>
+                  {w.weeks.map((wk) => (
+                    <td key={wk.from} className="px-2 py-1.5 text-right tabular-nums">{fmt(wk[r])}</td>
+                  ))}
+                  <td className="px-2 py-1.5 text-right font-bold tabular-nums">{fmt(w.totals[r])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
