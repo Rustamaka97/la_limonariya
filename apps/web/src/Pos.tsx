@@ -19,7 +19,8 @@ type OpenOrder = {
   hall: string | null;
   waiter: string | null;
   qty: number;
-  total: number;
+  total: number | null; // официантга чужой заказ суммаси null (яширин)
+  mine?: boolean;
   createdAt: string;
 };
 type PayMethod = "cash" | "card" | "click" | "payme" | "debt";
@@ -148,12 +149,19 @@ function FloorView({
   const [tbls, setTbls] = useState<Table[]>([]);
   const [orders, setOrders] = useState<OpenOrder[] | null>(null);
   const [newFor, setNewFor] = useState<{ hall: Hall; table?: string } | null>(null);
+  const [activeHall, setActiveHall] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     trpc.pos.openOrders.query().then(setOrders).catch(() => setOrders([]));
   }, []);
   useEffect(() => {
-    trpc.pos.halls.query().then(setHalls).catch(() => {});
+    trpc.pos.halls
+      .query()
+      .then((hs) => {
+        setHalls(hs);
+        setActiveHall((cur) => cur ?? hs[0]?.id ?? null);
+      })
+      .catch(() => {});
     trpc.pos.tables.query().then(setTbls).catch(() => {});
     refresh();
   }, [refresh]);
@@ -174,80 +182,100 @@ function FloorView({
   const stray = (orders ?? []).filter((o) => !tableKeys.has(key(o.hallId, o.tableNo)));
   const busy = orders?.length ?? 0;
 
+  const hall = halls.find((h) => h.id === activeHall) ?? halls[0];
+  const hallTables = tbls.filter((t) => t.hallId === hall?.id);
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-brand-ink">Заллар</h2>
-          <p className="text-xs text-zinc-400">
-            {orders === null ? "…" : `${busy} банд · ${tbls.length} стол`}
-          </p>
+    <div className="-mx-5 -mt-5 min-h-[calc(100dvh-7.5rem)] bg-brand-bg">
+      {/* Yuqori panel: zallar tab + Cheki + Yangi zakaz (CloPOS uslubi) */}
+      <div className="sticky top-[5.5rem] z-10 flex items-center gap-2 border-b border-brand-cream-soft bg-white px-3 py-2 sm:px-4">
+        <div className="flex gap-1 overflow-x-auto">
+          {halls.map((h) => {
+            const hb = tbls.filter(
+              (t) => t.hallId === h.id && openByKey.has(key(h.id, t.name)),
+            ).length;
+            const on = hall?.id === h.id;
+            return (
+              <button
+                key={h.id}
+                onClick={() => setActiveHall(h.id)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
+                  on ? "bg-brand text-white" : "text-brand-ink/60 hover:bg-brand-cream"
+                }`}
+              >
+                {h.name}
+                {hb > 0 && (
+                  <span
+                    className={`rounded-full px-1.5 text-[11px] font-bold ${
+                      on ? "bg-white/20 text-white" : "bg-brand-gold/25 text-brand-gold-deep"
+                    }`}
+                  >
+                    {hb}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-        <button
-          onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
-        >
-          <IPlus className="h-4 w-4" />
-          Тезкор заказ
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 text-sm text-zinc-500 sm:flex">
+            Чеки
+            <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
+              {busy}
+            </span>
+          </span>
+          <button
+            onClick={() => hall && setNewFor({ hall })}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
+          >
+            <IPlus className="h-4 w-4" />
+            Янги заказ
+          </button>
+        </div>
       </div>
 
       {orders === null ? (
         <Spin />
       ) : (
-        <>
-          {halls.map((h) => {
-            const hallTables = tbls.filter((t) => t.hallId === h.id);
-            const hallBusy = hallTables.filter((t) => openByKey.has(key(h.id, t.name))).length;
-            return (
-              <section key={h.id} className="space-y-2.5">
-                <div className="flex items-center gap-2 px-1">
-                  <h3 className="text-sm font-bold uppercase tracking-wide text-brand-ink">{h.name}</h3>
-                  {h.servicePct > 0 && (
-                    <span className="rounded-full bg-brand-cream px-2 py-0.5 text-[10px] font-semibold text-brand">
-                      +{h.servicePct}%
-                    </span>
-                  )}
-                  <span className="ml-auto text-xs text-zinc-400">
-                    {hallBusy}/{hallTables.length}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                  {hallTables.map((t) => {
-                    const o = openByKey.get(key(h.id, t.name));
-                    return o ? (
-                      <TableTile key={t.id} table={t.name} order={o} onClick={() => onOpen(o.id)} />
-                    ) : (
-                      <button
-                        key={t.id}
-                        onClick={() => setNewFor({ hall: h, table: t.name })}
-                        className="grid min-h-[76px] place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
-                      >
-                        <span className="line-clamp-2">{t.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+        <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-3 sm:p-4 lg:grid-cols-4 xl:grid-cols-5">
+          {hallTables.map((t) => {
+            const o = hall ? openByKey.get(key(hall.id, t.name)) : undefined;
+            return o ? (
+              <TableTile key={t.id} table={t.name} order={o} onClick={() => onOpen(o.id)} />
+            ) : (
+              <button
+                key={t.id}
+                onClick={() => hall && setNewFor({ hall, table: t.name })}
+                className="grid min-h-[118px] place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 text-center text-sm font-semibold leading-tight text-brand-ink/45 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
+              >
+                <span className="line-clamp-2">{t.name}</span>
+              </button>
             );
           })}
-
-          {stray.length > 0 && (
-            <section className="space-y-2.5">
-              <h3 className="px-1 text-sm font-bold uppercase tracking-wide text-brand-ink">Бошқа очиқ</h3>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                {stray.map((o) => (
-                  <TableTile
-                    key={o.id}
-                    table={o.tableNo || o.hall || "заказ"}
-                    order={o}
-                    onClick={() => onOpen(o.id)}
-                  />
-                ))}
-              </div>
-            </section>
+          {hallTables.length === 0 && (
+            <p className="col-span-full py-20 text-center text-sm text-zinc-400">
+              Бу залда стол йўқ
+            </p>
           )}
-        </>
+        </div>
+      )}
+
+      {stray.length > 0 && (
+        <div className="border-t border-brand-cream-soft px-3 pb-4 pt-3 sm:px-4">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-ink/55">
+            Бошқа очиқ чеклар
+          </h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {stray.map((o) => (
+              <TableTile
+                key={o.id}
+                table={o.tableNo || o.hall || "заказ"}
+                order={o}
+                onClick={() => onOpen(o.id)}
+              />
+            ))}
+          </div>
+        </div>
       )}
 
       {newFor && (
@@ -274,10 +302,10 @@ function TableTile({
   return (
     <button
       onClick={onClick}
-      className="flex min-h-[76px] flex-col justify-between rounded-xl bg-brand p-2.5 text-left text-white shadow-sm transition hover:bg-brand-deep active:scale-95 motion-reduce:active:scale-100"
+      className="flex min-h-[118px] flex-col rounded-xl bg-brand p-3 text-left text-white shadow-sm transition hover:bg-brand-deep active:scale-95 motion-reduce:active:scale-100"
     >
       <div className="flex items-start justify-between gap-1">
-        <span className="line-clamp-2 text-xs font-semibold leading-tight">{table}</span>
+        <span className="line-clamp-2 text-sm font-bold leading-tight">{table}</span>
         {order.guests ? (
           <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-white/15 px-1 text-[10px] font-semibold">
             <IUser className="h-3 w-3" />
@@ -285,9 +313,14 @@ function TableTile({
           </span>
         ) : null}
       </div>
-      <div>
-        <div className="text-sm font-bold tabular-nums text-brand-gold">{fmt(order.total)}</div>
-        <div className="flex items-center gap-1 text-[10px] text-white/60">
+      {order.waiter ? (
+        <span className="mt-0.5 truncate text-xs text-brand-cream-soft/80">{order.waiter}</span>
+      ) : null}
+      <div className="mt-auto pt-2">
+        <div className="text-base font-bold tabular-nums text-brand-gold">
+          {order.total === null ? "банд" : `${fmt(order.total)} сўм`}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-white/55">
           <IClock className="h-3 w-3" />
           {minsAgo(order.createdAt)}
         </div>
@@ -415,6 +448,8 @@ function NewOrderSheet({
 // ── ORDER SCREEN ────────────────────────────────────────────────────────────
 function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack: () => void }) {
   const canComp = ["director", "manager", "cashier"].includes(user.role);
+  // Иерархия: заказни фақат касса ёпади (пул олади). Официант юборади, кассир ёпади.
+  const canClose = canComp; // director/manager/cashier
   const [order, setOrder] = useState<Order | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [paying, setPaying] = useState(false);
@@ -833,14 +868,20 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             </div>
           )}
 
-          <button
-            onClick={() => setPaying(true)}
-            disabled={empty}
-            className="hidden w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.99] disabled:opacity-40 lg:flex motion-reduce:active:scale-100"
-          >
-            <IReceipt className="h-5 w-5" />
-            Ёпиш ва чек
-          </button>
+          {canClose ? (
+            <button
+              onClick={() => setPaying(true)}
+              disabled={empty}
+              className="hidden w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.99] disabled:opacity-40 lg:flex motion-reduce:active:scale-100"
+            >
+              <IReceipt className="h-5 w-5" />
+              Ёпиш ва чек
+            </button>
+          ) : (
+            <p className="hidden rounded-2xl border border-dashed border-brand-cream-soft py-3 text-center text-sm text-zinc-400 lg:block">
+              Заказни кассир ёпади
+            </p>
+          )}
         </aside>
       </div>
 
@@ -866,7 +907,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 <IFlame className="h-5 w-5" />
                 Кухняга ({unsent})
               </button>
-            ) : (
+            ) : canClose ? (
               <button
                 onClick={() => setPaying(true)}
                 className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition active:scale-[.98] motion-reduce:active:scale-100"
@@ -874,6 +915,10 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 <IReceipt className="h-5 w-5" />
                 Ёпиш ва чек
               </button>
+            ) : (
+              <span className="ml-auto text-sm font-medium text-zinc-400">
+                Заказни кассир ёпади
+              </span>
             )}
           </div>
         </div>

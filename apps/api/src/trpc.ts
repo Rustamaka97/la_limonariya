@@ -21,3 +21,19 @@ export const managerProcedure = protectedProcedure.use(({ ctx, next }) => {
     throw new TRPCError({ code: "FORBIDDEN" });
   return next();
 });
+
+// Касса даражаси: пул билан боғлиқ амаллар (заказ ёпиш, тўлов) — фақат
+// кассир/менежер/директор. Официант заказ вести, лекин пул олмайди.
+export const cashierProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!["director", "manager", "cashier"].includes(ctx.user.role))
+    throw new TRPCError({ code: "FORBIDDEN" });
+  return next();
+});
+
+// Харид/склад даражаси: обвалка, харид, омбор — director/manager/buyer
+// (бозорчи). Официант/кассир омборга тегмайди.
+export const buyerProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!["director", "manager", "buyer"].includes(ctx.user.role))
+    throw new TRPCError({ code: "FORBIDDEN" });
+  return next();
+});

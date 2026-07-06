@@ -10,3 +10,6 @@ docker-compose.override.yml
 # device password 11111) + customer/staff PII. Local seed source only, do NOT commit.
 docs/clopos-api/
 .gstack/
+
+# DB dumps — contain staff/customer PII + PIN hashes. Local only, do NOT commit.
+backups/

@@ -93,6 +93,8 @@ export const products = pgTable("products", {
   price: integer("price").notNull().default(0),
   costPrice: integer("cost_price"),
   soldByWeight: boolean("sold_by_weight").notNull().default(false),
+  // NULL = муддат назорати йўқ; кун сони — FIFO ёши шундан ошса сигнал
+  shelfLifeDays: integer("shelf_life_days"),
   active: boolean("active").notNull().default(true),
   branchId: uuid("branch_id").references(() => branches.id),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -517,4 +519,46 @@ export const inventoryItems = pgTable(
     sort: integer("sort").notNull().default(0),
   },
   (t) => [index("ii_count_idx").on(t.countId)],
+);
+
+// Сихлаш батчи — хом гўшт→витрина занжирининг ўрта бўғини (Milestone 3): kitchen
+// states "N g meat → M skewers of dish X". CONTROL record only — no stock
+// movement (carcass meat is deducted at sale via recipes; double-writing here
+// would double-deduct). normG is snapshotted from the recipe at creation time.
+export const skewerBatches = pgTable(
+  "skewer_batches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    meatG: integer("meat_g").notNull(),
+    skewerCount: integer("skewer_count").notNull(),
+    normG: integer("norm_g"), // recipe meat grams per skewer at creation; NULL = recipe unknown
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("sb_created_idx").on(t.createdAt)],
+);
+
+// Витрина қолдиғи — кунлик физик санаш. Expected = кечаги санаш + бугун
+// сихланган − бугун сотилган; фарқ катта бўлса тешик (Milestone 3).
+export const vitrinaCounts = pgTable(
+  "vitrina_counts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dayKey: text("day_key").notNull(), // businessDayBounds.dayKey
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    countedQty: integer("counted_qty").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.dayKey, t.productId)],
 );

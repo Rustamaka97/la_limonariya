@@ -1,0 +1,1638 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<title>La Limonariya — меню</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --green: #12352A;
+    --cream: #F6F1E3;
+    --gold: #CDAA6D;
+    --gold-deep: #B8934F;
+    --ink: #241C14;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #999; }
+  body { font-family: Georgia, "Times New Roman", serif; color: var(--ink); }
+
+  .page {
+    position: relative;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 6mm auto;
+    padding: 20mm 18mm;
+    background-color: var(--cream);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    break-after: page;
+    overflow: hidden;
+  }
+  @media print { .page { margin: 0; box-shadow: none; } }
+
+  /* Cover / back cover / divider — dark green engraved bg */
+  .page-cover, .page-divider {
+    background-image: url("assets/bg-divider-green.png");
+    color: var(--cream);
+  }
+  .page-items {
+    background-image: url("assets/bg-inner-cream.png");
+  }
+
+  .cover-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6mm;
+    padding: 20mm;
+    text-align: center;
+  }
+  .cover-logo { width: 62mm; height: 62mm; object-fit: cover; border-radius: 50%; box-shadow: 0 0 0 2px var(--gold); }
+  .cover-tagline, .cover-tagline-ru {
+    font-size: 11pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold);
+  }
+  .cover-tagline-ru { color: var(--cream); opacity: 0.85; font-size: 10pt; }
+
+  .page-back .back-title {
+    font-size: 26pt; letter-spacing: 0.08em; color: var(--gold); margin-bottom: 4mm;
+  }
+  .back-rule { width: 40mm; height: 1px; background: var(--gold); margin: 5mm auto; opacity: 0.7; }
+  .back-line { font-size: 12pt; margin: 2mm 0; color: var(--cream); }
+  .back-service, .back-service-ru { font-size: 10pt; color: var(--gold); margin-top: 2mm; }
+  .back-service-ru { color: var(--cream); opacity: 0.8; }
+
+  .divider-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6mm; padding: 20mm; text-align: center;
+  }
+  .divider-rule { width: 26mm; height: 1px; background: var(--gold); opacity: 0.8; }
+  .divider-name-ru {
+    font-size: 30pt; letter-spacing: 0.06em; color: var(--gold); text-transform: uppercase;
+  }
+  .divider-name-uz {
+    font-size: 15pt; font-style: italic; color: var(--cream); opacity: 0.85;
+  }
+
+  .items-header {
+    text-align: center;
+    font-size: 13pt; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--gold-deep);
+    border-bottom: 1px solid var(--gold);
+    padding-bottom: 3mm;
+    margin-bottom: 6mm;
+  }
+  .items-header-uz { font-style: italic; font-weight: normal; opacity: 0.8; }
+  .items-header-sep { margin: 0 2mm; opacity: 0.5; }
+  .continued { font-size: 9pt; opacity: 0.6; font-style: italic; text-transform: none; letter-spacing: 0; }
+
+  .items-columns {
+    column-count: 2;
+    column-gap: 10mm;
+  }
+  .item {
+    break-inside: avoid;
+    margin-bottom: 4.5mm;
+  }
+  .item-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5mm;
+  }
+  .item-name-ru {
+    font-weight: 600;
+    font-size: 10.5pt;
+  }
+  .star { color: var(--gold-deep); font-size: 7.5pt; margin-left: 1mm; }
+  .dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(36,28,20,0.4);
+    margin: 0 1.5mm;
+    transform: translateY(-2.5px);
+  }
+  .item-price {
+    font-weight: 600;
+    font-size: 10.5pt;
+    white-space: nowrap;
+  }
+  .item-name-uz {
+    font-style: italic;
+    font-size: 8.5pt;
+    color: var(--gold-deep);
+    margin-top: 0.3mm;
+  }
+  .item-desc {
+    font-size: 8pt;
+    font-style: italic;
+    color: #5b5346;
+    margin-top: 1mm;
+    line-height: 1.3;
+  }
+</style>
+</head>
+<body>
+
+  <section class="page page-cover">
+    <div class="cover-inner">
+      <img class="cover-logo" src="assets/logo-cover.jpg" alt="La Limonariya" />
+      <div class="cover-tagline">миллий таомлар &middot; шашлик &middot; лимонадлар</div>
+      <div class="cover-tagline-ru">национальная кухня &middot; шашлык &middot; лимонады</div>
+    </div>
+  </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Салаты</div>
+        <div class="divider-name-uz">Салатлар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Салаты</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Салатлар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Цезарь<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Сезар</div>
+      <div class="item-desc">Пекинская капуста, сухарики, помидоры, грудинка, сыр пармезан</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Греческий</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Грекча</div>
+      <div class="item-desc">Помидоры, огурцы, болгарский перец, сыр фетакса, листья салата, красный лук, оливки, лимонный сок, оливковое масло</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Гурман</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Гурман</div>
+      <div class="item-desc">Шампиньоны, говядина, грудинка, зелёный горошек, майонез, сыр</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мужской каприз</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Мужской каприз</div>
+      <div class="item-desc">Варёная колбаса, копчёная колбаса, индейка, говядина, солёные огурцы, майонез</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сора</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Сора</div>
+      <div class="item-desc">Капуста, болгарский перец, говядина, руккола, картофель пай, фирменный соус, кунжут</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Аристократ</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Аристократ</div>
+      <div class="item-desc">Говядина, маринованные огурцы, зелёный лук, зелёный горошек, майонез</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шотландский</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Шотландча</div>
+      <div class="item-desc">Куриное мясо, яйца, маринованные огурцы, кукуруза, картофель пай, сыр пармезан</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Баклажан с мясом</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Гўштли бақлажон</div>
+      <div class="item-desc">Баклажан, перец, говядина, зелень, фирменный соус</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Пекин</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Пекин</div>
+      <div class="item-desc">Огурцы, говядина, болгарский перец, зелёный горошек, соевый соус, растительное масло</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Смак</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Смак</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Холодец</span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Холодец</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Салат с шампиньонами</span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Шампиньон салат</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Аччик-чучук<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Аччиқ-чучуқ</div>
+      <div class="item-desc">Спелые помидоры, лук, базилик — традиционный узбекский салат</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чирокчи</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Чироқчи</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Весенний</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Баҳорги</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Свежий</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Свежий</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Солёный ассорти</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Тузламалар ассорти</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Овощной ассорти</span>
+        <span class="dots"></span>
+        <span class="item-price">45 000</span>
+      </div>
+      <div class="item-name-uz">Сабзавот ассорти</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мясной ассорти</span>
+        <span class="dots"></span>
+        <span class="item-price">150 000</span>
+      </div>
+      <div class="item-name-uz">Гўшт ассорти</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Селёдка ассорти</span>
+        <span class="dots"></span>
+        <span class="item-price">100 000</span>
+      </div>
+      <div class="item-name-uz">Селёдка ассорти</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Фруктовый ассорти (большой)<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">70 000</span>
+      </div>
+      <div class="item-name-uz">Мева ассорти (катта)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Фруктовый ассорти (малый)</span>
+        <span class="dots"></span>
+        <span class="item-price">40 000</span>
+      </div>
+      <div class="item-name-uz">Мева ассорти (кичик)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Фруктовый ассорти с шоколадом</span>
+        <span class="dots"></span>
+        <span class="item-price">85 000</span>
+      </div>
+      <div class="item-name-uz">Мева ассорти шоколад билан</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Арбуз</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Тарвуз</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чакка (сузьма)</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Чакка</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чакка с редькой</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Чакка турп</div>
+      
+    </div>
+        </div>
+      </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Салаты</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Салатлар</span> <span class="continued">(давоми / продолжение)</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Овощная нарезка</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Салат нарез</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Нарезка из огурцов</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Бодринг нарез</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Лимонная нарезка</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Лимон нарез</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Острый перец</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Қалампир</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Соус</span>
+        <span class="dots"></span>
+        <span class="item-price">8 000</span>
+      </div>
+      <div class="item-name-uz">Соус</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Первые блюда</div>
+        <div class="divider-name-uz">Биринчи таомлар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Первые блюда</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Биринчи таомлар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шурпа (говядина)<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Шурво (мол гўшти)</div>
+      <div class="item-desc">Наваристый бульон с крупным куском говядины на кости, картофелем, морковью и нохатом</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мастава<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">35 000</span>
+      </div>
+      <div class="item-name-uz">Мастава</div>
+      <div class="item-desc">Рисовый суп с говядиной в томатном бульоне, подаётся с катыком и зеленью</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шурпа «Балаза»</span>
+        <span class="dots"></span>
+        <span class="item-price">35 000</span>
+      </div>
+      <div class="item-name-uz">Балаза шурво</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шурпа с тушёнкой</span>
+        <span class="dots"></span>
+        <span class="item-price">40 000</span>
+      </div>
+      <div class="item-name-uz">Тушонка шурво</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Бульон</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Бульон</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Вторые блюда</div>
+        <div class="divider-name-uz">Иккинчи таомлар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Вторые блюда</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Иккинчи таомлар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Казан-кебаб (баранина)<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">260 000</span>
+      </div>
+      <div class="item-name-uz">Қозон кабоб (қўй гўшти)</div>
+      <div class="item-desc">Томлёная баранина на кости с золотистым жареным картофелем, луком и зеленью</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Плов (на заказ)<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Ош (заказга)</div>
+      <div class="item-desc">Золотистый плов с бараниной, жёлтой морковью, нохатом и изюмом</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Жиз по-афгански<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Авғон жиз</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Жиз «Умакай»</span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Умакай жиз</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Жиз по-уйгурски</span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Уйғурча жиз</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Жиз на сливочном масле (кг)</span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Сарёғли жиз (кг)</div>
+      <div class="item-desc">Кусочки баранины, обжаренные в сливочном масле, подаются шипящими на чугунной сковороде</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Жиз из филе (говядина)</span>
+        <span class="dots"></span>
+        <span class="item-price">240 000</span>
+      </div>
+      <div class="item-name-uz">Жиз феле (мол гўшти)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Буглама<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Буғлама</div>
+      <div class="item-desc">Нежная томлёная баранина с овощами в наваристом бульоне, в глиняном горшочке</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Куртоба<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">60 000</span>
+      </div>
+      <div class="item-name-uz">Куртоба</div>
+      <div class="item-desc">Слоёная лепёшка, пропитанная сливочным соусом из курта, с карамелизированным луком</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Вагури</span>
+        <span class="dots"></span>
+        <span class="item-price">260 000</span>
+      </div>
+      <div class="item-name-uz">Вағури</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Кебабча</span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Кавобча</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Баранья лопатка запечённая</span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Қўй лапатка</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Баранья шея</span>
+        <span class="dots"></span>
+        <span class="item-price">250 000</span>
+      </div>
+      <div class="item-name-uz">Қўй бўйни</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Говяжьи рёбра</span>
+        <span class="dots"></span>
+        <span class="item-price">220 000</span>
+      </div>
+      <div class="item-name-uz">Мол қовурғаси</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Самса по-бухарски<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Сомса Бухороча</div>
+      <div class="item-desc">Золотистая слоёная самса с сочной бараниной, посыпанная кунжутом</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Жареные куриные крылышки<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">80 000</span>
+      </div>
+      <div class="item-name-uz">Қовурилган қанот</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Картофель фри</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Фри (порция)</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Шашлыки</div>
+        <div class="divider-name-uz">Шашлыклар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Шашлыки</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Шашлыклар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык кусковой (баранина)<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Кусковой (қўй гўшти)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык кусковой (говядина)</span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Кусковой (мол гўшти)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык из фарша</span>
+        <span class="dots"></span>
+        <span class="item-price">23 000</span>
+      </div>
+      <div class="item-name-uz">Фарш шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык из корейки<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">35 000</span>
+      </div>
+      <div class="item-name-uz">Корейка шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Куриные бёдрышки</span>
+        <span class="dots"></span>
+        <span class="item-price">55 000</span>
+      </div>
+      <div class="item-name-uz">Товуқ сончалари</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Куриные крылышки на мангале</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Товуқ қанотчалари</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык из печени</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Жигар шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык из курдюка</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Думба шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык «Марварид»</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Марварид</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык «Доллар»</span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Доллар шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык из филе</span>
+        <span class="dots"></span>
+        <span class="item-price">35 000</span>
+      </div>
+      <div class="item-name-uz">Феле шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык «Бахор»</span>
+        <span class="dots"></span>
+        <span class="item-price">24 000</span>
+      </div>
+      <div class="item-name-uz">Баҳор шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Шашлык из помидоров</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Помидорча шашлик</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Овощной шашлык</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Сабзавотли шашлик</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Блюда из рыбы</div>
+        <div class="divider-name-uz">Балиқ таомлари</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Блюда из рыбы</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Балиқ таомлари</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Рыба барбекю<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">90 000</span>
+      </div>
+      <div class="item-name-uz">Балиқ барбекю</div>
+      <div class="item-desc">Целый карп на мангале с хрустящей корочкой, лимоном и зеленью</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сазан (без соуса)</span>
+        <span class="dots"></span>
+        <span class="item-price">80 000</span>
+      </div>
+      <div class="item-name-uz">Сазан (соуссиз)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сазан (в соусе)</span>
+        <span class="dots"></span>
+        <span class="item-price">80 000</span>
+      </div>
+      <div class="item-name-uz">Сазан (соусли)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Свежий соус</span>
+        <span class="dots"></span>
+        <span class="item-price">8 000</span>
+      </div>
+      <div class="item-name-uz">Свежий соус</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Закуски</div>
+        <div class="divider-name-uz">Закускалар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Закуски</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Закускалар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Пивной ассорти</span>
+        <span class="dots"></span>
+        <span class="item-price">50 000</span>
+      </div>
+      <div class="item-name-uz">Пиво ассорти</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Солёная рыба</span>
+        <span class="dots"></span>
+        <span class="item-price">40 000</span>
+      </div>
+      <div class="item-name-uz">Шўр балиқ</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Гренки</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Гренки</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сырные палочки</span>
+        <span class="dots"></span>
+        <span class="item-price">12 000</span>
+      </div>
+      <div class="item-name-uz">Пишлоқли таёқчалар</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чипсы</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Чипс</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Арахис</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Арахис</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Курт (шт)</span>
+        <span class="dots"></span>
+        <span class="item-price">1 000</span>
+      </div>
+      <div class="item-name-uz">Қурт (дона)</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Напитки</div>
+        <div class="divider-name-uz">Ичимликлар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Напитки</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Ичимликлар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мохито натуральный<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">30 000</span>
+      </div>
+      <div class="item-name-uz">Мохито натурал</div>
+      <div class="item-desc">Свежая мята, лайм, лёд — освежающий фирменный напиток</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мохито</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Мохито</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сок лимон-лайм</span>
+        <span class="dots"></span>
+        <span class="item-price">18 000</span>
+      </div>
+      <div class="item-name-uz">Сок лимон-лайм</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Айран (графин)</span>
+        <span class="dots"></span>
+        <span class="item-price">35 000</span>
+      </div>
+      <div class="item-name-uz">Айрон (графин)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Гарди (яблоко-лимон)</span>
+        <span class="dots"></span>
+        <span class="item-price">18 000</span>
+      </div>
+      <div class="item-name-uz">Гарди (олма-лимон)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Гарди (апельсин)</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Гарди (апельсин)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Гарди (ананас)</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Гарди (ананас)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Bliss (ананас)</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Блис (ананас)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Bliss (апельсин)</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Блис (апельсин)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Bliss (гранат)</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Блис (анор)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Coca-Cola 1.5 л</span>
+        <span class="dots"></span>
+        <span class="item-price">18 000</span>
+      </div>
+      <div class="item-name-uz">Кола 1.5 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Fanta 1.5 л</span>
+        <span class="dots"></span>
+        <span class="item-price">18 000</span>
+      </div>
+      <div class="item-name-uz">Фанта 1.5 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Sprite 1.5 л</span>
+        <span class="dots"></span>
+        <span class="item-price">18 000</span>
+      </div>
+      <div class="item-name-uz">Спрайт 1.5 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Chortoq 0.7 л</span>
+        <span class="dots"></span>
+        <span class="item-price">16 000</span>
+      </div>
+      <div class="item-name-uz">Чортоқ 0.7 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Chortoq 1.5 л</span>
+        <span class="dots"></span>
+        <span class="item-price">8 000</span>
+      </div>
+      <div class="item-name-uz">Чортоқ 1.5 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Hydrolife газ. 1.5 л</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Гидролайф газли 1.5 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Family 1 л</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Family 1 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сок</span>
+        <span class="dots"></span>
+        <span class="item-price">16 000</span>
+      </div>
+      <div class="item-name-uz">Сок</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Adrenaline 0.5 л</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Adrenaline 0.5 л</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Flash</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Flash</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Flavis мохито</span>
+        <span class="dots"></span>
+        <span class="item-price">13 000</span>
+      </div>
+      <div class="item-name-uz">Flavis мохито</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Flavis</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Flavis</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Gorilla</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Gorilla</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Хлеб и чай</div>
+        <div class="divider-name-uz">Нон-чой</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Хлеб и чай</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Нон-чой</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чай<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Чой</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Зелёный чай</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Кўк чой</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чёрный чай</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Қора чой</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чай с горной душицей</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Кийик ўти чой</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чай с лимоном</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Лимонли чой</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Лепёшка</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Нон</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Хлебная корзина</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Нон ассорти</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Патыр</span>
+        <span class="dots"></span>
+        <span class="item-price">15 000</span>
+      </div>
+      <div class="item-name-uz">Патир</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Кульча</span>
+        <span class="dots"></span>
+        <span class="item-price">4 000</span>
+      </div>
+      <div class="item-name-uz">Кулча нон</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Буханка</span>
+        <span class="dots"></span>
+        <span class="item-price">5 000</span>
+      </div>
+      <div class="item-name-uz">Буханка нон</div>
+      
+    </div>
+        </div>
+      </section>
+
+    <section class="page page-divider">
+      <div class="divider-inner">
+        <div class="divider-rule"></div>
+        <div class="divider-name-ru">Десерты</div>
+        <div class="divider-name-uz">Ширинликлар</div>
+        <div class="divider-rule"></div>
+      </div>
+    </section>
+
+      <section class="page page-items">
+        <header class="items-header">
+          <span class="items-header-ru">Десерты</span>
+          <span class="items-header-sep">/</span>
+          <span class="items-header-uz">Ширинликлар</span>
+        </header>
+        <div class="items-columns">
+          
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чизкейк<span class="star">&#9733;</span></span>
+        <span class="dots"></span>
+        <span class="item-price">40 000</span>
+      </div>
+      <div class="item-name-uz">Чизкейк</div>
+      <div class="item-desc">Классический чизкейк с ягодным соусом и свежей клубникой</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Наполеон</span>
+        <span class="dots"></span>
+        <span class="item-price">40 000</span>
+      </div>
+      <div class="item-name-uz">Наполеон</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Сан-Себастьян</span>
+        <span class="dots"></span>
+        <span class="item-price">40 000</span>
+      </div>
+      <div class="item-name-uz">Сан-Себастьян</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Три шоколада</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Уч шоколад</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Орео</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Орео</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Меренговый рулет</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Меренга рулети</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Матильда</span>
+        <span class="dots"></span>
+        <span class="item-price">35 000</span>
+      </div>
+      <div class="item-name-uz">Матильда</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Опера (фисташка)</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Опера (писта)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Опера (смородина)</span>
+        <span class="dots"></span>
+        <span class="item-price">25 000</span>
+      </div>
+      <div class="item-name-uz">Опера (смородина)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Бенто-торт</span>
+        <span class="dots"></span>
+        <span class="item-price">50 000</span>
+      </div>
+      <div class="item-name-uz">Бенто торт</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Рулет «Сникерс»</span>
+        <span class="dots"></span>
+        <span class="item-price">50 000</span>
+      </div>
+      <div class="item-name-uz">Сникерс рулет</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Выпечка</span>
+        <span class="dots"></span>
+        <span class="item-price">50 000</span>
+      </div>
+      <div class="item-name-uz">Выпечка</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Клубника в шоколаде</span>
+        <span class="dots"></span>
+        <span class="item-price">12 000</span>
+      </div>
+      <div class="item-name-uz">Шоколадли қулупнай</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Клубника в шоколаде (большая)</span>
+        <span class="dots"></span>
+        <span class="item-price">55 000</span>
+      </div>
+      <div class="item-name-uz">Шоколадли қулупнай (катта)</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мороженое 100 г</span>
+        <span class="dots"></span>
+        <span class="item-price">20 000</span>
+      </div>
+      <div class="item-name-uz">Мороженое 100 г</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Мороженое 50 г</span>
+        <span class="dots"></span>
+        <span class="item-price">10 000</span>
+      </div>
+      <div class="item-name-uz">Мороженое 50 г</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Вафли</span>
+        <span class="dots"></span>
+        <span class="item-price">60 000</span>
+      </div>
+      <div class="item-name-uz">Вафли</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Вафли большие</span>
+        <span class="dots"></span>
+        <span class="item-price">90 000</span>
+      </div>
+      <div class="item-name-uz">Катта вафли</div>
+      
+    </div>
+
+    <div class="item">
+      <div class="item-row">
+        <span class="item-name-ru">Чак-чак</span>
+        <span class="dots"></span>
+        <span class="item-price">100 000</span>
+      </div>
+      <div class="item-name-uz">Чак-чак</div>
+      
+    </div>
+        </div>
+      </section>
+
+  <section class="page page-cover page-back">
+    <div class="cover-inner">
+      <div class="back-title">La Limonariya</div>
+      <div class="back-rule"></div>
+      <div class="back-line">Навоий, Боғишамол кўчаси 109</div>
+      <div class="back-line">+998 95 832-99-99 &middot; +998 95 429-36-34</div>
+      <div class="back-line">09:00–23:00</div>
+      <div class="back-line">@la_limonariya</div>
+      <div class="back-rule"></div>
+      <div class="back-service">Хизмат ҳақи 10% &middot; Premium zal 15%</div>
+      <div class="back-service-ru">Сервисный сбор 10% &middot; Premium-зал 15%</div>
+    </div>
+  </section>
+</body>
+</html>
