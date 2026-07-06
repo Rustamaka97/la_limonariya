@@ -32,6 +32,9 @@ const CFG = loadConfig();
 app.commandLine.appendSwitch("disable-http-cache");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
+// Web'ga "men desktop terminalman" belgisi — Shell terminal-rejimga o'tadi (toza POS chrome)
+app.userAgentFallback = app.userAgentFallback + " LaLimonPOS/" + app.getVersion();
+
 let mainWin = null;
 let splashWin = null;
 

@@ -6,6 +6,10 @@ import { trpc } from "./trpc";
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
+  const isTerminal =
+    typeof navigator !== "undefined" &&
+    (navigator.userAgent.includes("LaLimonPOS") ||
+      (typeof location !== "undefined" && location.search.includes("terminal")));
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -137,7 +141,7 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
       {/* Pastki panel */}
       <footer className="flex items-center justify-between border-t border-brand-soft/40 px-6 py-3 text-xs text-brand-cream-soft/50">
         <span>{BRAND.name}</span>
-        <span>{BRAND.instagram}</span>
+        <span>{isTerminal ? "🖥️ Терминал" : BRAND.instagram}</span>
         <span>Филиал: {BRAND.city}</span>
       </footer>
     </main>

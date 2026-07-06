@@ -97,43 +97,113 @@ export function Shell({
     ...(isDirector ? [{ key: "staff" as Tab, label: "Ходимлар" }] : []),
   ];
 
+  // Терминал режими: desktop exe ичида очилса (userAgent'да LaLimonPOS) —
+  // тоза POS chrome, 14 таб ўрнига ☰ меню. Браузерда — тўлиқ панель.
+  const isTerminal =
+    typeof navigator !== "undefined" &&
+    (navigator.userAgent.includes("LaLimonPOS") ||
+      (typeof location !== "undefined" && location.search.includes("terminal")));
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(t);
+  }, []);
+  const clock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-900">
-      <header className="sticky top-0 z-10 border-b bg-white">
-        <div className="flex items-center justify-between px-4 py-2.5 sm:px-5">
-          <div className="flex items-center gap-2">
-            <img src={BRAND.logoSmall} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-            <div className="flex items-baseline gap-2">
-              <span className="text-base font-bold sm:text-lg">{BRAND.name}</span>
-              <span className="hidden text-xs text-zinc-400 sm:inline">{BRAND.city}</span>
+      {isTerminal ? (
+        <header className="sticky top-0 z-20 bg-brand text-white shadow-sm">
+          <div className="flex items-center justify-between px-4 py-2">
+            <div className="flex items-center gap-2">
+              <img src={BRAND.logoSmall} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/30" />
+              <span className="text-base font-bold">{BRAND.name}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="tabular-nums text-white/80">{clock}</span>
+              <span className="hidden font-medium sm:inline">{user.name}</span>
+              <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
+                {ROLE_LABEL[user.role] ?? user.role}
+              </span>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="rounded-lg bg-white/15 px-3 py-1.5 font-medium transition hover:bg-white/25"
+              >
+                ☰ Меню
+              </button>
+              <button onClick={logout} className="text-white/70 transition hover:text-white">
+                Чиқиш
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm sm:gap-3">
-            <span className="hidden font-medium sm:inline">{user.name}</span>
-            <span className="rounded-full bg-brand-cream px-2 py-0.5 text-xs text-brand">
-              {ROLE_LABEL[user.role] ?? user.role}
-            </span>
-            <button onClick={logout} className="text-zinc-400 hover:text-red-500">
-              Чиқиш
-            </button>
+          {menuOpen && (
+            <>
+              <button
+                className="fixed inset-0 z-20 cursor-default"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Ёпиш"
+              />
+              <div className="absolute right-2 top-full z-30 mt-1 w-72 rounded-2xl border border-black/5 bg-white p-2 text-zinc-800 shadow-xl">
+                <div className="grid grid-cols-2 gap-1">
+                  {tabs.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => {
+                        setTab(t.key);
+                        setMenuOpen(false);
+                      }}
+                      className={`rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
+                        tab === t.key
+                          ? "bg-brand text-white"
+                          : "text-zinc-600 hover:bg-zinc-100"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </header>
+      ) : (
+        <header className="sticky top-0 z-10 border-b bg-white">
+          <div className="flex items-center justify-between px-4 py-2.5 sm:px-5">
+            <div className="flex items-center gap-2">
+              <img src={BRAND.logoSmall} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+              <div className="flex items-baseline gap-2">
+                <span className="text-base font-bold sm:text-lg">{BRAND.name}</span>
+                <span className="hidden text-xs text-zinc-400 sm:inline">{BRAND.city}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm sm:gap-3">
+              <span className="hidden font-medium sm:inline">{user.name}</span>
+              <span className="rounded-full bg-brand-cream px-2 py-0.5 text-xs text-brand">
+                {ROLE_LABEL[user.role] ?? user.role}
+              </span>
+              <button onClick={logout} className="text-zinc-400 hover:text-red-500">
+                Чиқиш
+              </button>
+            </div>
           </div>
-        </div>
-        <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-t px-4 py-1.5 sm:px-5">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                tab === t.key
-                  ? "bg-brand text-white"
-                  : "text-zinc-500 hover:bg-zinc-100"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </header>
+          <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-t px-4 py-1.5 sm:px-5">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
+                  tab === t.key
+                    ? "bg-brand text-white"
+                    : "text-zinc-500 hover:bg-zinc-100"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        </header>
+      )}
 
       <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : "max-w-4xl"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
