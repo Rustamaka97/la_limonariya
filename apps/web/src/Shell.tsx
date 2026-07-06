@@ -14,6 +14,7 @@ import { Pos } from "./Pos";
 import { Purchases } from "./Purchases";
 import { Recipes } from "./Recipes";
 import { Taannarx } from "./Taannarx";
+import { Vitrina } from "./Vitrina";
 import { trpc } from "./trpc";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -36,6 +37,7 @@ type Tab =
   | "ombor"
   | "hisobot"
   | "taannarx"
+  | "vitrina"
   | "catalog"
   | "recipes"
   | "staff";
@@ -77,6 +79,9 @@ export function Shell({
       : []),
     ...(canObvalka ? [{ key: "harid" as Tab, label: "Харид" }] : []),
     ...(canObvalka ? [{ key: "obvalka" as Tab, label: "Обвалка" }] : []),
+    ...(["director", "manager"].includes(user.role)
+      ? [{ key: "vitrina" as Tab, label: "Витрина" }]
+      : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "inventarizatsiya" as Tab, label: "Инвентаризация" }]
       : []),
@@ -138,6 +143,7 @@ export function Shell({
         {tab === "chekQidirish" && <ChekQidirish />}
         {tab === "harid" && <Purchases />}
         {tab === "obvalka" && <Obvalka />}
+        {tab === "vitrina" && <Vitrina />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}
