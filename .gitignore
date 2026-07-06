@@ -13,3 +13,9 @@ docs/clopos-api/
 
 # DB dumps — contain staff/customer PII + PIN hashes. Local only, do NOT commit.
 backups/
+
+# Electron build chiqishi
+apps/desktop/dist/
+apps/desktop/build/
+apps/desktop/icon.png
+apps/desktop/config.json

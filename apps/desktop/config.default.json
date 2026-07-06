@@ -1,0 +1,12 @@
+{
+  "serverUrl": "http://localhost:8080",
+  "agentPort": 7178,
+  "autoStart": true,
+  "stations": {
+    "SALAT":    { "ip": "192.168.1.131", "port": 9100 },
+    "OSHXONA":  { "ip": "192.168.1.132", "port": 9100 },
+    "SHASHLIK": { "ip": "192.168.1.133", "port": 9100 },
+    "BALIQ":    { "ip": "192.168.1.134", "port": 9100 },
+    "BAR":      { "ip": "192.168.1.137", "port": 9100 }
+  }
+}

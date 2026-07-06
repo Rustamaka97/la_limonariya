@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>La Limonariya</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #0e4037;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #fff0e5;
+    user-select: none; overflow: hidden;
+  }
+  .box { text-align: center; }
+  .lemon { font-size: 56px; animation: bob 1.6s ease-in-out infinite; }
+  h1 { margin: 12px 0 4px; font-size: 26px; letter-spacing: .5px; }
+  h1 b { color: #f3b759; }
+  p { margin: 0; font-size: 13px; opacity: .75; }
+  .bar {
+    margin: 22px auto 0; width: 200px; height: 4px;
+    background: rgba(255, 240, 229, .18); border-radius: 4px; overflow: hidden;
+  }
+  .bar i {
+    display: block; height: 100%; width: 40%;
+    background: #f3b759; border-radius: 4px;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+  @keyframes slide { 0% { margin-left: -40% } 100% { margin-left: 100% } }
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="lemon">🍋</div>
+    <h1>La <b>Limonariya</b> POS</h1>
+    <p>юкланмоқда…</p>
+    <div class="bar"><i></i></div>
+  </div>
+</body>
+</html>

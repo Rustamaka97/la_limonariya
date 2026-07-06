@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>La Limonariya — алоқа йўқ</title>
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #0e4037;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #fff0e5; text-align: center; user-select: none;
+  }
+  .lemon { font-size: 56px; }
+  h1 { margin: 14px 0 6px; font-size: 24px; }
+  p { margin: 4px 0; font-size: 14px; opacity: .8; }
+  .err { font-size: 11px; opacity: .45; margin-top: 10px; }
+  .dots::after { content: ""; animation: d 1.5s steps(4) infinite; }
+  @keyframes d { 0% { content: "" } 25% { content: "." } 50% { content: ".." } 75% { content: "..." } }
+  button {
+    margin-top: 18px; padding: 10px 26px; font-size: 14px; font-weight: 600;
+    color: #13241f; background: #f3b759; border: 0; border-radius: 10px; cursor: pointer;
+  }
+  button:active { transform: scale(.97); }
+</style>
+</head>
+<body>
+  <div>
+    <div class="lemon">🍋</div>
+    <h1>Серверга уланиб бўлмади</h1>
+    <p>Сервер ёқилганини ва тармоқни текширинг.</p>
+    <p>Қайта уланмоқда<span class="dots"></span></p>
+    <button onclick="go()">Ҳозир уланиш</button>
+    <div class="err" id="err"></div>
+  </div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const target = q.get("u") || "http://localhost:8080";
+  document.getElementById("err").textContent = q.get("e") || "";
+  function go() { location.href = target; }
+  setInterval(() => {
+    fetch(target, { mode: "no-cors" }).then(go).catch(() => {});
+  }, 4000);
+</script>
+</body>
+</html>

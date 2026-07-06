@@ -1,0 +1,44 @@
+{
+  "name": "lalimon-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "La Limonariya POS — desktop terminal (Electron qobiq + printer most)",
+  "main": "main.js",
+  "author": "La Limonariya",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node make-icon.js",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^2.1.8"
+  },
+  "build": {
+    "appId": "uz.lalimonariya.pos",
+    "productName": "La Limonariya POS",
+    "directories": { "output": "dist" },
+    "files": [
+      "main.js",
+      "bridge.js",
+      "splash.html",
+      "offline.html",
+      "config.default.json",
+      "icon.png"
+    ],
+    "win": {
+      "target": ["portable", "nsis"],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "portable": { "artifactName": "LaLimonPOS.exe" },
+    "nsis": {
+      "oneClick": true,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "artifactName": "LaLimonPOS-Setup.exe"
+    }
+  }
+}
