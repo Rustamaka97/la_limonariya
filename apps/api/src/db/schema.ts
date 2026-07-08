@@ -220,6 +220,10 @@ export const tables = pgTable("tables", {
     .references(() => halls.id),
   name: text("name").notNull(),
   sort: integer("sort").notNull().default(0),
+  // Витрина/зал харитасидаги эркин жойлашув (директор судраб созлайди); null =
+  // ҳали жойлаштирилмаган → авто-тўр.
+  posX: integer("pos_x"),
+  posY: integer("pos_y"),
   active: boolean("active").notNull().default(true),
 });
 

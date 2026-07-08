@@ -2998,11 +2998,23 @@ export const appRouter = router({
           hallId: tables.hallId,
           name: tables.name,
           sort: tables.sort,
+          posX: tables.posX,
+          posY: tables.posY,
         })
         .from(tables)
         .where(eq(tables.active, true))
         .orderBy(tables.sort);
     }),
+
+    setTablePosition: directorProcedure
+      .input(z.object({ id: z.string().uuid(), posX: z.number().int(), posY: z.number().int() }))
+      .mutation(async ({ input }) => {
+        await db
+          .update(tables)
+          .set({ posX: input.posX, posY: input.posY })
+          .where(eq(tables.id, input.id));
+        return { ok: true };
+      }),
 
     menu: protectedProcedure.query(async () => {
       return db
