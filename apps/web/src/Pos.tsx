@@ -35,7 +35,8 @@ type OpenOrder = {
   hall: string | null;
   waiter: string | null;
   qty: number;
-  total: number;
+  total: number | null; // официант учун бошқанинг заказида null (яширилган → "банд")
+  mine?: boolean;
   createdAt: string;
 };
 type PayMethod = "cash" | "card" | "click" | "payme" | "humo" | "debt";
@@ -522,7 +523,7 @@ function ConflictSheet({
                 <span className="font-medium">#{o.id.slice(0, 5).toUpperCase()}</span>
                 {o.waiter ? <span className="text-zinc-400"> · {o.waiter}</span> : null}
               </span>
-              <span className="tabular-nums font-semibold text-brand-ink">{fmt(o.total)}</span>
+              <span className="tabular-nums font-semibold text-brand-ink">{o.total === null ? "банд" : fmt(o.total)}</span>
             </button>
           ))}
         </div>
@@ -783,6 +784,7 @@ function TableTile({
       longPressed.current = false; // long-press ишлаган — оддий tap'ни ўтказмаймиз
       return;
     }
+    if (order.total === null) return; // официант: бошқанинг банд столи — очилмайди
     onClick();
   };
 
@@ -820,7 +822,7 @@ function TableTile({
       </div>
       <div>
         <div className={`text-sm font-bold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
-          {fmt(order.total)}
+          {order.total === null ? "🔒 банд" : fmt(order.total)}
         </div>
         <div className={`flex items-center gap-1 text-[10px] ${heatColor ? "text-brand-ink/60" : "text-white/60"}`}>
           <IClock className="h-3 w-3" />

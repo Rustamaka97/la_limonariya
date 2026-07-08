@@ -1692,6 +1692,28 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
   return { ok: true, holes: holes.length };
 }
 
+// Официант фақат ЎЗ заказини кўради/ўзгартиради. Старшие роли — ҳаммаси очиқ.
+async function assertOrderAccess(
+  exec: { select: typeof db.select },
+  user: { id: string; role: string },
+  orderId: string,
+) {
+  if (user.role !== "waiter") return;
+  const row = (
+    await exec
+      .select({ waiterId: orders.waiterId })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1)
+  )[0];
+  if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+  if (row.waiterId !== user.id)
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Бу сизнинг заказингиз эмас",
+    });
+}
+
 export const appRouter = router({
   health: publicProcedure.query(async () => {
     await db.execute(sql`select 1`);
@@ -2893,7 +2915,7 @@ export const appRouter = router({
         .orderBy(products.type, products.name);
     }),
 
-    openOrders: protectedProcedure.query(async () => {
+    openOrders: protectedProcedure.query(async ({ ctx }) => {
       const rows = await db
         .select({
           id: orders.id,
@@ -2903,6 +2925,7 @@ export const appRouter = router({
           createdAt: orders.createdAt,
           hall: halls.name,
           waiter: users.name,
+          waiterId: orders.waiterId,
           qty: sql<number>`coalesce(sum(${orderItems.qty}), 0)`,
           total: sql<number>`coalesce(sum(${orderItems.qty} * ${orderItems.price}), 0)`,
         })
@@ -2913,12 +2936,24 @@ export const appRouter = router({
         .where(eq(orders.status, "open"))
         .groupBy(orders.id, halls.name, users.name)
         .orderBy(desc(orders.createdAt));
-      return rows.map((r) => ({ ...r, qty: Number(r.qty), total: Number(r.total) }));
+      // Официант ЎЗ заказини очади; бошқанинг банд столини кўради, лекин суммаси
+      // ва ичи беркитилган (total=null → "банд"). Старшие роли — ҳаммаси очиқ.
+      const isWaiter = ctx.user.role === "waiter";
+      return rows.map((r) => {
+        const mine = r.waiterId === ctx.user.id;
+        return {
+          ...r,
+          qty: Number(r.qty),
+          total: isWaiter && !mine ? null : Number(r.total),
+          mine,
+        };
+      });
     }),
 
     order: protectedProcedure
       .input(z.object({ id: z.string().uuid() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.id);
         const head = (
           await db
             .select({
@@ -3030,7 +3065,8 @@ export const appRouter = router({
           note: z.string().max(500).optional(),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.id);
         const patch: { guests?: number | null; note?: string | null } = {};
         if (input.guests !== undefined) patch.guests = input.guests || null;
         if (input.note !== undefined) patch.note = input.note.trim() || null;
@@ -3053,7 +3089,8 @@ export const appRouter = router({
           tableNo: z.string().optional(),
         }),
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.id);
         const hall = (
           await db.select().from(halls).where(eq(halls.id, input.hallId)).limit(1)
         )[0];
@@ -3134,6 +3171,7 @@ export const appRouter = router({
           await tx.execute(
             sql`select pg_advisory_xact_lock(hashtext(${`${input.orderId}:${input.productId}`}))`,
           );
+          await assertOrderAccess(tx, ctx.user, input.orderId);
           // Ёпилган заказга таом қўшиб бўлмайди (списание аллақачон ёзилган →
           // тўланмаган+чегирилмаган "текин" таом бўлмасин; offline replay ҳам
           // ёпилган заказга тушмасин). Бошқа мутациялар ҳам шу гейтни ишлатади.
@@ -3247,6 +3285,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const ticket = await db.transaction(async (tx) => {
+          await assertOrderAccess(tx, ctx.user, input.orderId);
           const oHead = (
             await tx
               .select({ status: orders.status })
