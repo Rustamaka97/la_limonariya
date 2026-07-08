@@ -213,6 +213,7 @@ function FloorView({
   const [heatOn, setHeatOn] = useState(false);
   const [heat, setHeat] = useState<{ hallId: string; hallName: string; tableNo: string; revenue: number }[] | null>(null);
   const [arrange, setArrange] = useState(false);
+  const [hallFilter, setHallFilter] = useState<string>("all");
 
   const refresh = useCallback(async () => {
     // Сервер + локал (offline'да яратилган) очиқ заказларни бирлаштириш.
@@ -356,7 +357,26 @@ function FloorView({
         <Spin />
       ) : (
         <>
-          {halls.map((h) => {
+          {halls.length > 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              {[{ id: "all", name: "Барчаси" }, ...halls].map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => setHallFilter(h.id)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    hallFilter === h.id
+                      ? "bg-brand text-white"
+                      : "bg-white text-zinc-500 hover:bg-zinc-100"
+                  }`}
+                >
+                  {h.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {halls
+            .filter((h) => hallFilter === "all" || h.id === hallFilter)
+            .map((h) => {
             const hallTables = tbls.filter((t) => t.hallId === h.id);
             const hallBusy = hallTables.filter((t) => byKey.has(key(h.id, t.name))).length;
             return (
