@@ -1,0 +1,23 @@
+{
+  "name": "lalimonariya-pos-terminal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "La Limonariya POS terminal — Electron kiosk (standalone; NOT part of the pnpm workspace)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "uz.lalimonariya.pos",
+    "productName": "La Limonariya POS",
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis", "icon": "icon.png" },
+    "nsis": { "oneClick": true, "perMachine": false },
+    "files": ["main.js", "config.default.json", "offline.html", "icon.png"]
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}
