@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SessionUser } from "./App";
 import { swr } from "./lib/cache";
 import { trpc } from "./trpc";
@@ -20,6 +20,7 @@ export type Product = {
   category: string | null;
   station: string | null;
   hasRecipe: boolean;
+  marginPct?: number | null;
 };
 export type Station = { id: string; name: string; ip?: string | null };
 type Component = { id: string; name: string; unit: string; type: string };
@@ -52,6 +53,7 @@ export function Catalog({ user }: { user: SessionUser }) {
   const [cats, setCats] = useState<Category[]>([]);
   const [stationsList, setStationsList] = useState<Station[]>([]);
   const [products, setProducts] = useState<Product[] | null>(null);
+  const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [editing, setEditing] = useState<Product | "new" | null>(null);
@@ -77,6 +79,12 @@ export function Catalog({ user }: { user: SessionUser }) {
   useEffect(() => {
     if (isDirector) swr("catalog.stations", () => trpc.catalog.stations.query(), setStationsList).catch(() => {});
   }, [isDirector]);
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return products;
+    return products?.filter((p) => p.name.toLowerCase().includes(needle)) ?? null;
+  }, [products, q]);
 
   return (
     <div className="space-y-4">
@@ -127,6 +135,13 @@ export function Catalog({ user }: { user: SessionUser }) {
         )}
       </div>
 
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Қидириш…"
+        className="w-full rounded-lg border px-3 py-2 text-sm"
+      />
+
       <div className="overflow-hidden rounded-xl border bg-white">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
@@ -135,11 +150,12 @@ export function Catalog({ user }: { user: SessionUser }) {
               <th className="px-3 py-2 font-medium">Тур</th>
               <th className="px-3 py-2 font-medium">Станция</th>
               <th className="px-3 py-2 text-right font-medium">Нарх</th>
+              {isDirector && <th className="px-3 py-2 text-right font-medium">Маржа</th>}
               {isDirector && <th className="px-3 py-2"></th>}
             </tr>
           </thead>
           <tbody className="divide-y">
-            {products?.map((p) => {
+            {shown?.map((p) => {
               const b = TYPE_BADGE[p.type];
               return (
                 <tr key={p.id} className={!p.active ? "opacity-40" : ""}>
@@ -163,6 +179,17 @@ export function Catalog({ user }: { user: SessionUser }) {
                       : "—"}
                   </td>
                   {isDirector && (
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {p.marginPct != null ? (
+                        <span className={p.marginPct < 40 ? "font-medium text-red-600" : "text-zinc-500"}>
+                          {p.marginPct}%
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300">—</span>
+                      )}
+                    </td>
+                  )}
+                  {isDirector && (
                     <td className="px-3 py-2 text-right">
                       <button
                         onClick={() => setEditing(p)}
@@ -177,8 +204,12 @@ export function Catalog({ user }: { user: SessionUser }) {
             })}
           </tbody>
         </table>
-        {products ? (
-          <div className="px-4 py-2 text-xs text-zinc-400">{products.length} та маҳсулот</div>
+        {shown ? (
+          shown.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-zinc-400">Топилмади</div>
+          ) : (
+            <div className="px-4 py-2 text-xs text-zinc-400">{shown.length} та маҳсулот</div>
+          )
         ) : (
           <div className="px-4 py-6 text-center text-zinc-400">⏳</div>
         )}

@@ -2051,7 +2051,7 @@ export const appRouter = router({
         )
         .query(async ({ input, ctx }) => {
           const showInactive = input?.includeInactive && ctx.user.role === "director";
-          return db
+          const rows = await db
             .select({
               id: products.id,
               name: products.name,
@@ -2077,6 +2077,19 @@ export const appRouter = router({
               ),
             )
             .orderBy(products.type, products.name);
+          // Маржа = 100 − гўшт%. Фақат директорга (computeDishTaannarx қиммат).
+          if (ctx.user.role !== "director")
+            return rows.map((r) => ({ ...r, marginPct: null as number | null }));
+          const meatCost = {
+            qoy: await latestMeatCost("qoy"),
+            mol: await latestMeatCost("mol"),
+          };
+          const dishes = await computeDishTaannarx(meatCost);
+          const marginByProduct = new Map<string, number>();
+          for (const d of dishes)
+            if (d.productId != null && d.meatPct != null)
+              marginByProduct.set(d.productId, 100 - d.meatPct);
+          return rows.map((r) => ({ ...r, marginPct: marginByProduct.get(r.id) ?? null }));
         }),
 
       create: directorProcedure
