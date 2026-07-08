@@ -5246,6 +5246,106 @@ export const appRouter = router({
 
     signals: directorProcedure.query(() => computeSignals()),
 
+    menuEngineering: directorProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const frac = await orderRevenueFraction(startUTC, endUTC);
+        const sold = await db
+          .select({
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            name: orderItems.name,
+            qty: orderItems.qty,
+            price: orderItems.price,
+          })
+          .from(orderItems)
+          .innerJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(
+            and(
+              eq(orders.status, "closed"),
+              gte(orders.closedAt, startUTC),
+              lt(orders.closedAt, endUTC),
+            ),
+          );
+        const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
+        for (const r of sold) {
+          if (!r.productId) continue;
+          const e = byProduct.get(r.productId) ?? { name: r.name, qty: 0, revenue: 0 };
+          e.qty += r.qty;
+          e.revenue += Math.round(r.qty * r.price * (frac.get(r.orderId) ?? 1));
+          byProduct.set(r.productId, e);
+        }
+
+        const meatCost = { qoy: await latestMeatCost("qoy"), mol: await latestMeatCost("mol") };
+        const dishes = await computeDishTaannarx(meatCost);
+        const costPerUnit = new Map(
+          dishes
+            .filter(
+              (d) =>
+                d.productId &&
+                d.meatCostTotal > 0 &&
+                !(d.meatPct != null && d.meatPct > 100) && // batch/pot recipes excluded
+                !d.hasUnpricedMeat,
+            )
+            .map((d) => [d.productId as string, d.meatCostTotal]),
+        );
+
+        const known: {
+          productId: string;
+          name: string;
+          qty: number;
+          revenue: number;
+          unitMargin: number;
+          totalMargin: number;
+        }[] = [];
+        const unknown: { productId: string; name: string; qty: number; revenue: number }[] = [];
+        for (const [productId, v] of byProduct) {
+          const mc = costPerUnit.get(productId);
+          if (mc == null) {
+            unknown.push({ productId, ...v });
+            continue;
+          }
+          const avgPrice = v.qty > 0 ? v.revenue / v.qty : 0;
+          const unitMargin = Math.round(avgPrice - mc);
+          known.push({
+            productId,
+            ...v,
+            unitMargin,
+            totalMargin: unitMargin * v.qty,
+          });
+        }
+
+        const median = (xs: number[]) => {
+          if (xs.length === 0) return 0;
+          const s = [...xs].sort((a, b) => a - b);
+          const mid = Math.floor(s.length / 2);
+          return s.length % 2 ? (s[mid] ?? 0) : ((s[mid - 1] ?? 0) + (s[mid] ?? 0)) / 2;
+        };
+        const medQty = median(known.map((k) => k.qty));
+        const medMargin = median(known.map((k) => k.unitMargin));
+        const rows = known
+          .map((k) => ({
+            ...k,
+            quadrant:
+              k.qty >= medQty && k.unitMargin >= medMargin
+                ? ("star" as const) // юлдуз: кўп сотилади + яхши маржа
+                : k.qty >= medQty
+                  ? ("plowhorse" as const) // от: кўп сотилади, юпқа маржа
+                  : k.unitMargin >= medMargin
+                    ? ("puzzle" as const) // жумбоқ: маржа яхши, кам сотилади
+                    : ("dog" as const), // ит: иккиси ҳам паст
+          }))
+          .sort((a, b) => b.totalMargin - a.totalMargin);
+        unknown.sort((a, b) => b.revenue - a.revenue);
+        return { medQty, medMargin, rows, unknown: unknown.slice(0, 15) };
+      }),
+
     digest: directorProcedure.query(async () => {
       const { startUTC, endUTC, dayKey } = businessDayBounds();
       const todayFin = await financeForWindow(startUTC, endUTC);
