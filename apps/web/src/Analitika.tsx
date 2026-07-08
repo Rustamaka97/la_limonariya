@@ -35,6 +35,9 @@ type Signals = {
   staleOrders: { id: string; tableNo: string | null; hall: string | null; waiter: string | null; createdAt: string; minutesOpen: number }[];
   underDelivery: { id: string; carcassType: string; weightG: number; sumPartsG: number; lossPct: number; missingG: number; missingCost: number; shortReason: string | null; supplier: string | null; createdAt: string }[];
   grammLeak: { carcassType: string; marinatedG: number; soldSikh: number; usedG: number; expectedSikh: number; leakG: number; leakPct: number; flag: boolean }[];
+  vitrinaMismatch: { productId: string; name: string; opening: number | null; openingKnown: boolean; skewered: number; sold: number; expected: number; counted: number | null; diff: number | null }[];
+  skewerFlags: { id: string; name: string; meatG: number; skewerCount: number; normG: number | null; actualG: number; devPct: number | null; by: string | null }[];
+  expiryFlags: { productId: string; name: string; unit: string; onHand: number; ageDays: number; shelfLifeDays: number }[];
 };
 
 export function Analitika() {
@@ -231,6 +234,65 @@ function SignalsView() {
                     className={`rounded-full px-2 py-0.5 text-xs tabular-nums ${g.flag ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
                   >
                     {g.flag ? "🔴" : "🟢"} {g.leakG > 0 ? "оқма" : "ортиқча"} {Math.abs(g.leakG / 1000).toFixed(1)}кг · {Math.abs(g.leakPct)}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="🍢 Витрина фарқи" hint="кутилган vs саналган (кечаги кун)">
+          {s.vitrinaMismatch.length === 0 ? (
+            <Empty>витрина мос — тешик йўқ 🟢</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.vitrinaMismatch.map((v) => (
+                <li key={v.productId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="flex items-center gap-2 text-xs tabular-nums">
+                    <span className="text-zinc-400">кутилган {v.expected} · саналган {v.counted ?? "—"}</span>
+                    <span className={`rounded-full px-1.5 py-0.5 font-medium ${(v.diff ?? 0) < 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                      {(v.diff ?? 0) > 0 ? "+" : ""}{v.diff}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="⚖️ Сих норма четлашиши" hint="сўнгги 15 батч · ±10%">
+          {s.skewerFlags.length === 0 ? (
+            <Empty>норма доирасида 🟢</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.skewerFlags.map((f) => (
+                <li key={f.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span>
+                    <span className="font-medium">{f.name}</span>{" "}
+                    <span className="text-zinc-400">{f.actualG}г/сих (норма {f.normG ?? "—"})</span>
+                  </span>
+                  {f.devPct != null && (
+                    <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${f.devPct > 0 ? "bg-amber-100 text-amber-700" : "bg-sky-100 text-sky-700"}`}>
+                      {f.devPct > 0 ? "+" : ""}{f.devPct}%
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="⏳ Муддат ўтган" hint="FIFO ёши > яроқлилик">
+          {s.expiryFlags.length === 0 ? (
+            <Empty>муддати ўтган йўқ 🟢</Empty>
+          ) : (
+            <ul className="divide-y">
+              {s.expiryFlags.map((e) => (
+                <li key={e.productId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span className="font-medium">{e.name}</span>
+                  <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 tabular-nums">
+                    {e.ageDays} кун (норма {e.shelfLifeDays})
                   </span>
                 </li>
               ))}

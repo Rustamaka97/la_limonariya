@@ -927,6 +927,14 @@ async function computeSignals() {
     })
     .filter((g) => g.marinatedG > 0 || g.soldSikh > 0);
 
+  // M3 витрина/сих/муддат сигналлари (P1.4). expiry — shelf_life NULL бўлса бўш
+  // қолади (эга қарори, ухлаган). vitrinaMismatch — кечаги тўлиқ кун бўйича.
+  const expiryFlags = await expiryFlagsCompute();
+  const skewerFlags = await skewerNormFlags();
+  const vitrinaMismatch = (await vitrinaReconcile(yKey)).filter(
+    (r) => r.diff != null && r.diff !== 0,
+  );
+
   return {
     obvalkaFlags,
     thinDishes,
@@ -941,6 +949,9 @@ async function computeSignals() {
     staleOrders,
     underDelivery,
     grammLeak,
+    expiryFlags,
+    skewerFlags,
+    vitrinaMismatch,
     refundsToday,
     voidsToday,
     discountsToday,
@@ -1530,6 +1541,9 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
     holes.push(...humanizeUnderDelivery(sig.underDelivery as UnderDeliveryItem[]));
   const grammLeakFlagged = sig.grammLeak.filter((g) => g.flag);
   if (grammLeakFlagged.length) holes.push(...humanizeGrammLeak(grammLeakFlagged));
+  if (sig.vitrinaMismatch.length) holes.push(`🍢 Витрина фарқи: ${sig.vitrinaMismatch.length} таом`);
+  if (sig.skewerFlags.length) holes.push(`⚖️ Сих норма: ${sig.skewerFlags.length} четлашиш`);
+  if (sig.expiryFlags.length) holes.push(`⏳ Муддат ўтган: ${sig.expiryFlags.length}`);
   if (sig.priceSpikes.length) holes.push(...humanizePriceSpike(sig.priceSpikes));
   if (sig.compFlag) holes.push(`🆓 Текин лимитдан ошди: ${som(sig.compToday)}`);
   if (sig.cashVariance && sig.cashVariance.variance < 0)
@@ -1696,6 +1710,94 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
 
 // Milestone 3 — витрина баланси бир кун учун:
 // кутилган қолдиқ = кечаги саналган + бугун сихланган − бугун сотилган.
+const SKEWER_NORM_TOLERANCE = 0.1; // Milestone 3: норма граммдан ±10% четлашиш
+
+// Тешик №7 (муддат назорати): FIFO ёши — қолдиқ энг эски қайси киримдан
+// қолганини топади. Walk inflows newest→oldest accumulating until the on-hand
+// total is covered; the inflow that completes it is the oldest remaining layer
+// (FIFO consumption eats old layers first, so what remains is the NEWEST inflows).
+async function expiryFlagsCompute() {
+  const tracked = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      unit: products.unit,
+      shelfLifeDays: products.shelfLifeDays,
+    })
+    .from(products)
+    .where(and(eq(products.active, true), sql`${products.shelfLifeDays} is not null`));
+  if (tracked.length === 0) return [];
+
+  const flags: {
+    productId: string;
+    name: string;
+    unit: string;
+    onHand: number;
+    ageDays: number;
+    shelfLifeDays: number;
+  }[] = [];
+  for (const p of tracked) {
+    const moves = await db
+      .select({ qty: stockMovements.qty, createdAt: stockMovements.createdAt })
+      .from(stockMovements)
+      .where(eq(stockMovements.productId, p.id))
+      .orderBy(desc(stockMovements.createdAt));
+    const onHand = moves.reduce((s, m) => s + m.qty, 0);
+    if (onHand <= 0) continue;
+    let acc = 0;
+    let oldest: Date | null = null;
+    for (const m of moves) {
+      if (m.qty <= 0) continue;
+      acc += m.qty;
+      oldest = m.createdAt;
+      if (acc >= onHand) break;
+    }
+    if (!oldest) continue;
+    const ageDays = Math.floor((Date.now() - oldest.getTime()) / (24 * 60 * 60 * 1000));
+    if (ageDays > (p.shelfLifeDays ?? 0))
+      flags.push({
+        productId: p.id,
+        name: p.name,
+        unit: p.unit,
+        onHand,
+        ageDays,
+        shelfLifeDays: p.shelfLifeDays ?? 0,
+      });
+  }
+  return flags.sort((a, b) => b.ageDays - a.ageDays);
+}
+
+// Milestone 3 — сих грамм назорати: сўнгги батчларда норма ±10% дан четлашиш.
+async function skewerNormFlags() {
+  const rows = await db
+    .select({
+      id: skewerBatches.id,
+      productId: skewerBatches.productId,
+      name: products.name,
+      meatG: skewerBatches.meatG,
+      skewerCount: skewerBatches.skewerCount,
+      normG: skewerBatches.normG,
+      createdAt: skewerBatches.createdAt,
+      by: users.name,
+    })
+    .from(skewerBatches)
+    .innerJoin(products, eq(skewerBatches.productId, products.id))
+    .leftJoin(users, eq(skewerBatches.createdById, users.id))
+    .orderBy(desc(skewerBatches.createdAt))
+    .limit(15);
+  return rows
+    .map((r) => {
+      const actualG = r.skewerCount > 0 ? Math.round(r.meatG / r.skewerCount) : 0;
+      const devPct =
+        r.normG && r.normG > 0 ? Math.round(((actualG - r.normG) / r.normG) * 100) : null;
+      return { ...r, actualG, devPct };
+    })
+    .filter((r) => r.devPct != null && Math.abs(r.devPct) > SKEWER_NORM_TOLERANCE * 100);
+}
+
+// Milestone 3 — витрина баланси бир кун учун:
+// кутилган қолдиқ = кечаги саналган + бугун сихланган − бугун сотилган.
+
 export async function vitrinaReconcile(dayKey: string) {
   const { startUTC, endUTC } = businessDayBounds(dayKey);
   const prevKey = previousDayKey(dayKey);
@@ -5634,6 +5736,9 @@ export const appRouter = router({
         (sig.compFlag ? 1 : 0) +
         sig.staleOrders.length +
         sig.grammLeak.filter((g) => g.flag).length +
+        sig.vitrinaMismatch.length +
+        sig.skewerFlags.length +
+        sig.expiryFlags.length +
         sig.refundsToday.count +
         sig.voidsToday.count +
         sig.reprintsToday.count;
