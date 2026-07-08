@@ -44,6 +44,23 @@ type Tab =
   | "recipes"
   | "staff";
 
+// Offline ҳолати — "offline-first"нинг кўринадиган қисми: алоҳida banner, чунки
+// сўровлар жимгина муваффақиятсиз бўлса, ходим сабабини билмайди.
+function useOnline(): boolean {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
+
 export function Shell({
   user,
   onLogout,
@@ -52,6 +69,7 @@ export function Shell({
   onLogout: () => void;
 }) {
   const isDirector = user.role === "director";
+  const online = useOnline();
   const canObvalka = ["director", "manager", "buyer"].includes(user.role);
   const canPos = ["director", "manager", "cashier", "waiter"].includes(
     user.role,
@@ -144,6 +162,12 @@ export function Shell({
           ))}
         </nav>
       </header>
+
+      {!online && (
+        <div className="bg-red-600 px-4 py-1.5 text-center text-sm font-medium text-white">
+          ⚠️ Интернет йўқ — маълумот сақланмайди, уланишни кутинг
+        </div>
+      )}
 
       <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : "max-w-4xl"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}

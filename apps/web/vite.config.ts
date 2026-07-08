@@ -28,6 +28,27 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        // янги build дарҳол назоратни олади — "эски кэш" муаммосига қарши
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            // tRPC query'лар (GET) — интернет узилганда охирги кўрилган маълумот
+            // очилади (фақат КЎРИШ; мутациялар атай навбатга олинмайди — кўр-кўрона
+            // replay заказни икки марта ёзиши мумкин).
+            urlPattern: ({ url, request }) =>
+              url.pathname.startsWith("/trpc") && request.method === "GET",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trpc-queries",
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 300, maxAgeSeconds: 24 * 60 * 60 },
+            },
+          },
+        ],
+      },
     }),
   ],
   server: {
