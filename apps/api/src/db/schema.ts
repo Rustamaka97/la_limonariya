@@ -634,3 +634,57 @@ export const inventoryItems = pgTable(
   },
   (t) => [index("ii_count_idx").on(t.countId)],
 );
+
+export const assetCategory = pgEnum("asset_category", [
+  "idish",
+  "mebel",
+  "texnika",
+  "boshqa",
+]);
+
+export const assetMovementReason = pgEnum("asset_movement_reason", [
+  "kirim",
+  "sindi",
+  "yoqoldi",
+  "tuzatish",
+]);
+
+export const assets = pgTable(
+  "assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    category: assetCategory("category").notNull(),
+    name: text("name").notNull(),
+    note: text("note"),
+    // Дона нархи (so'm) — синган/йўқолганда айбдордан ундириладиган сумма учун.
+    // Ихтиёрий: реал нарх маълум бўлмагунча null, ёлғон рақам йўқ.
+    price: integer("price"),
+    active: boolean("active").notNull().default(true),
+    branchId: uuid("branch_id").references(() => branches.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.category, t.name)],
+);
+
+export const assetMovements = pgTable("asset_movements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  assetId: uuid("asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "cascade" }),
+  qty: integer("qty").notNull(),
+  reason: assetMovementReason("reason").notNull(),
+  note: text("note"),
+  // Дона нархининг shu воқеа пайтидаги snapshot'и (assets.price кейин ўзгарса
+  // ҳам, эски зарар суммаси ўзгармасин учун).
+  unitPrice: integer("unit_price"),
+  // sindi/yoqoldi'да айбдор ходим — тизимга кирган director/manager'дан фарқли
+  // (createdById), чунки одатда официант/кассир синдиради, лекин ёзувни улар
+  // эмас, director/manager киритади.
+  responsibleId: uuid("responsible_id").references(() => users.id),
+  createdById: uuid("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

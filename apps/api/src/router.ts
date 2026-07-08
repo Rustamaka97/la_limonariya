@@ -1,5 +1,6 @@
 import { and, count, desc, eq, gt, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import {
@@ -18,6 +19,8 @@ import {
 } from "./rate-limit";
 import { db } from "./db/client";
 import {
+  assetMovements,
+  assets,
   auditLog,
   cashCollections,
   categories,
@@ -4780,6 +4783,184 @@ export const appRouter = router({
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Telegram созланмаган (env)" });
       return sendDailyDigest();
     }),
+  }),
+
+  assets: router({
+    list: managerProcedure.query(async () => {
+      return db
+        .select({
+          id: assets.id,
+          category: assets.category,
+          name: assets.name,
+          note: assets.note,
+          price: assets.price,
+          qty: sql<number>`coalesce(sum(${assetMovements.qty}), 0)`.mapWith(Number),
+        })
+        .from(assets)
+        .leftJoin(assetMovements, eq(assetMovements.assetId, assets.id))
+        .where(eq(assets.active, true))
+        .groupBy(assets.id)
+        .orderBy(assets.category, assets.name);
+    }),
+
+    create: managerProcedure
+      .input(
+        z.object({
+          category: z.enum(["idish", "mebel", "texnika", "boshqa"]),
+          name: z.string().trim().min(1),
+          note: z.string().optional(),
+          price: z.number().int().nonnegative().optional(),
+          initialQty: z.number().int().positive().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        let row: (typeof assets.$inferSelect) | undefined;
+        try {
+          row = (
+            await db
+              .insert(assets)
+              .values({
+                category: input.category,
+                name: input.name,
+                note: input.note ?? null,
+                price: input.price ?? null,
+              })
+              .returning()
+          )[0];
+        } catch (e) {
+          if (e && typeof e === "object" && "code" in e && e.code === "23505") {
+            throw new TRPCError({ code: "CONFLICT", message: "Шу турдан аллақачон бор" });
+          }
+          throw e;
+        }
+        if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (input.initialQty)
+          await db.insert(assetMovements).values({
+            assetId: row.id,
+            qty: input.initialQty,
+            reason: "kirim",
+            createdById: ctx.user.id,
+          });
+        return { id: row.id };
+      }),
+
+    setPrice: managerProcedure
+      .input(z.object({ assetId: z.string().uuid(), price: z.number().int().nonnegative() }))
+      .mutation(async ({ input }) => {
+        await db.update(assets).set({ price: input.price }).where(eq(assets.id, input.assetId));
+        return { ok: true };
+      }),
+
+    adjust: managerProcedure
+      .input(
+        z
+          .object({
+            assetId: z.string().uuid(),
+            qty: z.number().int().refine((n) => n !== 0),
+            reason: z.enum(["kirim", "sindi", "yoqoldi", "tuzatish"]),
+            note: z.string().optional(),
+            responsibleId: z.string().uuid().optional(),
+          })
+          // kirim is always an increase, sindi/yoqoldi always a decrease —
+          // tuzatish (recount correction) is the only reason allowed either
+          // sign. Server-side, not just UI, since qty's sign drives the
+          // drift-free SUM the whole ledger design depends on.
+          .refine((v) => v.reason !== "kirim" || v.qty > 0, {
+            message: "Кирим сони мусбат бўлиши керак",
+          })
+          .refine((v) => !["sindi", "yoqoldi"].includes(v.reason) || v.qty < 0, {
+            message: "Синди/йўқолди сони манфий бўлиши керак",
+          }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        // Зарар суммаси faqat sindi/yoqoldi'да, faqat narx maʼlum bo'lsa —
+        // snapshot qilamiz (keyin narx o'zgarsa ham eski voqea o'zgarmasin).
+        let unitPrice: number | null = null;
+        if (input.reason === "sindi" || input.reason === "yoqoldi") {
+          const a = (
+            await db.select({ price: assets.price }).from(assets).where(eq(assets.id, input.assetId)).limit(1)
+          )[0];
+          unitPrice = a?.price ?? null;
+        }
+        await db.insert(assetMovements).values({
+          assetId: input.assetId,
+          qty: input.qty,
+          reason: input.reason,
+          note: input.note ?? null,
+          responsibleId: input.responsibleId ?? null,
+          unitPrice,
+          createdById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    history: managerProcedure
+      .input(z.object({ assetId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const responsible = alias(users, "responsible");
+        return db
+          .select({
+            id: assetMovements.id,
+            qty: assetMovements.qty,
+            reason: assetMovements.reason,
+            note: assetMovements.note,
+            unitPrice: assetMovements.unitPrice,
+            createdAt: assetMovements.createdAt,
+            createdByName: users.name,
+            responsibleName: responsible.name,
+          })
+          .from(assetMovements)
+          .leftJoin(users, eq(users.id, assetMovements.createdById))
+          .leftJoin(responsible, eq(responsible.id, assetMovements.responsibleId))
+          .where(eq(assetMovements.assetId, input.assetId))
+          .orderBy(desc(assetMovements.createdAt));
+      }),
+
+    // "Официантга пул берадиган вақт" учун — ким қанча зарар қилгани,
+    // faqat narxi maʼlum (unitPrice snapshot qilingan) voqealardan.
+    damageByStaff: managerProcedure.query(async () => {
+      const responsible = alias(users, "responsible");
+      const rows = await db
+        .select({
+          responsibleId: assetMovements.responsibleId,
+          responsibleName: responsible.name,
+          totalSom: sql<number>`sum(abs(${assetMovements.qty}) * ${assetMovements.unitPrice})`.mapWith(Number),
+          totalQty: sql<number>`sum(abs(${assetMovements.qty}))`.mapWith(Number),
+        })
+        .from(assetMovements)
+        .innerJoin(responsible, eq(responsible.id, assetMovements.responsibleId))
+        .where(
+          and(
+            inArray(assetMovements.reason, ["sindi", "yoqoldi"]),
+            sql`${assetMovements.unitPrice} is not null`,
+          ),
+        )
+        .groupBy(assetMovements.responsibleId, responsible.name)
+        .orderBy(desc(sql`sum(abs(${assetMovements.qty}) * ${assetMovements.unitPrice})`));
+      // Damage on assets with no price set has no unitPrice snapshot and would
+      // otherwise vanish from the report above with no signal — surface a count
+      // so the owner knows the total understates real losses (same pattern as
+      // Moliya's cogsPartial/unpricedNames for missing product prices).
+      const unpriced = (
+        await db
+          .select({ n: count() })
+          .from(assetMovements)
+          .where(
+            and(
+              inArray(assetMovements.reason, ["sindi", "yoqoldi"]),
+              sql`${assetMovements.unitPrice} is null`,
+            ),
+          )
+      )[0];
+      return { rows, unpricedCount: unpriced?.n ?? 0 };
+    }),
+
+    deactivate: managerProcedure
+      .input(z.object({ assetId: z.string().uuid() }))
+      .mutation(async ({ input }) => {
+        await db.update(assets).set({ active: false }).where(eq(assets.id, input.assetId));
+        return { ok: true };
+      }),
   }),
 
   analytics: router({
