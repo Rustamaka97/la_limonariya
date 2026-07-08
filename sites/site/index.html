@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>La Limonariya — Ресторан · Навои</title>
+    <meta name="theme-color" content="#0e4037" />
+    <meta
+      name="description"
+      content="La Limonariya — Навоийдаги ресторан. Миллий ва Европа таомлари, шашлик, витрина. Ҳар куни 11:00–23:00."
+    />
+    <meta property="og:title" content="La Limonariya — Ресторан · Навои" />
+    <meta property="og:description" content="Миллий ва Европа таомлари. Ҳар куни 11:00–23:00." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --green: #0e4037;
+        --green-deep: #092f28;
+        --green-soft: #16553f;
+        --cream: #fff0e5;
+        --cream-2: #f6e3cf;
+        --gold: #f3b759;
+        --gold-deep: #d99a2b;
+        --ink: #13241f;
+        --bg: #fdf8f2;
+        --line: #eaddcb;
+        --muted: #8a7f70;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font-family: Manrope, system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.55;
+        overflow-x: hidden;
+      }
+      h1, h2, h3 { font-family: "Playfair Display", serif; font-weight: 700; line-height: 1.1; margin: 0; }
+      a { color: inherit; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font: 700 15px Manrope, sans-serif; text-decoration: none;
+        padding: 13px 24px; border-radius: 999px; cursor: pointer; border: 0;
+        transition: transform .12s ease, box-shadow .2s ease;
+      }
+      .btn:active { transform: scale(.97); }
+      .btn-gold { background: var(--gold); color: var(--green-deep); box-shadow: 0 8px 22px rgba(217,154,43,.32); }
+      .btn-ghost { background: transparent; color: var(--cream); border: 1.5px solid rgba(255,240,229,.4); }
+
+      /* ── top bar ── */
+      .top {
+        position: absolute; inset: 0 0 auto 0; z-index: 10;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 22px;
+      }
+      .top .name { font-family: "Playfair Display", serif; font-weight: 700; color: var(--cream); font-size: 20px; letter-spacing: .3px; }
+      .lang { display: flex; gap: 2px; background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px; }
+      .lang button { border: 0; background: transparent; color: rgba(255,240,229,.75); font: 700 12px Manrope; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+      .lang button.on { background: var(--gold); color: var(--green-deep); }
+
+      /* ── hero ── */
+      .hero {
+        position: relative; min-height: 100svh;
+        display: grid; place-items: center; text-align: center;
+        color: var(--cream);
+        background:
+          radial-gradient(120% 80% at 50% -10%, var(--green-soft), transparent 60%),
+          linear-gradient(180deg, var(--green) 0%, var(--green-deep) 100%);
+        overflow: hidden;
+      }
+      .hero::before {
+        content: ""; position: absolute; inset: 0;
+        background-image: radial-gradient(rgba(243,183,89,.06) 1px, transparent 1px);
+        background-size: 22px 22px; opacity: .6;
+      }
+      .hero-in { position: relative; padding: 90px 22px 70px; max-width: 720px; }
+      .hero img.logo {
+        width: 128px; height: 128px; border-radius: 50%; object-fit: cover;
+        box-shadow: 0 0 0 3px rgba(243,183,89,.4), 0 18px 50px rgba(0,0,0,.4);
+        margin-bottom: 26px;
+      }
+      .hero .kicker { letter-spacing: .3em; text-transform: uppercase; font-size: 12px; color: var(--gold); font-weight: 700; }
+      .hero h1 { font-size: clamp(40px, 9vw, 72px); font-weight: 900; margin: 10px 0 14px; }
+      .hero p.lead { font-size: clamp(16px, 2.4vw, 19px); color: rgba(255,240,229,.82); max-width: 520px; margin: 0 auto 30px; }
+      .hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .hero .hours { margin-top: 26px; font-size: 13px; color: rgba(255,240,229,.6); letter-spacing: .05em; }
+      .scroll { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); color: rgba(255,240,229,.5); font-size: 22px; animation: bob 2s ease-in-out infinite; }
+      @keyframes bob { 0%,100% { transform: translate(-50%,0); } 50% { transform: translate(-50%,7px); } }
+
+      /* ── sections ── */
+      section.block { padding: 84px 0; }
+      .eyebrow { color: var(--gold-deep); font-weight: 700; letter-spacing: .18em; text-transform: uppercase; font-size: 12px; }
+      .block h2 { font-size: clamp(28px, 5vw, 42px); color: var(--green); margin: 8px 0 18px; }
+      .block p.big { font-size: 17px; color: #4a4136; max-width: 640px; }
+
+      .about { background: var(--cream); }
+      .about .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+      .about .card {
+        background: linear-gradient(160deg, var(--green), var(--green-deep));
+        color: var(--cream); border-radius: 24px; padding: 34px;
+        box-shadow: 0 24px 60px rgba(14,64,55,.28);
+      }
+      .about .card h3 { font-size: 24px; color: var(--gold); margin-bottom: 8px; }
+      .about .card p { color: rgba(255,240,229,.85); margin: 0 0 18px; }
+
+      /* dishes */
+      .dishes .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 34px; }
+      .dish {
+        background: #fff; border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+        box-shadow: 0 10px 30px rgba(19,36,31,.05);
+      }
+      .dish .ph {
+        height: 150px; display: grid; place-items: center; font-size: 46px;
+        background: radial-gradient(120% 90% at 50% 0, var(--cream-2), var(--cream));
+      }
+      .dish .txt { padding: 16px 18px 20px; }
+      .dish h3 { font-size: 19px; color: var(--green); }
+      .dish p { font-size: 13.5px; color: var(--muted); margin: 6px 0 10px; min-height: 38px; }
+      .dish .price { font-weight: 800; color: var(--gold-deep); font-variant-numeric: tabular-nums; }
+
+      /* info */
+      .info { background: var(--green); color: var(--cream); }
+      .info .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 30px; }
+      .info .cell { background: rgba(255,255,255,.05); border: 1px solid rgba(255,240,229,.12); border-radius: 18px; padding: 24px; }
+      .info .cell .ico { font-size: 24px; }
+      .info .cell h3 { font-family: Manrope; font-weight: 700; font-size: 15px; color: var(--gold); margin: 10px 0 6px; letter-spacing: .04em; }
+      .info .cell p, .info .cell a { color: rgba(255,240,229,.85); text-decoration: none; font-size: 15px; }
+      .info .cell a:hover { color: #fff; }
+      .info .cta { margin-top: 34px; text-align: center; }
+
+      footer { background: var(--green-deep); color: rgba(255,240,229,.6); text-align: center; padding: 30px 22px; font-size: 13px; }
+      footer .name { font-family: "Playfair Display", serif; font-weight: 700; color: var(--cream); font-size: 18px; }
+
+      @media (max-width: 760px) {
+        .about .grid { grid-template-columns: 1fr; gap: 26px; }
+        .dishes .row { grid-template-columns: 1fr; }
+        .info .grid { grid-template-columns: 1fr; }
+        section.block { padding: 60px 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top">
+      <span class="name">La Limonariya</span>
+      <div class="lang">
+        <button data-lang="uz" class="on">UZ</button>
+        <button data-lang="ru">RU</button>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-in">
+        <img class="logo" src="assets/logo.jpg" alt="La Limonariya" onerror="this.style.display='none'" />
+        <div class="kicker" data-i18n="kicker">Ресторан · Навои</div>
+        <h1>La Limonariya</h1>
+        <p class="lead" data-i18n="lead">
+          Миллий ва Европа таомлари, юмшоқ ёруғлик ва самимий хизмат. Оила ва дўстлар билан хотиржам кечалар учун.
+        </p>
+        <div class="cta">
+          <a class="btn btn-gold" href="https://qr.lalimonariya.uz" data-i18n="menuBtn">🍽 Менюни кўриш</a>
+          <a class="btn btn-ghost" href="tel:+998954293634" data-i18n="bookBtn">☎ Жой банд қилиш</a>
+        </div>
+        <div class="hours" data-i18n="hours">Ҳар куни · 11:00 – 23:00</div>
+      </div>
+      <div class="scroll">↓</div>
+    </header>
+
+    <!-- ABOUT + AR -->
+    <section class="block about">
+      <div class="wrap grid">
+        <div>
+          <div class="eyebrow" data-i18n="aboutEye">Биз ҳақимизда</div>
+          <h2 data-i18n="aboutH">Таъм ва самимийлик уйғунлиги</h2>
+          <p class="big" data-i18n="aboutP">
+            La Limonariya — Навоийдаги замонавий ресторан. Ҳар бир таом янги маҳсулотлардан, ўз рецептимиз бўйича тайёрланади.
+            Салатлардан тортиб кўмирда пиширилган шашликкача — ҳар лаҳза учун мазали танлов.
+          </p>
+        </div>
+        <div class="card">
+          <h3 data-i18n="arH">Кўрган таомингиз — ўша</h3>
+          <p data-i18n="arP">
+            Стол устидаги QR-кодни сканерланг, таомни танланг ва камерани столга қаратинг — таомни 3D/AR кўринишда ўз столингизда кўринг.
+          </p>
+          <a class="btn btn-gold" href="https://qr.lalimonariya.uz" data-i18n="arBtn">QR-менюни очиш</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISHES -->
+    <section class="block dishes">
+      <div class="wrap">
+        <div class="eyebrow" data-i18n="dishEye">Меню</div>
+        <h2 data-i18n="dishH">Танланган таомлар</h2>
+        <div class="row" id="dishes"></div>
+        <div style="margin-top:30px">
+          <a class="btn btn-gold" href="https://qr.lalimonariya.uz" data-i18n="fullMenu">Тўлиқ менюни кўриш →</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- INFO -->
+    <section class="block info">
+      <div class="wrap">
+        <div class="eyebrow" style="color:var(--gold)" data-i18n="infoEye">Ташриф</div>
+        <h2 style="color:var(--cream)" data-i18n="infoH">Бизни топинг</h2>
+        <div class="grid">
+          <div class="cell">
+            <div class="ico">🕒</div>
+            <h3 data-i18n="hoursH">Иш вақти</h3>
+            <p data-i18n="hoursP">Ҳар куни<br />11:00 – 23:00</p>
+          </div>
+          <div class="cell">
+            <div class="ico">📍</div>
+            <h3 data-i18n="locH">Манзил</h3>
+            <p data-i18n="locP">Навоий шаҳар,<br />Навоий вилояти</p>
+          </div>
+          <div class="cell">
+            <div class="ico">📞</div>
+            <h3 data-i18n="contH">Алоқа</h3>
+            <p>
+              <a href="tel:+998954293634">+998 95 429 36 34</a><br />
+              <a href="https://instagram.com/la_limonariya" target="_blank" rel="noopener">@la_limonariya</a>
+            </p>
+          </div>
+        </div>
+        <div class="cta">
+          <a class="btn btn-gold" href="tel:+998954293634" data-i18n="callBtn">☎ Қўнғироқ қилиш</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="name">La Limonariya</div>
+      <div style="margin-top:6px" data-i18n="footAddr">Навоий шаҳар · ҳар куни 11:00–23:00</div>
+      <div style="margin-top:10px;font-size:12px">© 2026 La Limonariya</div>
+    </footer>
+
+    <script>
+      const T = {
+        uz: {
+          kicker: "Ресторан · Навои",
+          lead: "Миллий ва Европа таомлари, юмшоқ ёруғлик ва самимий хизмат. Оила ва дўстлар билан хотиржам кечалар учун.",
+          menuBtn: "🍽 Менюни кўриш", bookBtn: "☎ Жой банд қилиш", hours: "Ҳар куни · 11:00 – 23:00",
+          aboutEye: "Биз ҳақимизда", aboutH: "Таъм ва самимийлик уйғунлиги",
+          aboutP: "La Limonariya — Навоийдаги замонавий ресторан. Ҳар бир таом янги маҳсулотлардан, ўз рецептимиз бўйича тайёрланади. Салатлардан тортиб кўмирда пиширилган шашликкача — ҳар лаҳза учун мазали танлов.",
+          arH: "Кўрган таомингиз — ўша", arP: "Стол устидаги QR-кодни сканерланг, таомни танланг ва камерани столга қаратинг — таомни 3D/AR кўринишда ўз столингизда кўринг.",
+          arBtn: "QR-менюни очиш",
+          dishEye: "Меню", dishH: "Танланган таомлар", fullMenu: "Тўлиқ менюни кўриш →",
+          infoEye: "Ташриф", infoH: "Бизни топинг",
+          hoursH: "Иш вақти", hoursP: "Ҳар куни<br>11:00 – 23:00",
+          locH: "Манзил", locP: "Навоий шаҳар,<br>Навоий вилояти",
+          contH: "Алоқа", callBtn: "☎ Қўнғироқ қилиш",
+          footAddr: "Навоий шаҳар · ҳар куни 11:00–23:00", som: "so'm",
+        },
+        ru: {
+          kicker: "Ресторан · Навои",
+          lead: "Национальная и европейская кухня, мягкий свет и тёплый сервис. Для уютных вечеров с семьёй и друзьями.",
+          menuBtn: "🍽 Посмотреть меню", bookBtn: "☎ Забронировать", hours: "Ежедневно · 11:00 – 23:00",
+          aboutEye: "О нас", aboutH: "Гармония вкуса и уюта",
+          aboutP: "La Limonariya — современный ресторан в Навои. Каждое блюдо готовится из свежих продуктов по собственным рецептам. От салатов до шашлыка на углях — вкусный выбор для любого момента.",
+          arH: "Еда, которую вы видите", arP: "Отсканируйте QR-код на столе, выберите блюдо и наведите камеру на стол — увидите блюдо в 3D/AR прямо на своём столе.",
+          arBtn: "Открыть QR-меню",
+          dishEye: "Меню", dishH: "Избранные блюда", fullMenu: "Смотреть всё меню →",
+          infoEye: "Визит", infoH: "Как нас найти",
+          hoursH: "Часы работы", hoursP: "Ежедневно<br>11:00 – 23:00",
+          locH: "Адрес", locP: "г. Навои,<br>Навоийская область",
+          contH: "Контакты", callBtn: "☎ Позвонить",
+          footAddr: "г. Навои · ежедневно 11:00–23:00", som: "сум",
+        },
+      };
+      let lang = localStorage.getItem("lm_lang") || "uz";
+      const EMOJI = { salatlar: "🥗", birinchi: "🍲", ikkinchi: "🍛", shashlik: "🍢", baliq: "🐟", zakuska: "🧆", ichimlik: "🥤", choy: "🍵", shirinlik: "🍰", alkogol: "🍷" };
+
+      function apply() {
+        document.documentElement.lang = lang;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const k = el.getAttribute("data-i18n");
+          if (T[lang][k]) el.innerHTML = T[lang][k];
+        });
+        document.querySelectorAll(".lang button").forEach((b) => b.classList.toggle("on", b.dataset.lang === lang));
+        renderDishes();
+      }
+
+      let MENU = null;
+      function renderDishes() {
+        const box = document.getElementById("dishes");
+        if (!MENU || !box) return;
+        // pick a few appealing priced items across categories
+        const picks = MENU.items.filter((i) => i.show_in_menu !== false && i.price_uzs && (lang === "ru" ? i.desc_ru : i.desc_uz));
+        const seen = new Set();
+        const chosen = [];
+        for (const i of picks) {
+          if (seen.has(i.category)) continue;
+          seen.add(i.category);
+          chosen.push(i);
+          if (chosen.length >= 3) break;
+        }
+        box.innerHTML = "";
+        chosen.forEach((i) => {
+          const el = document.createElement("div");
+          el.className = "dish";
+          const name = (lang === "ru" ? i.name_ru : i.name_uz) || i.name_uz || i.clopos_name;
+          const desc = (lang === "ru" ? i.desc_ru : i.desc_uz) || "";
+          el.innerHTML =
+            '<div class="ph">' + (EMOJI[i.category] || "🍽") + "</div>" +
+            '<div class="txt"><h3>' + name + "</h3><p>" + desc + '</p><div class="price">' +
+            i.price_uzs.toLocaleString("ru-RU") + " " + T[lang].som + "</div></div>";
+          box.appendChild(el);
+        });
+      }
+
+      document.querySelectorAll(".lang button").forEach((b) =>
+        b.addEventListener("click", () => {
+          lang = b.dataset.lang;
+          localStorage.setItem("lm_lang", lang);
+          apply();
+        }),
+      );
+
+      apply();
+      fetch("/menu.json")
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => { MENU = d; renderDishes(); })
+        .catch(() => {}); // dishes are optional garnish; hero/info still fine
+    </script>
+  </body>
+</html>

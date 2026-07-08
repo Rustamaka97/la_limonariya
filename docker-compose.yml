@@ -44,5 +44,16 @@ services:
     depends_on:
       - api
 
+  # Оммавий сайтлар (POS'дан алоҳида): lalimonariya.uz → ресторан лендинги,
+  # qr.lalimonariya.uz → QR-меню. Host bo'yicha Caddy yo'naltiradi.
+  sites:
+    build:
+      context: ./sites
+      dockerfile: Dockerfile
+    image: limonariya-sites
+    restart: unless-stopped
+    ports:
+      - "${SITES_PORT:-8090}:80"
+
 volumes:
   pgdata:

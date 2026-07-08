@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>La Limonariya — Меню</title>
+    <meta name="theme-color" content="#0e4037" />
+    <meta name="description" content="La Limonariya — меню. Навои. 11:00–23:00." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --green: #0e4037;
+        --green-deep: #092f28;
+        --cream: #fff0e5;
+        --gold: #f3b759;
+        --gold-deep: #d99a2b;
+        --ink: #13241f;
+        --bg: #fdf8f2;
+        --line: #eaddcb;
+        --muted: #8a7f70;
+      }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      html, body { margin: 0; }
+      body {
+        font-family: Manrope, system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.45;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .head {
+        position: sticky; top: 0; z-index: 20;
+        background: var(--green);
+        color: var(--cream);
+        padding: 12px 16px calc(12px + env(safe-area-inset-top)) 16px;
+        padding-top: calc(12px + env(safe-area-inset-top));
+        display: flex; align-items: center; gap: 12px;
+        box-shadow: 0 2px 14px rgba(0,0,0,.18);
+      }
+      .head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px rgba(255,255,255,.22); }
+      .head .brand { font-family: "Playfair Display", serif; font-weight: 700; font-size: 20px; letter-spacing: .3px; line-height: 1; }
+      .head .sub { font-size: 11px; color: rgba(255,240,229,.7); margin-top: 2px; letter-spacing: .12em; text-transform: uppercase; }
+      .head .spacer { flex: 1; }
+      .lang { display: flex; gap: 2px; background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px; }
+      .lang button {
+        border: 0; background: transparent; color: rgba(255,240,229,.75);
+        font: 600 12px Manrope, sans-serif; padding: 5px 11px; border-radius: 999px; cursor: pointer;
+      }
+      .lang button.on { background: var(--gold); color: var(--green-deep); }
+
+      .cats {
+        position: sticky; top: 64px; z-index: 15;
+        display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+        padding: 10px 16px; background: var(--bg);
+        border-bottom: 1px solid var(--line);
+      }
+      .cats::-webkit-scrollbar { display: none; }
+      .cats a {
+        flex: 0 0 auto; text-decoration: none; white-space: nowrap;
+        font: 600 13px Manrope, sans-serif; color: var(--muted);
+        background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px;
+      }
+      .cats a.on { color: #fff; background: var(--green); border-color: var(--green); }
+
+      main { max-width: 640px; margin: 0 auto; padding: 4px 16px 40px; }
+      .cat { padding-top: 22px; scroll-margin-top: 116px; }
+      .cat > h2 {
+        font-family: "Playfair Display", serif; font-weight: 700; font-size: 22px;
+        margin: 0 0 4px; color: var(--green);
+        display: flex; align-items: baseline; gap: 10px;
+      }
+      .cat > h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
+
+      .item {
+        display: flex; gap: 12px; align-items: baseline;
+        padding: 14px 0; border-bottom: 1px dashed var(--line);
+      }
+      .item .body { flex: 1; min-width: 0; }
+      .item .name { font-weight: 600; font-size: 15.5px; }
+      .item .desc { font-size: 13px; color: var(--muted); margin-top: 3px; }
+      .item .price {
+        flex: 0 0 auto; font-weight: 700; font-size: 15px; color: var(--gold-deep);
+        font-variant-numeric: tabular-nums; white-space: nowrap;
+      }
+      .item .price small { color: var(--muted); font-weight: 500; font-size: 11px; }
+
+      .foot { text-align: center; color: var(--muted); font-size: 12.5px; padding: 26px 16px 34px; }
+      .foot a { color: var(--gold-deep); text-decoration: none; font-weight: 600; }
+      .foot .row { margin-top: 6px; }
+      .loading { text-align: center; color: var(--muted); padding: 60px 16px; }
+    </style>
+  </head>
+  <body>
+    <header class="head">
+      <img src="assets/logo.jpg" alt="La Limonariya" onerror="this.style.display='none'" />
+      <div>
+        <div class="brand">La Limonariya</div>
+        <div class="sub" data-i18n="tagline">Навои · 11:00–23:00</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="lang">
+        <button data-lang="uz" class="on">UZ</button>
+        <button data-lang="ru">RU</button>
+      </div>
+    </header>
+
+    <nav class="cats" id="cats"></nav>
+    <main id="menu"><div class="loading">Меню юкланмоқда…</div></main>
+
+    <div class="foot">
+      <div class="brand" style="font-family:'Playfair Display',serif;color:var(--green);font-weight:700;font-size:18px">La Limonariya</div>
+      <div class="row" data-i18n="addr">Навоий шаҳар · ҳар куни 11:00–23:00</div>
+      <div class="row">
+        <a href="tel:+998954293634">+998 95 429 36 34</a> ·
+        <a href="https://instagram.com/la_limonariya" target="_blank" rel="noopener">@la_limonariya</a>
+      </div>
+      <div class="row" style="margin-top:12px;font-size:11px;color:var(--line)" data-i18n="note">Нархлар so'mда · маълумот учун</div>
+    </div>
+
+    <script>
+      const T = {
+        uz: { tagline: "Навои · 11:00–23:00", addr: "Навоий шаҳар · ҳар куни 11:00–23:00", note: "Нархлар so'mда · маълумот учун", loading: "Меню юкланмоқда…", som: "so'm" },
+        ru: { tagline: "Навои · 11:00–23:00", addr: "г. Навои · ежедневно 11:00–23:00", note: "Цены в сумах · для справки", loading: "Загрузка меню…", som: "сум" },
+      };
+      let lang = localStorage.getItem("lm_lang") || "uz";
+      let DATA = null;
+      const fmt = (n) => (n ? n.toLocaleString("ru-RU") : "");
+
+      function applyStatic() {
+        document.documentElement.lang = lang;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const k = el.getAttribute("data-i18n");
+          if (T[lang][k]) el.textContent = T[lang][k];
+        });
+        document.querySelectorAll(".lang button").forEach((b) =>
+          b.classList.toggle("on", b.dataset.lang === lang),
+        );
+      }
+
+      function render() {
+        if (!DATA) return;
+        const cats = DATA.categories
+          .filter((c) => c.show_in_menu !== false)
+          .sort((a, b) => (a.position || 0) - (b.position || 0));
+        const items = DATA.items.filter((i) => i.show_in_menu !== false);
+        const nameC = (c) => (lang === "ru" ? c.name_ru : c.name_uz) || c.name_uz || c.name_ru;
+        const nameI = (i) => (lang === "ru" ? i.name_ru : i.name_uz) || i.name_uz || i.name_ru || i.clopos_name;
+        const descI = (i) => (lang === "ru" ? i.desc_ru : i.desc_uz) || "";
+
+        const nav = document.getElementById("cats");
+        const menu = document.getElementById("menu");
+        nav.innerHTML = "";
+        menu.innerHTML = "";
+        cats.forEach((c, idx) => {
+          const its = items.filter((i) => i.category === c.key);
+          if (!its.length) return;
+          const a = document.createElement("a");
+          a.href = "#c-" + c.key;
+          a.textContent = nameC(c);
+          if (idx === 0) a.classList.add("on");
+          nav.appendChild(a);
+
+          const sec = document.createElement("section");
+          sec.className = "cat";
+          sec.id = "c-" + c.key;
+          const h = document.createElement("h2");
+          h.textContent = nameC(c);
+          sec.appendChild(h);
+          its.forEach((i) => {
+            const row = document.createElement("div");
+            row.className = "item";
+            const body = document.createElement("div");
+            body.className = "body";
+            const nm = document.createElement("div");
+            nm.className = "name";
+            nm.textContent = nameI(i);
+            body.appendChild(nm);
+            const d = descI(i);
+            if (d) {
+              const de = document.createElement("div");
+              de.className = "desc";
+              de.textContent = d;
+              body.appendChild(de);
+            }
+            row.appendChild(body);
+            if (i.price_uzs) {
+              const p = document.createElement("div");
+              p.className = "price";
+              p.innerHTML = fmt(i.price_uzs) + " <small>" + T[lang].som + "</small>";
+              row.appendChild(p);
+            }
+            sec.appendChild(row);
+          });
+          menu.appendChild(sec);
+        });
+
+        // scroll-spy: highlight active category chip
+        const links = [...nav.querySelectorAll("a")];
+        const secs = [...menu.querySelectorAll(".cat")];
+        const io = new IntersectionObserver(
+          (ents) => {
+            ents.forEach((e) => {
+              if (e.isIntersecting) {
+                const id = e.target.id;
+                links.forEach((l) => l.classList.toggle("on", l.getAttribute("href") === "#" + id));
+              }
+            });
+          },
+          { rootMargin: "-120px 0px -70% 0px" },
+        );
+        secs.forEach((s) => io.observe(s));
+      }
+
+      document.querySelectorAll(".lang button").forEach((b) =>
+        b.addEventListener("click", () => {
+          lang = b.dataset.lang;
+          localStorage.setItem("lm_lang", lang);
+          applyStatic();
+          render();
+        }),
+      );
+
+      applyStatic();
+      fetch("menu.json")
+        .then((r) => r.json())
+        .then((d) => {
+          DATA = d;
+          render();
+        })
+        .catch(() => {
+          document.getElementById("menu").innerHTML =
+            '<div class="loading">Меню юкланмади. Қайта уриниб кўринг.</div>';
+        });
+    </script>
+  </body>
+</html>

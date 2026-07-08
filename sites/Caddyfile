@@ -1,0 +1,31 @@
+{
+	# TLS терминация — Cloudflare tunnel'да. Бу контейнер оддий HTTP :80.
+	auto_https off
+	admin off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:80 {
+	encode gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# qr.lalimonariya.uz → QR-меню
+	@qr host qr.lalimonariya.uz
+	handle @qr {
+		root * /srv/qr
+		file_server
+	}
+
+	# lalimonariya.uz / www / бошқа ҳамма → ресторан лендинги
+	handle {
+		root * /srv/site
+		file_server
+	}
+}
