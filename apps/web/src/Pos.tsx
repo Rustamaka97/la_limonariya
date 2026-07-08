@@ -961,6 +961,9 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [compReason, setCompReason] = useState("");
   const [showComp, setShowComp] = useState(false);
   const [showSplit, setShowSplit] = useState(false);
+  const [showCash, setShowCash] = useState(false);
+  const [cashGot, setCashGot] = useState("");
+  const [paidCash, setPaidCash] = useState<number | null>(null);
   const [splits, setSplits] = useState<Record<string, string>>({});
   const [pendingDebt, setPendingDebt] = useState<{ method: PayMethod; amount: number }[] | null>(null);
   const [showDiscount, setShowDiscount] = useState(false);
@@ -1202,7 +1205,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
 
   if (ticketId) return <KitchenTicketView ticketId={ticketId} onBack={() => setTicketId(null)} />;
   if (!order) return <Spin />;
-  if (order.status === "closed") return <Chek order={order} onBack={onBack} />;
+  if (order.status === "closed") return <Chek order={order} cashReceived={paidCash} onBack={onBack} />;
 
   const menuCats = [...new Set(menu.map((m) => m.category).filter((c): c is string => !!c))];
   const filtered = menu
@@ -1226,6 +1229,18 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   }
 
   const payTotal = order.total - (discount?.amount ?? 0);
+  const cashGotNum = Math.round(Number(cashGot) || 0);
+  const cashChange = cashGotNum - payTotal;
+  const cashQuick = [
+    ...new Set([
+      payTotal,
+      Math.ceil(payTotal / 10000) * 10000,
+      Math.ceil(payTotal / 50000) * 50000,
+      Math.ceil(payTotal / 100000) * 100000,
+    ]),
+  ]
+    .filter((v) => v >= payTotal)
+    .slice(0, 4);
   const splitSum = (Object.values(splits) as string[]).reduce(
     (s, v) => s + Math.round(Number(v) || 0),
     0,
@@ -1640,6 +1655,57 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 onBack={() => setPendingDebt(null)}
                 onPick={(customerId) => submitClose(pendingDebt, customerId)}
               />
+            ) : showCash ? (
+              <div className="space-y-3 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
+                <p className="text-xs font-semibold text-brand-ink">Нақд — олинган пулни киритинг</p>
+                <input
+                  autoFocus
+                  inputMode="numeric"
+                  value={cashGot}
+                  onChange={(e) => setCashGot(e.target.value.replace(/\D/g, ""))}
+                  placeholder="0"
+                  className="w-full rounded-xl border border-brand-cream-soft px-3 py-3 text-right text-2xl font-bold tabular-nums text-brand-ink outline-none focus:border-brand"
+                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  {cashQuick.map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setCashGot(String(v))}
+                      className="rounded-lg border border-brand-cream-soft bg-white py-2 text-xs font-semibold tabular-nums text-brand-ink transition hover:border-brand active:scale-[.97] motion-reduce:active:scale-100"
+                    >
+                      {v === payTotal ? "Тўлиқ" : fmt(v)}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                  <span className="text-sm text-zinc-500">Қайтим</span>
+                  <span
+                    className={`text-lg font-bold tabular-nums ${cashChange < 0 ? "text-zinc-300" : "text-emerald-600"}`}
+                  >
+                    {cashChange < 0 ? "—" : fmt(cashChange)}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowCash(false); setCashGot(""); }}
+                    disabled={closing}
+                    className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 disabled:opacity-40"
+                  >
+                    Орқага
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPaidCash(cashGotNum);
+                      submitClose([{ method: "cash", amount: payTotal }]);
+                    }}
+                    disabled={closing || cashGotNum < payTotal}
+                    className="flex-1 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+                  >
+                    Ёпиш
+                  </button>
+                </div>
+                {closing && <p className="text-center text-xs text-zinc-400">ёпилмоқда…</p>}
+              </div>
             ) : showSplit ? (
               <div className="space-y-2 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
                 <p className="text-xs font-semibold text-brand-ink">Аралаш тўлов — ҳар турга суммани ёзинг</p>
@@ -1690,7 +1756,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                     return (
                       <button
                         key={m}
-                        onClick={() => pay(m)}
+                        onClick={() => (m === "cash" ? setShowCash(true) : pay(m))}
                         disabled={closing}
                         className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-brand-cream-soft bg-brand-cream/30 font-semibold text-brand-ink transition hover:border-brand hover:bg-brand-cream active:scale-[.97] disabled:opacity-40 motion-reduce:active:scale-100"
                       >
@@ -2055,7 +2121,15 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
   );
 }
 
-function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
+function Chek({
+  order,
+  cashReceived,
+  onBack,
+}: {
+  order: Order;
+  cashReceived?: number | null;
+  onBack: () => void;
+}) {
   const d = new Date(order.createdAt);
   const p = (n: number) => String(n).padStart(2, "0");
   const when = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
@@ -2116,6 +2190,12 @@ function Chek({ order, onBack }: { order: Order; onBack: () => void }) {
         {order.payments.map((pm, i) => (
           <Line key={i} l={PAY_LABEL[pm.method] ?? pm.method} r={fmt(pm.amount)} />
         ))}
+        {cashReceived != null && cashReceived > order.total - order.discountAmount && (
+          <>
+            <Line l="Олинган" r={fmt(cashReceived)} />
+            <Line l="Қайтим" r={fmt(cashReceived - (order.total - order.discountAmount))} />
+          </>
+        )}
         <Hr />
         <div className="text-center text-xs text-zinc-500">
           СПАСИБО! ЖДЕМ ВАС СНОВА!
