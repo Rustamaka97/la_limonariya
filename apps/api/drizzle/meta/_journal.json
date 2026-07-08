@@ -267,6 +267,13 @@
       "when": 1783519905133,
       "tag": "0037_free_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1783524213162,
+      "tag": "0038_cheerful_thunderbird",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,7 @@ import { Pos } from "./Pos";
 import { Purchases } from "./Purchases";
 import { Recipes } from "./Recipes";
 import { Taannarx } from "./Taannarx";
+import { Vitrina } from "./Vitrina";
 import { trpc } from "./trpc";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -35,6 +36,7 @@ type Tab =
   | "obvalka"
   | "inventarizatsiya"
   | "assets"
+  | "vitrina"
   | "ombor"
   | "hisobot"
   | "taannarx"
@@ -89,6 +91,9 @@ export function Shell({
       : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "assets" as Tab, label: "Инвентарь" }]
+      : []),
+    ...(["director", "manager"].includes(user.role)
+      ? [{ key: "vitrina" as Tab, label: "Витрина" }]
       : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "ombor" as Tab, label: "Омбор" }]
@@ -150,6 +155,7 @@ export function Shell({
         {tab === "obvalka" && <Obvalka user={user} />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}
         {tab === "assets" && <Inventar />}
+        {tab === "vitrina" && <Vitrina />}
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}
         {tab === "taannarx" && <Taannarx />}

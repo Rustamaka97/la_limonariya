@@ -49,11 +49,13 @@ import {
   refunds,
   reprintLog,
   sessions,
+  skewerBatches,
   stations,
   stockMovements,
   tables,
   tillCounts,
   users,
+  vitrinaCounts,
   voidedItems,
 } from "./db/schema";
 import { computeObvalka } from "./obvalka-calc";
@@ -1690,6 +1692,94 @@ export async function sendDailyDigest(): Promise<{ ok: boolean; holes: number }>
   ].filter(Boolean);
   await sendTelegram(lines.join("\n"));
   return { ok: true, holes: holes.length };
+}
+
+// Milestone 3 — витрина баланси бир кун учун:
+// кутилган қолдиқ = кечаги саналган + бугун сихланган − бугун сотилган.
+export async function vitrinaReconcile(dayKey: string) {
+  const { startUTC, endUTC } = businessDayBounds(dayKey);
+  const prevKey = previousDayKey(dayKey);
+
+  const batchRows = await db
+    .select({
+      productId: skewerBatches.productId,
+      skewered: sql<number>`coalesce(sum(${skewerBatches.skewerCount}), 0)`,
+    })
+    .from(skewerBatches)
+    .where(and(gte(skewerBatches.createdAt, startUTC), lt(skewerBatches.createdAt, endUTC)))
+    .groupBy(skewerBatches.productId);
+  const skeweredMap = new Map(batchRows.map((r) => [r.productId, Number(r.skewered)]));
+
+  const countRows = await db
+    .select({
+      dayKey: vitrinaCounts.dayKey,
+      productId: vitrinaCounts.productId,
+      countedQty: vitrinaCounts.countedQty,
+    })
+    .from(vitrinaCounts)
+    .where(inArray(vitrinaCounts.dayKey, [dayKey, prevKey]));
+  const countedMap = new Map(
+    countRows.filter((r) => r.dayKey === dayKey).map((r) => [r.productId, r.countedQty]),
+  );
+  const openingMap = new Map(
+    countRows.filter((r) => r.dayKey === prevKey).map((r) => [r.productId, r.countedQty]),
+  );
+  // scope: every product that has EVER been skewer-batched, plus any counted today
+  const everBatched = await db
+    .select({ productId: skewerBatches.productId })
+    .from(skewerBatches)
+    .groupBy(skewerBatches.productId);
+  const scope = new Set<string>([
+    ...everBatched.map((r) => r.productId),
+    ...countedMap.keys(),
+  ]);
+  if (scope.size === 0) return [];
+
+  const soldRows = await db
+    .select({
+      productId: orderItems.productId,
+      sold: sql<number>`coalesce(sum(${orderItems.qty}), 0)`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.status, "closed"),
+        gte(orders.closedAt, startUTC),
+        lt(orders.closedAt, endUTC),
+        inArray(orderItems.productId, [...scope]),
+      ),
+    )
+    .groupBy(orderItems.productId);
+  const soldMap = new Map(soldRows.map((r) => [r.productId as string, Number(r.sold)]));
+
+  const nameRows = await db
+    .select({ id: products.id, name: products.name })
+    .from(products)
+    .where(inArray(products.id, [...scope]));
+  const nameMap = new Map(nameRows.map((r) => [r.id, r.name]));
+
+  return [...scope]
+    .map((productId) => {
+      const opening = openingMap.get(productId) ?? null;
+      const skewered = skeweredMap.get(productId) ?? 0;
+      const sold = soldMap.get(productId) ?? 0;
+      const counted = countedMap.get(productId) ?? null;
+      const expected = (opening ?? 0) + skewered - sold;
+      return {
+        productId,
+        name: nameMap.get(productId) ?? "?",
+        opening,
+        openingKnown: opening != null,
+        skewered,
+        sold,
+        expected,
+        counted,
+        diff: counted != null ? counted - expected : null,
+      };
+    })
+    .filter((r) => r.skewered > 0 || r.sold > 0 || r.counted != null || (r.opening ?? 0) > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, "ru"));
 }
 
 // Официант фақат ЎЗ заказини кўради/ўзгартиради. Старшие роли — ҳаммаси очиқ.
@@ -4998,6 +5088,92 @@ export const appRouter = router({
       .input(z.object({ assetId: z.string().uuid() }))
       .mutation(async ({ input }) => {
         await db.update(assets).set({ active: false }).where(eq(assets.id, input.assetId));
+        return { ok: true };
+      }),
+  }),
+
+  // Milestone 3 — Витрина/сих назорати: хом гўшт→сих→витрина киритиш + тешик кўрсатиш.
+  vitrina: router({
+    // танлаш учун фаол таомлар (сих турлари)
+    products: managerProcedure.query(() =>
+      db
+        .select({ id: products.id, name: products.name })
+        .from(products)
+        .where(eq(products.active, true))
+        .orderBy(products.name),
+    ),
+
+    // бугунги сих батчлари (норма четлашиши билан) + витрина баланси
+    today: managerProcedure.query(async () => {
+      const { startUTC, endUTC, dayKey } = businessDayBounds();
+      const rows = await db
+        .select({
+          id: skewerBatches.id,
+          name: products.name,
+          meatG: skewerBatches.meatG,
+          skewerCount: skewerBatches.skewerCount,
+          normG: skewerBatches.normG,
+          createdAt: skewerBatches.createdAt,
+          by: users.name,
+        })
+        .from(skewerBatches)
+        .innerJoin(products, eq(skewerBatches.productId, products.id))
+        .leftJoin(users, eq(skewerBatches.createdById, users.id))
+        .where(and(gte(skewerBatches.createdAt, startUTC), lt(skewerBatches.createdAt, endUTC)))
+        .orderBy(desc(skewerBatches.createdAt));
+      const batches = rows.map((r) => {
+        const actualG = r.skewerCount > 0 ? Math.round(r.meatG / r.skewerCount) : 0;
+        const devPct =
+          r.normG && r.normG > 0 ? Math.round(((actualG - r.normG) / r.normG) * 100) : null;
+        return { ...r, actualG, devPct };
+      });
+      const reconcile = await vitrinaReconcile(dayKey);
+      return { batches, reconcile };
+    }),
+
+    // сих батчи қўшиш: N г гўшт → M сих (нормани рецептдан билмасак normG=NULL)
+    addBatch: managerProcedure
+      .input(
+        z.object({
+          productId: z.string().uuid(),
+          meatG: z.number().int().positive(),
+          skewerCount: z.number().int().positive(),
+          normG: z.number().int().positive().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await db.insert(skewerBatches).values({
+          productId: input.productId,
+          meatG: input.meatG,
+          skewerCount: input.skewerCount,
+          normG: input.normG ?? null,
+          createdById: ctx.user.id,
+        });
+        return { ok: true };
+      }),
+
+    // витрина кунлик санаш — кунига битта таом учун (upsert)
+    count: managerProcedure
+      .input(
+        z.object({
+          productId: z.string().uuid(),
+          countedQty: z.number().int().nonnegative(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { dayKey } = businessDayBounds();
+        await db
+          .insert(vitrinaCounts)
+          .values({
+            dayKey,
+            productId: input.productId,
+            countedQty: input.countedQty,
+            createdById: ctx.user.id,
+          })
+          .onConflictDoUpdate({
+            target: [vitrinaCounts.dayKey, vitrinaCounts.productId],
+            set: { countedQty: input.countedQty, createdById: ctx.user.id },
+          });
         return { ok: true };
       }),
   }),

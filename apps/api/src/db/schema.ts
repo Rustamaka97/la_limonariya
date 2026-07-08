@@ -101,6 +101,9 @@ export const products = pgTable("products", {
   // 1 сихга/порцияга кетадиган гўшт нормаси (г). Faqat сих таомларда тўлади;
   // null = грамм назорати йўқ. Сих грамм-оқма сигнали учун (M3).
   gramNorm: integer("gram_norm"),
+  // Яроқлилик муддати (кун). null = муддат назорати йўқ (эга қарори: ҳозирча
+  // барчаси null, expiry-флаг ухлайди — M3 витрина/муддат).
+  shelfLifeDays: integer("shelf_life_days"),
   active: boolean("active").notNull().default(true),
   branchId: uuid("branch_id").references(() => branches.id),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -688,3 +691,43 @@ export const assetMovements = pgTable("asset_movements", {
     .notNull()
     .defaultNow(),
 });
+
+// M3 витрина/сих: хом гўшт → N сих партияси (norm_g = рецептдаги 1 сих гўшти,
+// null = номаълум). Витрина баланси шу партиялардан ҳисобланади.
+export const skewerBatches = pgTable(
+  "skewer_batches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    meatG: integer("meat_g").notNull(),
+    skewerCount: integer("skewer_count").notNull(),
+    normG: integer("norm_g"),
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("sb_created_idx").on(t.createdAt)],
+);
+
+// Витрина кунлик санаш (кунига битта таом учун upsert). Реконсиляция:
+// кутилган = кечаги саналган + бугун сихланган − сотилган.
+export const vitrinaCounts = pgTable(
+  "vitrina_counts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dayKey: text("day_key").notNull(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    countedQty: integer("counted_qty").notNull(),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.dayKey, t.productId)],
+);
