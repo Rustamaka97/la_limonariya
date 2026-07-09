@@ -104,6 +104,9 @@ export const products = pgTable("products", {
   // Яроқлилик муддати (кун). null = муддат назорати йўқ (эга қарори: ҳозирча
   // барчаси null, expiry-флаг ухлайди — M3 витрина/муддат).
   shelfLifeDays: integer("shelf_life_days"),
+  // Стоп-лист: таом вақтинча тугади — менюда хира «СТОП», addItem рад этади.
+  // active'дан фарқи: вақтинчалик ва кассир ҳам қўя олади (тез реакция).
+  stopped: boolean("stopped").notNull().default(false),
   active: boolean("active").notNull().default(true),
   branchId: uuid("branch_id").references(() => branches.id),
   createdAt: timestamp("created_at", { withTimezone: true })

@@ -281,6 +281,13 @@
       "when": 1783527486895,
       "tag": "0039_nervous_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1783586780241,
+      "tag": "0040_stop_list",
+      "breakpoints": true
     }
   ]
 }

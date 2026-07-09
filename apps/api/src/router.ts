@@ -2163,6 +2163,7 @@ export const appRouter = router({
               costPrice: products.costPrice,
               soldByWeight: products.soldByWeight,
               active: products.active,
+              stopped: products.stopped,
               categoryId: products.categoryId,
               stationId: products.stationId,
               category: categories.name,
@@ -2192,6 +2193,31 @@ export const appRouter = router({
             if (d.productId != null && d.meatPct != null)
               marginByProduct.set(d.productId, 100 - d.meatPct);
           return rows.map((r) => ({ ...r, marginPct: marginByProduct.get(r.id) ?? null }));
+        }),
+
+      // Стоп-лист toggle: кассир+ (официант тугаганини кўриб кассирга айтади;
+      // менежер/кассир дарҳол стопга қўяди). Аудитга ёзилади — ким қўйди/олди.
+      setStopped: cashierProcedure
+        .input(z.object({ id: z.string().uuid(), stopped: z.boolean() }))
+        .mutation(async ({ input, ctx }) => {
+          return db.transaction(async (tx) => {
+            const row = (
+              await tx
+                .update(products)
+                .set({ stopped: input.stopped })
+                .where(eq(products.id, input.id))
+                .returning({ id: products.id, name: products.name })
+            )[0];
+            if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: input.stopped ? "product.stop" : "product.unstop",
+              entity: "product",
+              entityId: row.id,
+              summary: `${row.name} — ${input.stopped ? "стопга қўйилди" : "стопдан олинди"}`,
+            });
+            return { ok: true };
+          });
         }),
 
       create: directorProcedure
@@ -3125,6 +3151,9 @@ export const appRouter = router({
           name: products.name,
           price: products.price,
           category: categories.name,
+          // Стоп-лист: менюда хира «СТОП» бўлиб кўринади (яширилмайди —
+          // официант «тугаган»ини кўриб туриши мижоз олдида фойдали).
+          stopped: products.stopped,
         })
         .from(products)
         .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -3406,6 +3435,21 @@ export const appRouter = router({
               code: "BAD_REQUEST",
               message: "Заказ ёпилган — таом қўшиб бўлмайди",
             });
+          // Стоп-лист: стопдаги таомни ҚЎШИБ бўлмайди. Камайтириш (delta<0)
+          // мумкин — тугаган таомни чекдан олиб ташлашга тўсиқ бўлмасин.
+          if (input.delta > 0) {
+            const pHead = (
+              await tx
+                .select({ stopped: products.stopped })
+                .from(products)
+                .where(eq(products.id, input.productId))
+                .limit(1)
+            )[0];
+            if (!pHead)
+              throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
+            if (pHead.stopped)
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Таом стопда — тугаган" });
+          }
           // Идемпотентлик: op-id аллақачон қўлланган бўлса — skip (delta дубль эмас).
           if (input.opId) {
             const fresh = await tx

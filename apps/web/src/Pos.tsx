@@ -26,6 +26,7 @@ type MenuItem = {
   name: string;
   price: number;
   category: string | null;
+  stopped: boolean;
 };
 type OpenOrder = {
   id: string;
@@ -1130,6 +1131,10 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [syncErr, setSyncErr] = useState<string | null>(null);
   const [precheckBusy, setPrecheckBusy] = useState(false);
   const [precheckOk, setPrecheckOk] = useState(false);
+  const [showStop, setShowStop] = useState(false);
+  const [stopQ, setStopQ] = useState("");
+  const [stopCat, setStopCat] = useState<string | null>(null);
+  const [stopBusy, setStopBusy] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const ov = await getOverlay(id);
@@ -1198,6 +1203,12 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
     // ном/нарх snapshot — менюдан ёки жорий қатордан (бўш 0-нархли қаторни олдини олиш).
     const m = menu.find((x) => x.id === productId);
+    // Стоп-лист клиент-гарди: оффлайн оптимистик қўшишни ҳам тўсади
+    // (сервер барибир рад этади, лекин официант дарҳол кўрсин).
+    if (delta > 0 && m?.stopped) {
+      setSyncErr(`«${m.name}» стопда — тугаган`);
+      return;
+    }
     const cur = order?.items.find((i) => i.productId === productId);
     if (!m && !cur) return;
     const name = m?.name ?? cur?.name ?? "";
@@ -1355,6 +1366,24 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const shown = filtered.slice(0, 120);
   const itemCount = order.items.reduce((s, it) => s + it.qty, 0);
   const empty = order.items.length === 0;
+  const stopList = menu
+    .filter((m) => !stopCat || m.category === stopCat)
+    .filter((m) => !stopQ || m.name.toLowerCase().includes(stopQ.toLowerCase()))
+    .sort((a, b) => Number(b.stopped) - Number(a.stopped) || a.name.localeCompare(b.name, "ru"))
+    .slice(0, 200);
+  const stoppedCount = menu.filter((m) => m.stopped).length;
+
+  async function toggleStop(pId: string, next: boolean) {
+    setStopBusy(pId);
+    try {
+      await trpc.catalog.products.setStopped.mutate({ id: pId, stopped: next });
+      setMenu((mm) => mm.map((x) => (x.id === pId ? { ...x, stopped: next } : x)));
+    } catch (e) {
+      setSyncErr(e instanceof Error ? e.message : "Стоп сақланмади");
+    } finally {
+      setStopBusy(null);
+    }
+  }
 
   function cancelPay() {
     setPaying(false);
@@ -1422,6 +1451,16 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           >
             {precheckOk ? "✓ Пречек босилди" : "🧾 Пречек"}
           </button>
+          {canComp && (
+            <button
+              onClick={() => setShowStop(true)}
+              disabled={!online}
+              title={online ? "Стоп-лист — тугаган таомлар" : "Оффлайн — уланганда"}
+              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+            >
+              🛑 Стоп{stoppedCount > 0 ? ` · ${stoppedCount}` : ""}
+            </button>
+          )}
           <button
             onClick={() => setCancelling((v) => !v)}
             disabled={!online}
@@ -1583,18 +1622,29 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 return (
                   <button
                     key={m.id}
-                    onClick={() => add(m.id, 1)}
-                    style={{ borderLeftColor: color }}
-                    className="group flex h-full flex-col justify-between gap-2 rounded-xl border border-l-4 border-brand-cream-soft bg-white p-3 text-left shadow-sm transition hover:border-brand hover:shadow-md active:scale-95 motion-reduce:active:scale-100"
+                    onClick={() => !m.stopped && add(m.id, 1)}
+                    disabled={m.stopped}
+                    style={{ borderLeftColor: m.stopped ? "#d4d4d8" : color }}
+                    className={`group flex h-full flex-col justify-between gap-2 rounded-xl border border-l-4 border-brand-cream-soft bg-white p-3 text-left shadow-sm transition ${
+                      m.stopped
+                        ? "opacity-50 grayscale"
+                        : "hover:border-brand hover:shadow-md active:scale-95 motion-reduce:active:scale-100"
+                    }`}
                   >
                     <span className="line-clamp-2 text-sm font-medium leading-snug text-brand-ink">
                       {m.name}
                     </span>
                     <span className="flex items-center justify-between">
                       <span className="text-sm font-bold tabular-nums text-brand">{fmt(m.price)}</span>
-                      <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
-                        <IPlus className="h-3.5 w-3.5" />
-                      </span>
+                      {m.stopped ? (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
+                          СТОП
+                        </span>
+                      ) : (
+                        <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
+                          <IPlus className="h-3.5 w-3.5" />
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
@@ -1605,6 +1655,78 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             <p className="text-center text-xs text-zinc-400">
               яна {filtered.length - shown.length} та — қидирувдан фойдаланинг
             </p>
+          )}
+          {showStop && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">
+              <div className="flex max-h-[85dvh] w-full max-w-2xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-brand-ink">
+                    🛑 Стоп-лист{stoppedCount > 0 ? ` — ${stoppedCount} та стопда` : ""}
+                  </h3>
+                  <button
+                    onClick={() => setShowStop(false)}
+                    className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+                  >
+                    Ёпиш
+                  </button>
+                </div>
+                <input
+                  value={stopQ}
+                  onChange={(e) => setStopQ(e.target.value)}
+                  placeholder="Таом қидириш…"
+                  className="w-full rounded-lg border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setStopCat(null)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                      stopCat === null ? "bg-brand text-white" : "bg-brand-cream text-brand"
+                    }`}
+                  >
+                    Барчаси
+                  </button>
+                  {menuCats.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setStopCat(c)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                        stopCat === c ? "bg-brand text-white" : "bg-brand-cream text-brand"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+                  {stopList.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-brand-cream-soft px-3 py-2"
+                    >
+                      <span
+                        className={`min-w-0 truncate text-sm ${
+                          m.stopped ? "text-red-600 line-through" : "text-brand-ink"
+                        }`}
+                      >
+                        {m.name}
+                      </span>
+                      <button
+                        onClick={() => toggleStop(m.id, !m.stopped)}
+                        disabled={stopBusy === m.id}
+                        className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50 ${
+                          m.stopped ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"
+                        }`}
+                      >
+                        {stopBusy === m.id ? "…" : m.stopped ? "Стопдан олиш" : "Стопга қўйиш"}
+                      </button>
+                    </div>
+                  ))}
+                  {stopList.length === 0 && (
+                    <p className="py-6 text-center text-sm text-zinc-400">Топилмади</p>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </section>
 

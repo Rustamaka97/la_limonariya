@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "stopped" boolean DEFAULT false NOT NULL;
