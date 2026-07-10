@@ -68,7 +68,10 @@ const fmt = (n: number) => n.toLocaleString("ru-RU");
 
 // ── Кухня тикети (битта станция) ──────────────────────────────────────────
 export type KitchenMeta = { hall: string | null; tableNo: string | null; createdAt: Date; station: string };
-export function buildKitchenTicket(meta: KitchenMeta, items: { name: string; qty: number }[]): Buffer {
+export function buildKitchenTicket(
+  meta: KitchenMeta,
+  items: { name: string; qty: number; note?: string | null }[],
+): Buffer {
   const parts: Buffer[] = [
     ESC.init,
     ESC.alignC,
@@ -85,6 +88,8 @@ export function buildKitchenTicket(meta: KitchenMeta, items: { name: string; qty
   parts.push(twoCol("Вақт", hhmm(meta.createdAt)), hr());
   for (const it of items) {
     parts.push(ESC.boldOn, twoCol(it.name, `x${it.qty}`), ESC.boldOff);
+    // Официант изоҳи — ошпаз кўриши шарт («пиёзсиз», «соус алоҳида»...)
+    if (it.note) parts.push(txt("  >> " + it.note), nl);
   }
   parts.push(ESC.feedCut);
   return Buffer.concat(parts);
@@ -172,14 +177,14 @@ export function sendToPrinter(ip: string, data: Buffer): Promise<void> {
 // Кухня тикетини станция бўйича гуруҳлаб, ҳар станция IP'сига ЎЗ тикетини.
 export function printKitchenTicket(
   meta: Omit<KitchenMeta, "station">,
-  items: { name: string; qty: number; station: string }[],
+  items: { name: string; qty: number; note?: string | null; station: string }[],
   stationIp: Map<string, string | null>,
 ): void {
-  const byStation = new Map<string, { name: string; qty: number }[]>();
+  const byStation = new Map<string, { name: string; qty: number; note?: string | null }[]>();
   for (const it of items) {
     const key = it.station || "Бошқа";
     const arr = byStation.get(key) ?? [];
-    arr.push({ name: it.name, qty: it.qty });
+    arr.push({ name: it.name, qty: it.qty, note: it.note });
     byStation.set(key, arr);
   }
   for (const [station, list] of byStation) {

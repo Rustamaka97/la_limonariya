@@ -63,12 +63,16 @@ type Order = {
     name: string;
     price: number;
     qty: number;
+    note?: string | null;
   }[];
   payments: { method: string; amount: number }[];
   subtotal: number;
   service: number;
   total: number;
 };
+
+// Изоҳ учун тез чиплар — залда энг кўп айтиладиган талаблар
+const NOTE_CHIPS = ["Пиёзсиз", "Аччиқ эмас", "Соус алоҳида", "Майдалаб", "Тез!"];
 
 const PAY_LABEL: Record<string, string> = {
   cash: "Нақд",
@@ -1135,6 +1139,9 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [stopQ, setStopQ] = useState("");
   const [stopCat, setStopCat] = useState<string | null>(null);
   const [stopBusy, setStopBusy] = useState<string | null>(null);
+  const [noteFor, setNoteFor] = useState<{ productId: string; name: string } | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteBusy, setNoteBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const ov = await getOverlay(id);
@@ -1372,6 +1379,38 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     .sort((a, b) => Number(b.stopped) - Number(a.stopped) || a.name.localeCompare(b.name, "ru"))
     .slice(0, 200);
   const stoppedCount = menu.filter((m) => m.stopped).length;
+
+  function openItemNote(productId: string, name: string, current: string) {
+    setNoteDraft(current);
+    setNoteFor({ productId, name });
+  }
+
+  async function saveItemNote() {
+    if (!noteFor) return;
+    setNoteBusy(true);
+    try {
+      await trpc.pos.setItemNote.mutate({
+        orderId: id,
+        productId: noteFor.productId,
+        note: noteDraft.trim(),
+      });
+      setOrder((o) =>
+        o
+          ? {
+              ...o,
+              items: o.items.map((x) =>
+                x.productId === noteFor.productId ? { ...x, note: noteDraft.trim() || null } : x,
+              ),
+            }
+          : o,
+      );
+      setNoteFor(null);
+    } catch (e) {
+      setSyncErr(e instanceof Error ? e.message : "Изоҳ сақланмади");
+    } finally {
+      setNoteBusy(false);
+    }
+  }
 
   async function toggleStop(pId: string, next: boolean) {
     setStopBusy(pId);
@@ -1728,6 +1767,74 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               </div>
             </div>
           )}
+          {noteFor && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">
+              <div className="flex w-full max-w-md flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="min-w-0 truncate text-base font-bold text-brand-ink">
+                    ✎ {noteFor.name}
+                  </h3>
+                  <button
+                    onClick={() => setNoteFor(null)}
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+                  >
+                    Ёпиш
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {NOTE_CHIPS.map((c) => {
+                    const on = noteDraft.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        onClick={() =>
+                          setNoteDraft((d) =>
+                            on
+                              ? d
+                                  .split(", ")
+                                  .filter((x) => x !== c)
+                                  .join(", ")
+                              : d
+                                ? `${d}, ${c}`
+                                : c,
+                          )
+                        }
+                        className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                          on ? "bg-brand text-white" : "bg-brand-cream text-brand"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  maxLength={120}
+                  placeholder="Изоҳ ёзинг… (кухня тикетида чиқади)"
+                  className="w-full rounded-lg border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+                <div className="flex gap-2">
+                  {noteDraft && (
+                    <button
+                      onClick={() => setNoteDraft("")}
+                      className="rounded-lg px-3 py-2 text-sm text-zinc-500 transition hover:bg-zinc-100"
+                    >
+                      Тозалаш
+                    </button>
+                  )}
+                  <button
+                    onClick={saveItemNote}
+                    disabled={noteBusy}
+                    className="flex-1 rounded-lg bg-brand py-2 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-50"
+                  >
+                    {noteBusy ? "…" : "Сақлаш"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* CART */}
@@ -1746,10 +1853,23 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               <div className="max-h-[42vh] divide-y divide-brand-cream-soft/60 overflow-auto lg:max-h-[52vh]">
                 {order.items.map((it) => (
                   <div key={it.productId ?? it.id} className="flex items-center gap-2 px-3 py-2.5">
-                    <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      disabled={!it.productId || !online}
+                      onClick={() => it.productId && openItemNote(it.productId, it.name, it.note ?? "")}
+                      title={online ? "Изоҳ (пиёзсиз, соус алоҳида...)" : "Оффлайн — уланганда"}
+                      className="min-w-0 flex-1 text-left"
+                    >
                       <div className="truncate text-sm text-brand-ink">{it.name}</div>
                       <div className="text-xs tabular-nums text-zinc-400">{fmt(it.price)}</div>
-                    </div>
+                      {it.note ? (
+                        <div className="truncate text-xs font-medium text-amber-600">✎ {it.note}</div>
+                      ) : (
+                        it.productId && (
+                          <div className="text-[10px] text-zinc-300">✎ изоҳ</div>
+                        )
+                      )}
+                    </button>
                     {it.productId ? (
                       <div className="flex shrink-0 items-center gap-1">
                         <Step onClick={() => add(it.productId!, -1)}><IMinus className="h-4 w-4" /></Step>
@@ -2306,7 +2426,7 @@ type Ticket = {
   createdAt: string;
   tableNo: string | null;
   hall: string | null;
-  items: { name: string; qty: number; station: string | null }[];
+  items: { name: string; qty: number; note?: string | null; station: string | null }[];
 };
 
 function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () => void }) {
@@ -2318,11 +2438,11 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
 
   if (!ticket) return <Spin />;
 
-  const byStation = new Map<string, { name: string; qty: number }[]>();
+  const byStation = new Map<string, { name: string; qty: number; note?: string | null }[]>();
   for (const it of ticket.items) {
     const key = it.station ?? "Бошқа";
     const a = byStation.get(key) ?? [];
-    a.push({ name: it.name, qty: it.qty });
+    a.push({ name: it.name, qty: it.qty, note: it.note });
     byStation.set(key, a);
   }
   const d = new Date(ticket.createdAt);
@@ -2353,9 +2473,12 @@ function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () 
             <Hr />
             <div className="font-semibold tracking-wide">{station.toUpperCase()}</div>
             {items.map((it, i) => (
-              <div key={i} className="flex justify-between gap-2 text-base">
-                <span>{it.name}</span>
-                <span className="font-bold tabular-nums">×{it.qty}</span>
+              <div key={i}>
+                <div className="flex justify-between gap-2 text-base">
+                  <span>{it.name}</span>
+                  <span className="font-bold tabular-nums">×{it.qty}</span>
+                </div>
+                {it.note && <div className="pl-3 text-sm font-semibold">&gt;&gt; {it.note}</div>}
               </div>
             ))}
           </div>

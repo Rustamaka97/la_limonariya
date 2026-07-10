@@ -1082,6 +1082,7 @@ async function computeUnsentItems(
       productId: orderItems.productId,
       name: orderItems.name,
       qty: orderItems.qty,
+      note: orderItems.note,
       createdAt: orderItems.createdAt,
       station: stations.name,
     })
@@ -1095,7 +1096,7 @@ async function computeUnsentItems(
   // Keep the EARLIEST createdAt per product — conservative, avoids masking.
   const grouped = new Map<
     string,
-    { name: string; qty: number; createdAt: Date; station: string | null }
+    { name: string; qty: number; note: string | null; createdAt: Date; station: string | null }
   >();
   for (const it of items) {
     if (!it.productId) continue;
@@ -1103,17 +1104,19 @@ async function computeUnsentItems(
     if (g) {
       g.qty += it.qty;
       if (it.createdAt < g.createdAt) g.createdAt = it.createdAt;
+      g.note = g.note ?? it.note;
     } else {
       grouped.set(it.productId, {
         name: it.name,
         qty: it.qty,
+        note: it.note,
         createdAt: it.createdAt,
         station: it.station,
       });
     }
   }
 
-  const toSend: { productId: string; name: string; unsent: number; station: string | null }[] = [];
+  const toSend: { productId: string; name: string; unsent: number; note: string | null; station: string | null }[] = [];
   for (const [productId, g] of grouped) {
     const sentRow = (
       await exec
@@ -1129,7 +1132,8 @@ async function computeUnsentItems(
         )
     )[0];
     const unsent = g.qty - Number(sentRow?.s ?? 0);
-    if (unsent > 0) toSend.push({ productId, name: g.name, unsent, station: g.station });
+    if (unsent > 0)
+      toSend.push({ productId, name: g.name, unsent, note: g.note, station: g.station });
   }
   return toSend;
 }
@@ -1157,13 +1161,13 @@ async function flushKitchenTicket(
     )[0];
     if (prev) {
       const prevItems = await tx
-        .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
+        .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, note: kitchenTicketItems.note, station: kitchenTicketItems.station })
         .from(kitchenTicketItems)
         .where(eq(kitchenTicketItems.ticketId, prev.id));
       return {
         id: prev.id,
         createdAt: prev.createdAt,
-        items: prevItems.map((it) => ({ name: it.name, qty: it.qty, station: it.station ?? "Бошқа" })),
+        items: prevItems.map((it) => ({ name: it.name, qty: it.qty, note: it.note, station: it.station ?? "Бошқа" })),
       };
     }
   }
@@ -1186,13 +1190,14 @@ async function flushKitchenTicket(
       name: it.name,
       qty: it.unsent,
       station: it.station ?? "Бошқа",
+      note: it.note,
     })),
   );
 
   return {
     id: ticket.id,
     createdAt: ticket.createdAt,
-    items: toSend.map((it) => ({ name: it.name, qty: it.unsent, station: it.station ?? "Бошқа" })),
+    items: toSend.map((it) => ({ name: it.name, qty: it.unsent, note: it.note, station: it.station ?? "Бошқа" })),
   };
 }
 
@@ -1336,7 +1341,7 @@ const BRAND_PRINT = {
 // try/catch'да: DB/net хатоси ҳеч қачон unhandled rejection бўлмасин (API crash).
 async function firePrintKitchen(
   orderId: string,
-  items: { name: string; qty: number; station: string | null }[],
+  items: { name: string; qty: number; note?: string | null; station: string | null }[],
 ): Promise<void> {
   try {
     if (items.length === 0) return;
@@ -1352,7 +1357,7 @@ async function firePrintKitchen(
     const ipMap = await stationIpMap();
     printKitchenTicket(
       meta,
-      items.map((it) => ({ name: it.name, qty: it.qty, station: it.station ?? "Бошқа" })),
+      items.map((it) => ({ name: it.name, qty: it.qty, note: it.note, station: it.station ?? "Бошқа" })),
       ipMap,
     );
   } catch (e) {
@@ -3232,6 +3237,7 @@ export const appRouter = router({
             name: orderItems.name,
             price: orderItems.price,
             qty: orderItems.qty,
+            note: orderItems.note,
           })
           .from(orderItems)
           .where(eq(orderItems.orderId, input.id));
@@ -3536,6 +3542,38 @@ export const appRouter = router({
         });
       }),
 
+    // Таом изоҳи («пиёзсиз», «соус алоҳида»...) — официант ўз заказида ёза
+    // олади. Изоҳ ЮБОРИЛМАГАН қисм билан кухня тикетига кетади; аллақачон
+    // юборилган таомга изоҳ ўзгартирилса — қайта юбормайди (реprint қилса чиқади).
+    setItemNote: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          productId: z.string().uuid(),
+          note: z.string().trim().max(120),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const head = (
+          await db
+            .select({ status: orders.status })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        await db
+          .update(orderItems)
+          .set({ note: input.note === "" ? null : input.note })
+          .where(
+            and(eq(orderItems.orderId, input.orderId), eq(orderItems.productId, input.productId)),
+          );
+        return { ok: true };
+      }),
+
     sendToKitchen: protectedProcedure
       .input(
         z.object({
@@ -3580,7 +3618,7 @@ export const appRouter = router({
         )[0];
         if (!head) throw new TRPCError({ code: "NOT_FOUND" });
         const items = await db
-          .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
+          .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, note: kitchenTicketItems.note, station: kitchenTicketItems.station })
           .from(kitchenTicketItems)
           .where(eq(kitchenTicketItems.ticketId, input.ticketId));
         // Дубликат-чоп журнали (тешик №22) — чоп'дан ОЛДИН ёзилади.
@@ -3660,7 +3698,7 @@ export const appRouter = router({
         )[0];
         if (!head) throw new TRPCError({ code: "NOT_FOUND" });
         const items = await db
-          .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, station: kitchenTicketItems.station })
+          .select({ name: kitchenTicketItems.name, qty: kitchenTicketItems.qty, note: kitchenTicketItems.note, station: kitchenTicketItems.station })
           .from(kitchenTicketItems)
           .where(eq(kitchenTicketItems.ticketId, input.ticketId));
         const order = (

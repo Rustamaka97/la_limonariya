@@ -285,6 +285,9 @@ export const orderItems = pgTable("order_items", {
   name: text("name").notNull(),
   price: integer("price").notNull().default(0),
   qty: integer("qty").notNull().default(1),
+  // Официант изоҳи («пиёзсиз», «соус алоҳида»...). Кухняга юборилганда
+  // kitchen_ticket_items.note'га snapshot бўлиб кўчади ва тикетда босилади.
+  note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -320,6 +323,7 @@ export const kitchenTicketItems = pgTable(
     name: text("name").notNull(), // snapshot at send-time
     qty: integer("qty").notNull(),
     station: text("station"), // snapshot of products.station at send-time
+    note: text("note"), // изоҳ snapshot'и юбориш пайтида («пиёзсиз»...)
   },
   (t) => [index("kti_ticket_idx").on(t.ticketId)],
 );

@@ -288,6 +288,13 @@
       "when": 1783586780241,
       "tag": "0040_stop_list",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1783694510944,
+      "tag": "0041_item_note",
+      "breakpoints": true
     }
   ]
 }
