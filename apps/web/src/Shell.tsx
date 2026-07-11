@@ -5,6 +5,7 @@ import { BRAND } from "./brand";
 import { Catalog } from "./Catalog";
 import { ChekQidirish } from "./ChekQidirish";
 import { Dashboard } from "./Dashboard";
+import { Tv } from "./Tv";
 import { Hisobot } from "./Hisobot";
 import { Inventar } from "./Inventar";
 import { Inventarizatsiya } from "./Inventarizatsiya";
@@ -28,6 +29,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 type Tab =
   | "dashboard"
+  | "tv"
   | "analitika"
   | "moliya"
   | "pos"
@@ -109,6 +111,7 @@ export function Shell({
 
   const tabs: { key: Tab; label: string }[] = [
     ...(isDirector ? [{ key: "dashboard" as Tab, label: "Бошқарув" }] : []),
+    ...(isDirector ? [{ key: "tv" as Tab, label: "📺 ТВ" }] : []),
     ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика" }] : []),
     ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия" }] : []),
     ...(canPos ? [{ key: "pos" as Tab, label: "Касса" }] : []),
@@ -236,8 +239,9 @@ export function Shell({
         </div>
       )}
 
-      <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : "max-w-4xl"}`}>
+      <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
+        {tab === "tv" && <Tv />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
         {tab === "pos" && <Pos user={user} />}
