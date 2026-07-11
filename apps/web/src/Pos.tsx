@@ -142,11 +142,18 @@ function lerpHeat(pct: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+function minsOpen(iso: string): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+}
 function minsAgo(iso: string): string {
-  const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  const m = minsOpen(iso);
   if (m < 60) return `${m}м`;
   return `${Math.floor(m / 60)}с ${m % 60}м`;
 }
+// Стол вақт-эскалацияси: STALE = сервер staleOrders сигнали билан бир хил (90′,
+// "тўламай кетган мижоз" хатари). WARN — эрта огоҳ (узоқ ўтирибди).
+const TABLE_WARN_MIN = 45;
+const TABLE_STALE_MIN = 90;
 
 function Svg({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -244,6 +251,13 @@ function FloorView({
   const [heat, setHeat] = useState<{ hallId: string; hallName: string; tableNo: string; revenue: number }[] | null>(null);
   const [arrange, setArrange] = useState(false);
   const [hallFilter, setHallFilter] = useState<string>("all");
+  // Стол вақт-ҳалқаси жонли ўтсин — рефетчсиз (openOrders фақат mount/drain'да
+  // янгиланади). Дақиқа гранулярлиги учун 60с кифоя.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((v) => v + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const refresh = useCallback(async () => {
     // Сервер + локал (offline'да яратилган) очиқ заказларни бирлаштириш.
@@ -995,10 +1009,30 @@ function TableTile({
         <div className={`text-sm font-bold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
           {order.total === null ? "🔒 банд" : fmt(order.total)}
         </div>
-        <div className={`flex items-center gap-1 text-[10px] ${heatColor ? "text-brand-ink/60" : "text-white/60"}`}>
-          <IClock className="h-3 w-3" />
-          {minsAgo(order.createdAt)}
-        </div>
+        {(() => {
+          // Хит-харита режимида ранг = 30 кунлик пул (вақт-эскалация аралашмасин).
+          const mins = minsOpen(order.createdAt);
+          const stale = !heatColor && mins >= TABLE_STALE_MIN;
+          const warn = !heatColor && !stale && mins >= TABLE_WARN_MIN;
+          if (stale || warn)
+            return (
+              <div
+                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white ${
+                  stale ? "animate-pulse bg-red-600 motion-reduce:animate-none" : "bg-amber-500"
+                }`}
+                title={stale ? "Узоқ очиқ — тўламай кетган бўлиши мумкин" : "Узоқ ўтирибди"}
+              >
+                <IClock className="h-3 w-3" />
+                {minsAgo(order.createdAt)}
+              </div>
+            );
+          return (
+            <div className={`flex items-center gap-1 text-[10px] ${heatColor ? "text-brand-ink/60" : "text-white/60"}`}>
+              <IClock className="h-3 w-3" />
+              {minsAgo(order.createdAt)}
+            </div>
+          );
+        })()}
       </div>
     </button>
   );
