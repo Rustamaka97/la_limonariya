@@ -35,8 +35,19 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
     "rounded-2xl bg-brand-soft py-4 text-2xl font-mono font-semibold transition-transform active:bg-brand active:scale-95 disabled:opacity-40";
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-brand-deep text-white">
-      <div className="w-full max-w-xs space-y-8 px-6 text-center">
+    <main className="relative grid min-h-dvh place-items-center overflow-hidden bg-brand-deep text-white">
+      {/* Бренд-арт фон (Higgsfield, 36KB webp) + градиент — PIN контрасти сақланади */}
+      <img
+        src="/brand/login-hero.webp"
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-50"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-deep via-brand-deep/55 to-brand-deep/25"
+      />
+      <div className="relative w-full max-w-xs space-y-8 px-6 text-center">
         <div className="animate-brand-fade">
           <img
             src="/brand/logo-320.png"

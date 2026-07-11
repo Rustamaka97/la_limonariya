@@ -191,6 +191,31 @@ function Spin() {
   );
 }
 
+// Бренд бўш-ҳолат арт: лимон бўлаги — инлайн SVG (0 тармоқ сўрови, DESIGN.md §4)
+function EmptyLemon({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="grid place-items-center gap-2 px-4 py-8 text-center">
+      <svg viewBox="0 0 64 64" className="h-12 w-12" aria-hidden="true">
+        <circle cx="32" cy="32" r="22" fill="#f3b759" opacity="0.9" />
+        <circle cx="32" cy="32" r="17" fill="#fff0e5" />
+        {[0, 60, 120, 180, 240, 300].map((a) => (
+          <path
+            key={a}
+            d="M32 32 L32 17 A15 15 0 0 1 44.5 24.5 Z"
+            fill="#f3b759"
+            opacity="0.55"
+            transform={`rotate(${a} 32 32)`}
+          />
+        ))}
+        <circle cx="32" cy="32" r="2.5" fill="#d99a2b" />
+        <path d="M46 12 q6 -6 12 -4 q-2 8 -10 9 Z" fill="#16553f" />
+      </svg>
+      <p className="text-sm font-medium text-brand-ink/70">{title}</p>
+      {hint && <p className="text-xs text-zinc-400">{hint}</p>}
+    </div>
+  );
+}
+
 export function Pos({ user }: { user: SessionUser }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
@@ -1651,8 +1676,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             })}
           </div>
           {shown.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-brand-cream-soft bg-white/60 px-4 py-10 text-center text-sm text-zinc-400">
-              топилмади
+            <div className="rounded-2xl border border-dashed border-brand-cream-soft bg-white/60">
+              <EmptyLemon title="Топилмади" hint="Қидирув ёки категорияни ўзгартиринг" />
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -1845,10 +1870,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               <span className="text-xs text-zinc-400">{itemCount} таом</span>
             </div>
             {empty ? (
-              <div className="grid place-items-center gap-1.5 px-4 py-8 text-center">
-                <IPlate className="h-7 w-7 text-brand-cream-soft" />
-                <p className="text-sm text-zinc-400">Таом танланг</p>
-              </div>
+              <EmptyLemon title="Заказ ҳали бўш" hint="Менюдан таом танланг" />
             ) : (
               <div className="max-h-[42vh] divide-y divide-brand-cream-soft/60 overflow-auto lg:max-h-[52vh]">
                 {order.items.map((it) => (
