@@ -255,7 +255,7 @@ export function Shell({
         {tab === "hisobot" && <Hisobot />}
         {tab === "taannarx" && <Taannarx />}
         {tab === "catalog" && <Catalog user={user} />}
-        {tab === "recipes" && <Recipes />}
+        {tab === "recipes" && <Recipes canManage={isDirector} />}
         {tab === "staff" && <StaffSection />}
       </main>
     </div>

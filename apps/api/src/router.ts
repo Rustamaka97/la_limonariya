@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, gte, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -66,6 +66,7 @@ import {
   type CleanCarcass,
 } from "./obvalka-norms";
 import { logAudit } from "./audit";
+import { bestMatch } from "./match";
 import {
   type CheckData,
   printCheck,
@@ -2513,6 +2514,90 @@ export const appRouter = router({
         .from(recipes)
         .orderBy(recipes.kind, recipes.name);
     }),
+
+    // Тех-карта авто-улаш таклифи: уланмаган рецептларни (productId=null) техкартаси
+    // йўқ таомларга ном-ўхшашлиги бўйича мослаштиради (match.ts — ўзбек ҳарф-фолд +
+    // фуззи). КЎР-КЎРОНА улаМАЙДИ — фақат таклиф, директор `link` билан тасдиқлайди.
+    recipeLinkSuggest: directorProcedure.query(async () => {
+      const unlinked = await db
+        .select({ id: recipes.id, name: recipes.name })
+        .from(recipes)
+        .where(isNull(recipes.productId));
+      if (unlinked.length === 0) return [];
+      // Техкартаси йўқ фаол таомлар (мослаш номзодлари).
+      const dishes = await db
+        .select({ id: products.id, name: products.name })
+        .from(products)
+        .where(
+          and(
+            eq(products.type, "dish"),
+            eq(products.active, true),
+            sql`not exists (select 1 from ${recipes} r where r.product_id = ${products.id})`,
+          ),
+        );
+      const out = [];
+      const taken = new Set<string>(); // битта таом иккита рецептга таклиф этилмасин
+      for (const r of unlinked) {
+        const pool = dishes.filter((d) => !taken.has(d.id));
+        const m = bestMatch(r.name, pool, 0.6);
+        if (m) {
+          taken.add(m.productId);
+          out.push({
+            recipeId: r.id,
+            recipeName: r.name,
+            productId: m.productId,
+            productName: m.productName,
+            score: Math.round(m.score * 100),
+          });
+        }
+      }
+      return out.sort((a, b) => b.score - a.score);
+    }),
+
+    // Директор тасдиқлаган битта улаш — рецепт↔таом. Гардлар: рецепт уланмаган
+    // бўлсин, таомда аллақачон техкарта бўлмасин (икки марта улаш = таннарх бузилиши).
+    recipeLink: directorProcedure
+      .input(z.object({ recipeId: z.string().uuid(), productId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+          const rec = (
+            await tx
+              .select({ id: recipes.id, name: recipes.name, productId: recipes.productId })
+              .from(recipes)
+              .where(eq(recipes.id, input.recipeId))
+              .limit(1)
+          )[0];
+          if (!rec) throw new TRPCError({ code: "NOT_FOUND", message: "Рецепт топилмади" });
+          if (rec.productId)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Рецепт аллақачон уланган" });
+          const p = (
+            await tx
+              .select({ id: products.id, name: products.name })
+              .from(products)
+              .where(eq(products.id, input.productId))
+              .limit(1)
+          )[0];
+          if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "Таом топилмади" });
+          const already = (
+            await tx
+              .select({ id: recipes.id })
+              .from(recipes)
+              .where(eq(recipes.productId, input.productId))
+              .limit(1)
+          )[0];
+          if (already)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Бу таомда аллақачон техкарта бор" });
+          await tx.update(recipes).set({ productId: p.id }).where(eq(recipes.id, rec.id));
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "recipe.link",
+            entity: "product",
+            entityId: p.id,
+            summary: `«${rec.name}» → «${p.name}» техкарта уланди`,
+          });
+          return { ok: true };
+        });
+      }),
 
     recipe: protectedProcedure
       .input(z.object({ recipeId: z.string().uuid() }))
