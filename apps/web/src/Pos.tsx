@@ -1432,6 +1432,21 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
   }
 
+  // QR-экранни очиш ва мижоз QR'ини (deep-link'дан) ясаш. Барча hook'лар эрта-
+  // return'дан ОЛДИН туриши шарт (Rules of Hooks) — суммани ичида ҳисоблаймиз.
+  useEffect(() => {
+    if (!showQr) { setQrDataUrl(null); return; }
+    const amount = order ? order.total - (discount?.amount ?? 0) : 0;
+    const ref = String(order?.checkNo ?? id);
+    const url = payCfg && amount > 0 ? payUrl(showQr, payCfg, amount, ref) : null;
+    if (!url) { setQrDataUrl(null); return; }
+    let alive = true;
+    QRCode.toDataURL(url, { width: 240, margin: 1 })
+      .then((d) => { if (alive) setQrDataUrl(d); })
+      .catch(() => { if (alive) setQrDataUrl(null); });
+    return () => { alive = false; };
+  }, [showQr, payCfg, order?.total, discount?.amount, order?.checkNo, id]);
+
   if (ticketId) return <KitchenTicketView ticketId={ticketId} onBack={() => setTicketId(null)} />;
   if (!order) return <Spin />;
   if (order.status === "closed") return <Chek order={order} cashReceived={paidCash} onBack={onBack} />;
@@ -1493,21 +1508,6 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       setStopBusy(null);
     }
   }
-
-  // QR-экранни очиш ва мижоз QR'ини (deep-link'дан) ясаш. payTotal бу ерда
-  // ҳали эълон қилинмаган (эрта-return'дан кейин) — суммани ичида ҳисоблаймиз.
-  useEffect(() => {
-    if (!showQr) { setQrDataUrl(null); return; }
-    const amount = order ? order.total - (discount?.amount ?? 0) : 0;
-    const ref = String(order?.checkNo ?? id);
-    const url = payCfg && amount > 0 ? payUrl(showQr, payCfg, amount, ref) : null;
-    if (!url) { setQrDataUrl(null); return; }
-    let alive = true;
-    QRCode.toDataURL(url, { width: 240, margin: 1 })
-      .then((d) => { if (alive) setQrDataUrl(d); })
-      .catch(() => { if (alive) setQrDataUrl(null); });
-    return () => { alive = false; };
-  }, [showQr, payCfg, order?.total, discount?.amount, order?.checkNo, id]);
 
   async function saveCfg() {
     setCfgBusy(true);
