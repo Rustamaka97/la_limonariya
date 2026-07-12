@@ -24,6 +24,7 @@ import {
   assets,
   auditLog,
   cashCollections,
+  customerWalletMovements,
   categories,
   clientOps,
   customers,
@@ -4800,6 +4801,104 @@ export const appRouter = router({
           )[0];
           if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
           return { id: row.id };
+        }),
+
+      // Лоялти CRM: мижозлар + ҳамён баланси (= SUM wallet movements).
+      list: managerProcedure.query(async () => {
+        return db
+          .select({
+            id: customers.id,
+            name: customers.name,
+            phone: customers.phone,
+            balance: sql<number>`coalesce(sum(${customerWalletMovements.amount}), 0)`.mapWith(Number),
+          })
+          .from(customers)
+          .leftJoin(customerWalletMovements, eq(customerWalletMovements.customerId, customers.id))
+          .groupBy(customers.id)
+          .orderBy(
+            desc(sql`coalesce(sum(${customerWalletMovements.amount}), 0)`),
+            customers.name,
+          );
+      }),
+
+      // Битта мижоз ҳамёни — баланс + ҳаракатлар тарихи.
+      wallet: managerProcedure
+        .input(z.object({ customerId: z.string().uuid() }))
+        .query(async ({ input }) => {
+          const balRow = (
+            await db
+              .select({
+                b: sql<number>`coalesce(sum(${customerWalletMovements.amount}), 0)`.mapWith(Number),
+              })
+              .from(customerWalletMovements)
+              .where(eq(customerWalletMovements.customerId, input.customerId))
+          )[0];
+          const moves = await db
+            .select({
+              id: customerWalletMovements.id,
+              amount: customerWalletMovements.amount,
+              kind: customerWalletMovements.kind,
+              note: customerWalletMovements.note,
+              createdAt: customerWalletMovements.createdAt,
+              by: users.name,
+            })
+            .from(customerWalletMovements)
+            .leftJoin(users, eq(users.id, customerWalletMovements.createdById))
+            .where(eq(customerWalletMovements.customerId, input.customerId))
+            .orderBy(desc(customerWalletMovements.createdAt))
+            .limit(30);
+          return { balance: balRow?.b ?? 0, moves };
+        }),
+
+      // Директор қўлда ҳамён ҳаракати: + бонус (туғилган кун/лоялти), − редемпшн
+      // (сарфлади), ёки тузатиш. Append-only, аудит. Манфий → баланс етарли бўлсин.
+      adjust: directorProcedure
+        .input(
+          z.object({
+            customerId: z.string().uuid(),
+            amount: z.number().int().refine((n) => n !== 0, "Сумма 0 бўлмасин"),
+            kind: z.enum(["bonus", "redeem", "adjust"]),
+            note: z.string().trim().max(200).optional(),
+          }),
+        )
+        .mutation(async ({ input, ctx }) => {
+          return db.transaction(async (tx) => {
+            const cust = (
+              await tx
+                .select({ name: customers.name })
+                .from(customers)
+                .where(eq(customers.id, input.customerId))
+                .limit(1)
+            )[0];
+            if (!cust) throw new TRPCError({ code: "NOT_FOUND", message: "Мижоз топилмади" });
+            if (input.amount < 0) {
+              const bal = (
+                await tx
+                  .select({
+                    b: sql<number>`coalesce(sum(${customerWalletMovements.amount}), 0)`.mapWith(Number),
+                  })
+                  .from(customerWalletMovements)
+                  .where(eq(customerWalletMovements.customerId, input.customerId))
+              )[0]?.b ?? 0;
+              if (bal + input.amount < 0)
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Баланс етарли эмас" });
+            }
+            await tx.insert(customerWalletMovements).values({
+              customerId: input.customerId,
+              amount: input.amount,
+              kind: input.kind,
+              note: input.note ?? null,
+              createdById: ctx.user.id,
+            });
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "wallet.adjust",
+              entity: "customer",
+              entityId: input.customerId,
+              summary: `${cust.name}: ${input.amount > 0 ? "+" : ""}${input.amount.toLocaleString("ru-RU")} so'm (${input.kind})`,
+            });
+            return { ok: true };
+          });
         }),
     }),
 

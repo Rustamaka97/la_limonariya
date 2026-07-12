@@ -302,6 +302,13 @@
       "when": 1783850412286,
       "tag": "0042_kds_bump",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1783851535620,
+      "tag": "0043_customer_wallet",
+      "breakpoints": true
     }
   ]
 }

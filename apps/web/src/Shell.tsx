@@ -7,6 +7,7 @@ import { ChekQidirish } from "./ChekQidirish";
 import { Dashboard } from "./Dashboard";
 import { Tv } from "./Tv";
 import { Kds } from "./Kds";
+import { Mijozlar } from "./Mijozlar";
 import { Hisobot } from "./Hisobot";
 import { Inventar } from "./Inventar";
 import { Inventarizatsiya } from "./Inventarizatsiya";
@@ -46,6 +47,7 @@ type Tab =
   | "taannarx"
   | "catalog"
   | "recipes"
+  | "mijozlar"
   | "staff";
 
 // Offline ҳолати — "offline-first"нинг кўринадиган қисми: алоҳida banner, чунки
@@ -136,6 +138,9 @@ export function Shell({
       : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "hisobot" as Tab, label: "Ҳисобот" }]
+      : []),
+    ...(["director", "manager"].includes(user.role)
+      ? [{ key: "mijozlar" as Tab, label: "🎁 Мижозлар" }]
       : []),
     ...(isDirector ? [{ key: "taannarx" as Tab, label: "Таннарх" }] : []),
     { key: "catalog", label: "Каталог" },
@@ -245,6 +250,7 @@ export function Shell({
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "tv" && <Tv />}
         {tab === "kds" && <Kds />}
+        {tab === "mijozlar" && <Mijozlar canAdjust={isDirector} />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
         {tab === "pos" && <Pos user={user} />}

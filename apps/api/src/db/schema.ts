@@ -243,6 +243,33 @@ export const customers = pgTable("customers", {
     .defaultNow(),
 });
 
+// Мижоз ҳамёни (лоялти/кешбэк) — append-only ledger, баланс = SUM(amount).
+// amount ИШОРАЛИ: + кешбэк/бонус, − сарфлаш/тузатиш. Ombor/asset каби —
+// счётчик drift bo'lmасин, подделкага чидамли (money-safety фалсафа).
+export const walletKind = pgEnum("wallet_kind", [
+  "cashback", // харид учун кешбэк (+)
+  "bonus", // директор бонуси — туғилган кун, лоялти (+)
+  "redeem", // мижоз сарфлади (−)
+  "adjust", // қўлда тузатиш (+/−)
+]);
+
+export const customerWalletMovements = pgTable(
+  "customer_wallet_movements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(), // so'm, ишорали
+    kind: walletKind("kind").notNull(),
+    orderId: uuid("order_id").references(() => orders.id),
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("cwm_customer_idx").on(t.customerId)],
+);
+
 export const orders = pgTable(
   "orders",
   {
