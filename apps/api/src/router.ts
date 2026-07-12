@@ -6341,6 +6341,58 @@ export const appRouter = router({
         return { ok: true };
       }),
   }),
+
+  // KDS — кухня экрани. Пишаётган (bump қилинмаган) тикетлар; ошпаз «Тайёр» босади.
+  kds: router({
+    board: protectedProcedure.query(async () => {
+      const tix = await db
+        .select({
+          id: kitchenTickets.id,
+          createdAt: kitchenTickets.createdAt,
+          tableNo: orders.tableNo,
+          hall: halls.name,
+        })
+        .from(kitchenTickets)
+        .innerJoin(orders, eq(kitchenTickets.orderId, orders.id))
+        .leftJoin(halls, eq(orders.hallId, halls.id))
+        .where(and(isNull(kitchenTickets.bumpedAt), eq(orders.status, "open")))
+        .orderBy(kitchenTickets.createdAt);
+      if (tix.length === 0) return [];
+      const items = await db
+        .select({
+          ticketId: kitchenTicketItems.ticketId,
+          name: kitchenTicketItems.name,
+          qty: kitchenTicketItems.qty,
+          note: kitchenTicketItems.note,
+          station: kitchenTicketItems.station,
+        })
+        .from(kitchenTicketItems)
+        .where(inArray(kitchenTicketItems.ticketId, tix.map((t) => t.id)));
+      const byTicket = new Map<string, typeof items>();
+      for (const it of items) {
+        const a = byTicket.get(it.ticketId) ?? [];
+        a.push(it);
+        byTicket.set(it.ticketId, a);
+      }
+      return tix.map((t) => ({
+        id: t.id,
+        createdAt: t.createdAt,
+        tableNo: t.tableNo,
+        hall: t.hall,
+        items: byTicket.get(t.id) ?? [],
+      }));
+    }),
+
+    bump: protectedProcedure
+      .input(z.object({ ticketId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        await db
+          .update(kitchenTickets)
+          .set({ bumpedAt: new Date(), bumpedById: ctx.user.id })
+          .where(and(eq(kitchenTickets.id, input.ticketId), isNull(kitchenTickets.bumpedAt)));
+        return { ok: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -306,6 +306,10 @@ export const kitchenTickets = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // KDS (кухня экрани): ошпаз таом тайёр бўлганда «✓ Тайёр» босади → экрандан
+    // кетади. NULL = ҳали пишяпти (KDS'да кўринади). Тикет content'и ўзгармайди.
+    bumpedAt: timestamp("bumped_at", { withTimezone: true }),
+    bumpedById: uuid("bumped_by_id").references(() => users.id),
   },
   (t) => [index("kt_order_idx").on(t.orderId)],
 );
