@@ -19,6 +19,7 @@ import {
 } from "./rate-limit";
 import { db } from "./db/client";
 import {
+  appMeta,
   assetMovements,
   assets,
   auditLog,
@@ -6291,6 +6292,53 @@ export const appRouter = router({
             return { productId: p.id, name: p.name, unit: p.unit, cells };
           });
         return { days, rows };
+      }),
+  }),
+
+  // Payme/Click QR тўлов созламаси — merchant/service ID app_meta'да (key-value).
+  // Кассир QR ясаш учун ўқийди (protected); фақат директор ёзади.
+  settings: router({
+    paymentConfig: protectedProcedure.query(async () => {
+      const keys = ["payme_merchant_id", "click_service_id", "click_merchant_id"];
+      const rows = await db
+        .select({ key: appMeta.key, value: appMeta.value })
+        .from(appMeta)
+        .where(inArray(appMeta.key, keys));
+      const m = new Map(rows.map((r) => [r.key, r.value]));
+      return {
+        paymeMerchantId: m.get("payme_merchant_id") ?? null,
+        clickServiceId: m.get("click_service_id") ?? null,
+        clickMerchantId: m.get("click_merchant_id") ?? null,
+      };
+    }),
+
+    setPaymentConfig: directorProcedure
+      .input(
+        z.object({
+          paymeMerchantId: z.string().trim().max(120),
+          clickServiceId: z.string().trim().max(120),
+          clickMerchantId: z.string().trim().max(120),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const pairs: [string, string][] = [
+          ["payme_merchant_id", input.paymeMerchantId],
+          ["click_service_id", input.clickServiceId],
+          ["click_merchant_id", input.clickMerchantId],
+        ];
+        for (const [key, value] of pairs) {
+          await db
+            .insert(appMeta)
+            .values({ key, value })
+            .onConflictDoUpdate({ target: appMeta.key, set: { value } });
+        }
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "settings.payment",
+          entity: "app_meta",
+          summary: "Payme/Click тўлов созламаси янгиланди",
+        });
+        return { ok: true };
       }),
   }),
 });

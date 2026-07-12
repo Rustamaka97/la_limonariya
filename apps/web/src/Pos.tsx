@@ -18,6 +18,8 @@ import {
   syncBaseFromServer,
 } from "./lib/outbox";
 import { trpc } from "./trpc";
+import QRCode from "qrcode";
+import { payUrl, type PayConfig } from "./payqr";
 
 type Hall = { id: string; name: string; servicePct: number };
 type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null };
@@ -1167,6 +1169,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [showComp, setShowComp] = useState(false);
   const [showSplit, setShowSplit] = useState(false);
   const [showCash, setShowCash] = useState(false);
+  // Payme/Click QR тўлов: усул танланса QR-экран, мижоз сканерлаб тўлайди.
+  const [showQr, setShowQr] = useState<"payme" | "click" | null>(null);
+  const [payCfg, setPayCfg] = useState<PayConfig | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [cfgOpen, setCfgOpen] = useState(false);
+  const [cfgDraft, setCfgDraft] = useState({ paymeMerchantId: "", clickServiceId: "", clickMerchantId: "" });
+  const [cfgBusy, setCfgBusy] = useState(false);
   const [cashGot, setCashGot] = useState("");
   const [paidCash, setPaidCash] = useState<number | null>(null);
   const [splits, setSplits] = useState<Record<string, string>>({});
@@ -1235,6 +1244,8 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     refresh();
     // Меню — ўзгармас; оффлайнда кэшдан кўринади (фаза 3 refCache).
     swr("pos.menu", () => trpc.pos.menu.query(), setMenu).catch(() => {});
+    // Payme/Click merchant ID — QR ясаш учун (кэшланади).
+    swr("settings.payment", () => trpc.settings.paymentConfig.query(), setPayCfg).catch(() => {});
     const on = () => setOnline(true);
     const off = () => setOnline(false);
     window.addEventListener("online", on);
@@ -1483,10 +1494,40 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     }
   }
 
+  // QR-экранни очиш ва мижоз QR'ини (deep-link'дан) ясаш. payTotal бу ерда
+  // ҳали эълон қилинмаган (эрта-return'дан кейин) — суммани ичида ҳисоблаймиз.
+  useEffect(() => {
+    if (!showQr) { setQrDataUrl(null); return; }
+    const amount = order ? order.total - (discount?.amount ?? 0) : 0;
+    const ref = String(order?.checkNo ?? id);
+    const url = payCfg && amount > 0 ? payUrl(showQr, payCfg, amount, ref) : null;
+    if (!url) { setQrDataUrl(null); return; }
+    let alive = true;
+    QRCode.toDataURL(url, { width: 240, margin: 1 })
+      .then((d) => { if (alive) setQrDataUrl(d); })
+      .catch(() => { if (alive) setQrDataUrl(null); });
+    return () => { alive = false; };
+  }, [showQr, payCfg, order?.total, discount?.amount, order?.checkNo, id]);
+
+  async function saveCfg() {
+    setCfgBusy(true);
+    try {
+      await trpc.settings.setPaymentConfig.mutate(cfgDraft);
+      setPayCfg({ ...cfgDraft });
+      setCfgOpen(false);
+    } catch (e) {
+      setCloseErr(e instanceof Error ? e.message : "Сақланмади");
+    } finally {
+      setCfgBusy(false);
+    }
+  }
+
   function cancelPay() {
     setPaying(false);
     setShowComp(false);
     setShowSplit(false);
+    setShowQr(null);
+    setCfgOpen(false);
     setSplits({});
     setPendingDebt(null);
     setShowDiscount(false);
@@ -2094,6 +2135,101 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 onBack={() => setPendingDebt(null)}
                 onPick={(customerId) => submitClose(pendingDebt, customerId)}
               />
+            ) : showQr ? (
+              <div className="space-y-3 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3 text-center">
+                <p className="text-sm font-semibold text-brand-ink">
+                  {PAY_LABEL[showQr]} — <span className="tabular-nums">{fmt(payTotal)}</span> so'm
+                </p>
+                {qrDataUrl ? (
+                  <>
+                    <img
+                      src={qrDataUrl}
+                      alt="QR"
+                      className="mx-auto rounded-xl border border-brand-cream-soft bg-white p-2"
+                      width={200}
+                      height={200}
+                    />
+                    <p className="text-xs text-zinc-500">
+                      Мижоз {PAY_LABEL[showQr]} иловасида QR'ни сканерлаб тўласин
+                    </p>
+                  </>
+                ) : cfgOpen ? (
+                  <div className="space-y-2 text-left">
+                    <p className="text-xs font-semibold text-brand-ink">
+                      {showQr === "payme" ? "Payme merchant ID" : "Click service_id + merchant_id"}
+                    </p>
+                    {showQr === "payme" ? (
+                      <input
+                        value={cfgDraft.paymeMerchantId}
+                        onChange={(e) => setCfgDraft((d) => ({ ...d, paymeMerchantId: e.target.value.trim() }))}
+                        placeholder="Payme merchant_id"
+                        className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+                      />
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          value={cfgDraft.clickServiceId}
+                          onChange={(e) => setCfgDraft((d) => ({ ...d, clickServiceId: e.target.value.trim() }))}
+                          placeholder="Click service_id"
+                          className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+                        />
+                        <input
+                          value={cfgDraft.clickMerchantId}
+                          onChange={(e) => setCfgDraft((d) => ({ ...d, clickMerchantId: e.target.value.trim() }))}
+                          placeholder="Click merchant_id"
+                          className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={saveCfg}
+                      disabled={cfgBusy}
+                      className="w-full rounded-xl bg-brand py-2 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-50"
+                    >
+                      {cfgBusy ? "…" : "Сақлаш"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 py-2">
+                    <p className="text-xs text-amber-600">
+                      {PAY_LABEL[showQr]} ID созланмаган — QR йўқ
+                    </p>
+                    {canDiscount ? (
+                      <button
+                        onClick={() => {
+                          setCfgDraft({
+                            paymeMerchantId: payCfg?.paymeMerchantId ?? "",
+                            clickServiceId: payCfg?.clickServiceId ?? "",
+                            clickMerchantId: payCfg?.clickMerchantId ?? "",
+                          });
+                          setCfgOpen(true);
+                        }}
+                        className="text-xs font-semibold text-brand underline"
+                      >
+                        ⚙️ ID киритиш
+                      </button>
+                    ) : (
+                      <p className="text-xs text-zinc-400">Директор созлайди</p>
+                    )}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowQr(null); setCfgOpen(false); }}
+                    disabled={closing}
+                    className="flex-1 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 disabled:opacity-40"
+                  >
+                    Орқага
+                  </button>
+                  <button
+                    onClick={() => pay(showQr)}
+                    disabled={closing}
+                    className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+                  >
+                    ✓ Тўланди
+                  </button>
+                </div>
+              </div>
             ) : showCash ? (
               <div className="space-y-3 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
                 <p className="text-xs font-semibold text-brand-ink">Нақд — олинган пулни киритинг</p>
@@ -2195,7 +2331,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                     return (
                       <button
                         key={m}
-                        onClick={() => (m === "cash" ? setShowCash(true) : pay(m))}
+                        onClick={() =>
+                          m === "cash"
+                            ? setShowCash(true)
+                            : m === "payme" || m === "click"
+                              ? setShowQr(m)
+                              : pay(m)
+                        }
                         disabled={closing}
                         className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-brand-cream-soft bg-brand-cream/30 font-semibold text-brand-ink transition hover:border-brand hover:bg-brand-cream active:scale-[.97] disabled:opacity-40 motion-reduce:active:scale-100"
                       >
