@@ -5,6 +5,7 @@
 import { idbAll, idbDel, idbGetIn, idbPut } from "./idb";
 import { idbGet, idbSet } from "./idb";
 import { trpc } from "../trpc";
+import { uuid } from "./uuid";
 
 const OUTBOX = "outbox";
 const OVERLAY = "overlay";
@@ -256,7 +257,7 @@ export async function enqueueAddItem(
   productId: string,
   delta: number,
   menu: { name: string; price: number },
-  opId = crypto.randomUUID(),
+  opId = uuid(),
 ): Promise<boolean> {
   try {
     const seq = await nextSeq();
@@ -322,7 +323,7 @@ export async function enqueueSendToKitchen(orderId: string): Promise<boolean> {
       tries: 0,
       ts: Date.now(),
       orderId,
-      opId: crypto.randomUUID(),
+      opId: uuid(),
     } satisfies OutboxOp);
     return true;
   } catch {

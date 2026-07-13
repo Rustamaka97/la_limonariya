@@ -2,6 +2,7 @@ import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactN
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
 import { swr } from "./lib/cache";
+import { uuid } from "./lib/uuid";
 import {
   deriveOrder,
   enqueueAddItem,
@@ -319,7 +320,7 @@ function FloorView({
   async function create(hallId: string, table: string | undefined, guests: number) {
     // Offline-first: локал заказ + навбат; уланганда синхрон (идемпотент client id).
     const hall = halls.find((h) => h.id === hallId);
-    const id = crypto.randomUUID();
+    const id = uuid();
     const persisted = await enqueueCreate({
       id,
       hallId,
@@ -1269,7 +1270,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           orderId: id,
           productId,
           delta,
-          opId: crypto.randomUUID(),
+          opId: uuid(),
           voidReason: r.trim() || undefined,
         });
       } catch (e) {
@@ -1294,7 +1295,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
     if (!persisted) {
       // хотира йўқ — тўғридан-тўғри серверга (идемпотент opId)
       try {
-        await trpc.pos.addItem.mutate({ orderId: id, productId, delta, opId: crypto.randomUUID() });
+        await trpc.pos.addItem.mutate({ orderId: id, productId, delta, opId: uuid() });
       } catch {
         setSyncErr("Таом қўшилмади");
         return;
@@ -1335,7 +1336,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
         return;
       }
       // ticketId — retry replay икки марта кухняга юбормайди (мавжудни қайтаради).
-      const t = await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: crypto.randomUUID() });
+      const t = await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: uuid() });
       if (t.id) setTicketId(t.id);
       refresh();
       vibrate([20]);
