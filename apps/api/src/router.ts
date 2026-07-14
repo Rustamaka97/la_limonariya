@@ -3307,6 +3307,7 @@ export const appRouter = router({
               discountReason: orders.discountReason,
               guests: orders.guests,
               note: orders.note,
+              locked: orders.locked,
               hall: halls.name,
               waiter: users.name,
             })
@@ -3516,7 +3517,7 @@ export const appRouter = router({
           // ёпилган заказга тушмасин). Бошқа мутациялар ҳам шу гейтни ишлатади.
           const oHead = (
             await tx
-              .select({ status: orders.status })
+              .select({ status: orders.status, locked: orders.locked })
               .from(orders)
               .where(eq(orders.id, input.orderId))
               .limit(1)
@@ -3527,6 +3528,12 @@ export const appRouter = router({
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "Заказ ёпилган — таом қўшиб бўлмайди",
+            });
+          // Заказ-блок: блокланган чекка таом қўшиб/ўзгартириб бўлмайди.
+          if (oHead.locked)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Заказ блокланган — аввал блокни ечинг",
             });
           // Стоп-лист: стопдаги таомни ҚЎШИБ бўлмайди. Камайтириш (delta<0)
           // мумкин — тугаган таомни чекдан олиб ташлашга тўсиқ бўлмасин.
@@ -3644,7 +3651,7 @@ export const appRouter = router({
         await assertOrderAccess(db, ctx.user, input.orderId);
         const head = (
           await db
-            .select({ status: orders.status })
+            .select({ status: orders.status, locked: orders.locked })
             .from(orders)
             .where(eq(orders.id, input.orderId))
             .limit(1)
@@ -3652,6 +3659,8 @@ export const appRouter = router({
         if (!head) throw new TRPCError({ code: "NOT_FOUND" });
         if (head.status !== "open")
           throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
         await db
           .update(orderItems)
           .set({ note: input.note === "" ? null : input.note })
@@ -3659,6 +3668,42 @@ export const appRouter = router({
             and(eq(orderItems.orderId, input.orderId), eq(orderItems.productId, input.productId)),
           );
         return { ok: true };
+      }),
+
+    // 🔒 Заказ-блок (CloPOS-паритет): кассир/менежер очиқ заказни музлатади —
+    // официант хатодан таом қўшмасин. Блокланганда addItem/setItemNote рад
+    // этилади. Ким блокладими/ечдими — аудитга ёзилади.
+    setLock: cashierProcedure
+      .input(z.object({ orderId: z.string().uuid(), locked: z.boolean() }))
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const head = (
+          await db
+            .select({ status: orders.status, locked: orders.locked })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked === input.locked) return { ok: true, locked: input.locked };
+        await db
+          .update(orders)
+          .set({
+            locked: input.locked,
+            lockedAt: input.locked ? new Date() : null,
+            lockedById: input.locked ? ctx.user.id : null,
+          })
+          .where(eq(orders.id, input.orderId));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: input.locked ? "order.lock" : "order.unlock",
+          entity: "order",
+          entityId: input.orderId,
+          summary: input.locked ? "Заказ блокланди" : "Заказ блокдан ечилди",
+        });
+        return { ok: true, locked: input.locked };
       }),
 
     sendToKitchen: protectedProcedure

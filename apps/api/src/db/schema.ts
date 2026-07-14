@@ -299,6 +299,12 @@ export const orders = pgTable(
     discountReason: text("discount_reason"),
     guests: integer("guests"),
     note: text("note"),
+    // Заказ-блок (CloPOS-паритет): официант хатодан таом қўшмасин/ўзгартирмасин
+    // деб кассир/менежер заказни "музлатади". Блокланганда pos.addItem ва
+    // ўзгартиришлар рад этилади; фақат блок қўйган/директор ечади.
+    locked: boolean("locked").notNull().default(false),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedById: uuid("locked_by_id").references(() => users.id),
   },
   (t) => [index("orders_status_closed_idx").on(t.status, t.closedAt)],
 );

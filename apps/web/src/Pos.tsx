@@ -60,6 +60,7 @@ type Order = {
   compReason: string | null;
   discountAmount: number;
   discountReason: string | null;
+  locked: boolean;
   items: {
     id: string;
     productId: string | null;
@@ -1204,6 +1205,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [syncErr, setSyncErr] = useState<string | null>(null);
   const [precheckBusy, setPrecheckBusy] = useState(false);
   const [precheckOk, setPrecheckOk] = useState(false);
+  const [lockBusy, setLockBusy] = useState(false);
   const [showStop, setShowStop] = useState(false);
   const [stopQ, setStopQ] = useState("");
   const [stopCat, setStopCat] = useState<string | null>(null);
@@ -1260,6 +1262,11 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   }, [refresh]);
 
   async function add(productId: string, delta: number) {
+    // 🔒 Блокланган заказ — ўзгартириб бўлмайди (сервер ҳам рад этади).
+    if (order?.locked) {
+      setSyncErr("Заказ блокланган — аввал 🔓 ечинг");
+      return;
+    }
     // Void кейси: кухняга юборилган таомни камайтириш (директор/менежер) — сабаб
     // сўралади ва журналга ёзилади (тешик №11/22). Online + камёб → тўғридан-тўғри.
     if (delta < 0 && tickets.length > 0 && ["director", "manager"].includes(user.role) && isOnline()) {
@@ -1369,6 +1376,23 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       alert(e instanceof Error ? e.message : "Пречек босилмади");
     } finally {
       setPrecheckBusy(false);
+    }
+  }
+
+  // 🔒 Заказ-блок: блокланганда таом қўшиб/ўзгартириб бўлмайди (сервер ҳам рад
+  // этади). Официант хатодан ҳимоя; кассир/менежер ечади.
+  async function toggleLock() {
+    if (!order) return;
+    const next = !order.locked;
+    setLockBusy(true);
+    try {
+      await trpc.pos.setLock.mutate({ orderId: id, locked: next });
+      vibrate([10]);
+      setOrder((o) => (o ? { ...o, locked: next } : o));
+    } catch (e) {
+      setSyncErr(e instanceof Error ? e.message : "Блок ўзгармади");
+    } finally {
+      setLockBusy(false);
     }
   }
 
@@ -1591,6 +1615,20 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           >
             {precheckOk ? "✓ Пречек босилди" : "🧾 Пречек"}
           </button>
+          {canComp && (
+            <button
+              onClick={toggleLock}
+              disabled={lockBusy || !online}
+              title={order.locked ? "Блокни ечиш" : "Заказни блоклаш — ўзгартиришдан ҳимоя"}
+              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm transition disabled:opacity-30 ${
+                order.locked
+                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+              }`}
+            >
+              {order.locked ? "🔓 Ечиш" : "🔒 Блок"}
+            </button>
+          )}
           {canComp && (
             <button
               onClick={() => setShowStop(true)}
