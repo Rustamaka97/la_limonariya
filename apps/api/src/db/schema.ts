@@ -318,6 +318,10 @@ export const orderItems = pgTable("order_items", {
   name: text("name").notNull(),
   price: integer("price").notNull().default(0),
   qty: integer("qty").notNull().default(1),
+  // Оғирлик билан сотилган таом (гўшт кг) — киритилган грамм. price = кг-нарх ×
+  // грамм/1000 (jami), qty=1 → пул математикаси (price×qty) ЎЗГАРМАЙДИ, weightG
+  // фақат кўрсатиш/чек учун (масалан "0.35 кг × 125 000"). null = оддий дона.
+  weightG: integer("weight_g"),
   // Официант изоҳи («пиёзсиз», «соус алоҳида»...). Кухняга юборилганда
   // kitchen_ticket_items.note'га snapshot бўлиб кўчади ва тикетда босилади.
   note: text("note"),

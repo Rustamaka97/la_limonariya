@@ -1,0 +1,1 @@
+ALTER TABLE "order_items" ADD COLUMN "weight_g" integer;

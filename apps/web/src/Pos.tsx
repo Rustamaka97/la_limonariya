@@ -30,6 +30,7 @@ type MenuItem = {
   price: number;
   category: string | null;
   stopped: boolean;
+  soldByWeight?: boolean;
 };
 type OpenOrder = {
   id: string;
@@ -67,6 +68,7 @@ type Order = {
     name: string;
     price: number;
     qty: number;
+    weightG?: number | null;
     note?: string | null;
   }[];
   payments: { method: string; amount: number }[];
@@ -1206,6 +1208,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [precheckBusy, setPrecheckBusy] = useState(false);
   const [precheckOk, setPrecheckOk] = useState(false);
   const [lockBusy, setLockBusy] = useState(false);
+  const [weighFor, setWeighFor] = useState<MenuItem | null>(null);
   const [showStop, setShowStop] = useState(false);
   const [stopQ, setStopQ] = useState("");
   const [stopCat, setStopCat] = useState<string | null>(null);
@@ -1393,6 +1396,21 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       setSyncErr(e instanceof Error ? e.message : "Блок ўзгармади");
     } finally {
       setLockBusy(false);
+    }
+  }
+
+  // ⚖️ Оғирлик билан таом қўшиш (гўшт кг): вазн киритилади → сервер чизиқ нархини
+  // (кг-нарх × грамм/1000) ҳисоблайди. Ҳар вазнлаш алоҳида чизиқ.
+  async function addWeighed(grams: number) {
+    if (!weighFor) return;
+    const m = weighFor;
+    setWeighFor(null);
+    try {
+      await trpc.pos.addWeighed.mutate({ orderId: id, productId: m.id, grams, opId: uuid() });
+      vibrate([10]);
+      await refresh();
+    } catch (e) {
+      setSyncErr(e instanceof Error ? e.message : "Вазн қўшилмади");
     }
   }
 
@@ -1670,6 +1688,15 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
         />
       )}
 
+      {weighFor && (
+        <WeighSheet
+          name={weighFor.name}
+          pricePerKg={weighFor.price}
+          onClose={() => setWeighFor(null)}
+          onWeigh={addWeighed}
+        />
+      )}
+
       {syncErr && (
         <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">⚠️ {syncErr} — синхронизация тўхтади.</div>
       )}
@@ -1800,7 +1827,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                 return (
                   <button
                     key={m.id}
-                    onClick={() => !m.stopped && add(m.id, 1)}
+                    onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
                     disabled={m.stopped}
                     style={{ borderLeftColor: m.stopped ? "#d4d4d8" : color }}
                     className={`group flex h-full flex-col justify-between gap-2 rounded-xl border border-l-4 border-brand-cream-soft bg-white p-3 text-left shadow-sm transition ${
@@ -1813,14 +1840,16 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                       {m.name}
                     </span>
                     <span className="flex items-center justify-between">
-                      <span className="text-sm font-bold tabular-nums text-brand">{fmt(m.price)}</span>
+                      <span className="text-sm font-bold tabular-nums text-brand">
+                        {fmt(m.price)}{m.soldByWeight ? "/кг" : ""}
+                      </span>
                       {m.stopped ? (
                         <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
                           СТОП
                         </span>
                       ) : (
                         <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
-                          <IPlus className="h-3.5 w-3.5" />
+                          {m.soldByWeight ? <span className="text-xs">⚖️</span> : <IPlus className="h-3.5 w-3.5" />}
                         </span>
                       )}
                     </span>
@@ -1988,7 +2017,7 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
             ) : (
               <div className="max-h-[42vh] divide-y divide-brand-cream-soft/60 overflow-auto lg:max-h-[52vh]">
                 {order.items.map((it) => (
-                  <div key={it.productId ?? it.id} className="flex items-center gap-2 px-3 py-2.5">
+                  <div key={it.id} className="flex items-center gap-2 px-3 py-2.5">
                     <button
                       type="button"
                       disabled={!it.productId || !online}
@@ -1997,7 +2026,9 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                       className="min-w-0 flex-1 text-left"
                     >
                       <div className="truncate text-sm text-brand-ink">{it.name}</div>
-                      <div className="text-xs tabular-nums text-zinc-400">{fmt(it.price)}</div>
+                      <div className="text-xs tabular-nums text-zinc-400">
+                        {it.weightG ? `${(it.weightG / 1000).toFixed(3)} кг · ${fmt(it.price)}` : fmt(it.price)}
+                      </div>
                       {it.note ? (
                         <div className="truncate text-xs font-medium text-amber-600">✎ {it.note}</div>
                       ) : (
@@ -2006,7 +2037,11 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
                         )
                       )}
                     </button>
-                    {it.productId ? (
+                    {it.weightG ? (
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-brand">
+                        ⚖️ {(it.weightG / 1000).toFixed(2)}кг
+                      </span>
+                    ) : it.productId ? (
                       <div className="flex shrink-0 items-center gap-1">
                         <Step onClick={() => add(it.productId!, -1)}><IMinus className="h-4 w-4" /></Step>
                         <span className="w-6 text-center text-sm font-semibold tabular-nums">{it.qty}</span>
@@ -2855,6 +2890,70 @@ function Step({ onClick, children }: { onClick: () => void; children: ReactNode 
     >
       {children}
     </button>
+  );
+}
+
+// ⚖️ Оғирлик билан сотиш модали (гўшт кг): грамм киритилади, чизиқ нархи =
+// кг-нарх × грамм/1000 жонли кўрсатилади.
+function WeighSheet({
+  name,
+  pricePerKg,
+  onClose,
+  onWeigh,
+}: {
+  name: string;
+  pricePerKg: number;
+  onClose: () => void;
+  onWeigh: (grams: number) => void;
+}) {
+  const [g, setG] = useState("");
+  const grams = Math.round(Number(g) || 0);
+  const price = Math.round((pricePerKg * grams) / 1000);
+  const chips = [250, 500, 750, 1000, 1500, 2000];
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onClick={onClose}>
+      <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-bold text-brand-ink">⚖️ {name}</h3>
+            <p className="text-xs text-zinc-400">{fmt(pricePerKg)} so'm/кг — вазн киритинг</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
+        </div>
+        <input
+          autoFocus
+          inputMode="numeric"
+          value={g}
+          onChange={(e) => setG(e.target.value.replace(/\D/g, "").slice(0, 5))}
+          placeholder="грамм (масалан 350)"
+          className="w-full rounded-xl border border-brand-cream-soft px-3 py-3 text-right text-2xl font-bold tabular-nums outline-none focus:border-brand"
+        />
+        <div className="grid grid-cols-3 gap-1.5">
+          {chips.map((c) => (
+            <button
+              key={c}
+              onClick={() => setG(String(c))}
+              className="rounded-lg bg-brand-cream py-2 text-xs font-semibold text-brand"
+            >
+              {c < 1000 ? `${c} г` : `${c / 1000} кг`}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center justify-between rounded-xl bg-brand-cream/40 px-3 py-2">
+          <span className="text-sm text-zinc-500">{grams ? `${(grams / 1000).toFixed(3)} кг` : "—"}</span>
+          <span className="text-lg font-extrabold tabular-nums text-brand-ink">
+            {fmt(price)} <span className="text-xs font-normal text-zinc-400">so'm</span>
+          </span>
+        </div>
+        <button
+          onClick={() => grams > 0 && onWeigh(grams)}
+          disabled={grams <= 0}
+          className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+        >
+          Қўшиш
+        </button>
+      </div>
+    </div>
   );
 }
 

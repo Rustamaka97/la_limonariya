@@ -3246,6 +3246,8 @@ export const appRouter = router({
           // Стоп-лист: менюда хира «СТОП» бўлиб кўринади (яширилмайди —
           // официант «тугаган»ини кўриб туриши мижоз олдида фойдали).
           stopped: products.stopped,
+          // Оғирлик билан сотилади (гўшт кг) → плитка босилганда вазн сўралади.
+          soldByWeight: products.soldByWeight,
         })
         .from(products)
         .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -3325,6 +3327,7 @@ export const appRouter = router({
             name: orderItems.name,
             price: orderItems.price,
             qty: orderItems.qty,
+            weightG: orderItems.weightG,
             note: orderItems.note,
           })
           .from(orderItems)
@@ -3704,6 +3707,56 @@ export const appRouter = router({
           summary: input.locked ? "Заказ блокланди" : "Заказ блокдан ечилди",
         });
         return { ok: true, locked: input.locked };
+      }),
+
+    // ⚖️ Оғирлик билан сотиш (CloPOS «Продажи по порциям»): гўшт кг таомга вазн
+    // киритилади → чизиқ нархи = кг-нарх × грамм/1000 (jami), qty=1. Ҳар вазнлаш
+    // алоҳида чизиқ. weightG фақат кўрсатиш/чек учун — пул math ЎЗГАРМАЙДИ.
+    addWeighed: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          productId: z.string().uuid(),
+          grams: z.number().int().min(1).max(50000),
+          opId: z.string().uuid().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const head = (
+          await db
+            .select({ status: orders.status, locked: orders.locked })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked) throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
+        if (input.opId) {
+          const fresh = await db
+            .insert(clientOps)
+            .values({ opId: input.opId })
+            .onConflictDoNothing()
+            .returning({ opId: clientOps.opId });
+          if (fresh.length === 0) return { ok: true };
+        }
+        const p = (
+          await db.select().from(products).where(eq(products.id, input.productId)).limit(1)
+        )[0];
+        if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "Маҳсулот топилмади" });
+        if (p.stopped) throw new TRPCError({ code: "BAD_REQUEST", message: "Таом стопда — тугаган" });
+        const linePrice = Math.round((p.price * input.grams) / 1000);
+        await db.insert(orderItems).values({
+          orderId: input.orderId,
+          productId: p.id,
+          name: p.name,
+          price: linePrice,
+          qty: 1,
+          weightG: input.grams,
+        });
+        return { ok: true };
       }),
 
     sendToKitchen: protectedProcedure
