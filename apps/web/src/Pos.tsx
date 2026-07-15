@@ -484,7 +484,7 @@ function FloorView({
                           onClick={() =>
                             heatOn
                               ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
-                              : setNewFor({ hall: h, table: t.name })
+                              : void create(h.id, t.name, 2, "dine_in")
                           }
                           className="grid h-full w-full place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
                         >
