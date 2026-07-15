@@ -2055,8 +2055,8 @@ function OrderView({
           <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
             <button
               onClick={() => setMenuCat(null)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                menuCat === null ? "bg-brand text-white" : "bg-brand-cream text-brand hover:bg-brand-cream-soft"
+              className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition ${
+                menuCat === null ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "bg-brand-ink/80 hover:bg-brand-ink"
               }`}
             >
               Барчаси
@@ -2068,12 +2068,11 @@ function OrderView({
                 <button
                   key={c}
                   onClick={() => setMenuCat(c)}
-                  style={on ? { backgroundColor: color } : { color }}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                    on ? "text-white" : "bg-brand-cream hover:bg-brand-cream-soft"
+                  style={{ backgroundColor: color }}
+                  className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition ${
+                    on ? "ring-2 ring-brand-gold ring-offset-1" : "opacity-80 hover:opacity-100"
                   }`}
                 >
-                  {!on && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />}
                   {c}
                 </button>
               );
@@ -2084,7 +2083,8 @@ function OrderView({
               <EmptyLemon title="Топилмади" hint="Қидирув ёки категорияни ўзгартиринг" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            // CloPOS-услуб таом РЎЙХАТИ — ном чапда, нарх ўнгда, категория-ранг чап чизиқда
+            <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
               {shown.map((m) => {
                 const color = catColor(m.category);
                 return (
@@ -2093,29 +2093,27 @@ function OrderView({
                     onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
                     disabled={m.stopped}
                     style={{ borderLeftColor: m.stopped ? "#d4d4d8" : color }}
-                    className={`group flex h-full flex-col justify-between gap-2 rounded-xl border border-l-4 border-brand-cream-soft bg-white p-3 text-left shadow-sm transition ${
+                    className={`group flex w-full items-center gap-3 border-b border-l-4 border-b-brand-cream-soft px-4 py-3 text-left transition last:border-b-0 ${
                       m.stopped
                         ? "opacity-50 grayscale"
-                        : "hover:border-brand hover:shadow-md active:scale-95 motion-reduce:active:scale-100"
+                        : "hover:bg-brand-cream/40 active:bg-brand-cream/60"
                     }`}
                   >
-                    <span className="line-clamp-2 text-sm font-medium leading-snug text-brand-ink">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-brand-ink">
                       {m.name}
                     </span>
-                    <span className="flex items-center justify-between">
-                      <span className="text-sm font-bold tabular-nums text-brand">
-                        {fmt(m.price)}{m.soldByWeight ? "/кг" : ""}
-                      </span>
-                      {m.stopped ? (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
-                          СТОП
-                        </span>
-                      ) : (
-                        <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
-                          {m.soldByWeight ? <span className="text-xs">⚖️</span> : <IPlus className="h-3.5 w-3.5" />}
-                        </span>
-                      )}
+                    <span className="shrink-0 text-sm font-bold tabular-nums text-brand">
+                      {fmt(m.price)}{m.soldByWeight ? "/кг" : ""}
                     </span>
+                    {m.stopped ? (
+                      <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
+                        СТОП
+                      </span>
+                    ) : (
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
+                        {m.soldByWeight ? <span className="text-xs">⚖️</span> : <IPlus className="h-3.5 w-3.5" />}
+                      </span>
+                    )}
                   </button>
                 );
               })}
