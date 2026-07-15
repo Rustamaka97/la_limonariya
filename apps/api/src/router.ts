@@ -3310,6 +3310,7 @@ export const appRouter = router({
               guests: orders.guests,
               note: orders.note,
               locked: orders.locked,
+              hallId: orders.hallId,
               hall: halls.name,
               waiter: users.name,
             })
@@ -3757,6 +3758,185 @@ export const appRouter = router({
           weightG: input.grams,
         });
         return { ok: true };
+      }),
+
+    // ⑂ Счётни бўлиш (CloPOS «Разделить заказ»): танланган таомларни (тўлиқ ёки
+    // қисман) ЯНГИ оғайни-заказга КЎЧИРАДИ (бир стол). Ҳар заказ ўз субтоталини
+    // санайди → пул math ЎЗГАРМАЙДИ (price×qty бўлинади, drift йўқ) — pay/close
+    // оқими умуман тегилмайди. Кухня «юборилган»лиги: кўчирилган миқдорнинг
+    // ЮБОРИЛГАН қисми (min) янги заказга синтетик "transfer" тикет билан ўтади
+    // (bumpedAt=now → KDS'да кўринмайди, босилмайди) → таом иккинчи марта
+    // пиширилмайди. Юборилмаган қисм ҳақиқий юборилмаган бўлиб қолади (янги
+    // заказ уни кухняга юбора олади). mergeOrders'нинг тескариси.
+    splitOrder: protectedProcedure
+      .input(
+        z.object({
+          sourceId: z.string().uuid(),
+          items: z
+            .array(
+              z.object({
+                orderItemId: z.string().uuid(),
+                qty: z.number().int().positive(),
+              }),
+            )
+            .min(1),
+          // идемпотент: retry дубль заказ яратмасин.
+          newId: z.string().uuid().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.sourceId}))`);
+          await assertOrderAccess(tx, ctx.user, input.sourceId);
+          const src = (
+            await tx
+              .select({
+                status: orders.status,
+                locked: orders.locked,
+                hallId: orders.hallId,
+                tableNo: orders.tableNo,
+                servicePct: orders.servicePct,
+              })
+              .from(orders)
+              .where(eq(orders.id, input.sourceId))
+              .limit(1)
+              .for("update")
+          )[0];
+          if (!src) throw new TRPCError({ code: "NOT_FOUND" });
+          if (src.status !== "open")
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган — бўлиб бўлмайди" });
+          if (src.locked)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган — аввал блокни ечинг" });
+
+          // Идемпотентлик: newId билан заказ аллақачон яратилган бўлса — қайтарамиз.
+          if (input.newId) {
+            const existing = (
+              await tx.select({ id: orders.id }).from(orders).where(eq(orders.id, input.newId)).limit(1)
+            )[0];
+            if (existing) return { id: existing.id };
+          }
+
+          const srcItems = await tx
+            .select()
+            .from(orderItems)
+            .where(eq(orderItems.orderId, input.sourceId));
+          const byId = new Map(srcItems.map((i) => [i.id, i]));
+          // Дубликат orderItemId сўровини бирлаштириш (клиент хатоси ҳимояси).
+          const wanted = new Map<string, number>();
+          for (const r of input.items) wanted.set(r.orderItemId, (wanted.get(r.orderItemId) ?? 0) + r.qty);
+
+          const moves: { it: (typeof srcItems)[number]; qty: number }[] = [];
+          for (const [oiId, qty] of wanted) {
+            const it = byId.get(oiId);
+            if (!it) throw new TRPCError({ code: "BAD_REQUEST", message: "Таом бу заказда йўқ" });
+            if (qty > it.qty)
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Кўчириш миқдори кўп" });
+            if (it.weightG != null && qty !== it.qty)
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Оғирлик таомини бўлиб бўлмайди" });
+            moves.push({ it, qty });
+          }
+          const totalSrcQty = srcItems.reduce((s, i) => s + i.qty, 0);
+          const totalMoveQty = moves.reduce((s, m) => s + m.qty, 0);
+          if (totalMoveQty >= totalSrcQty)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Ҳаммасини бўлиб бўлмайди — камида битта таом қолсин",
+            });
+
+          // Янги оғайни-заказ (шу стол/зал/servicePct).
+          const newRow = (
+            await tx
+              .insert(orders)
+              .values({
+                ...(input.newId ? { id: input.newId } : {}),
+                hallId: src.hallId,
+                tableNo: src.tableNo,
+                waiterId: ctx.user.id,
+                servicePct: src.servicePct,
+              })
+              .returning({ id: orders.id })
+          )[0];
+          if (!newRow) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+          const newId = newRow.id;
+
+          // Итемларни кўчириш + кухня "юборилган" қопламини йиғиш.
+          const transfer: { productId: string; name: string; qty: number; note: string | null }[] = [];
+          for (const { it, qty } of moves) {
+            // Бу чизиқнинг ЮБОРИЛГАН миқдори (генерация floor'и билан — addItem семантикаси).
+            let sent = 0;
+            if (it.productId) {
+              const sentRow = (
+                await tx
+                  .select({ s: sql<number>`coalesce(sum(${kitchenTicketItems.qty}), 0)` })
+                  .from(kitchenTicketItems)
+                  .innerJoin(kitchenTickets, eq(kitchenTicketItems.ticketId, kitchenTickets.id))
+                  .where(
+                    and(
+                      eq(kitchenTickets.orderId, input.sourceId),
+                      eq(kitchenTicketItems.productId, it.productId),
+                      gte(kitchenTickets.createdAt, it.createdAt),
+                    ),
+                  )
+              )[0];
+              sent = Math.min(it.qty, Number(sentRow?.s ?? 0));
+            }
+            const transferSent = Math.min(qty, sent);
+            if (it.productId && transferSent > 0)
+              transfer.push({ productId: it.productId, name: it.name, qty: transferSent, note: it.note });
+
+            if (qty === it.qty) {
+              // Тўлиқ чизиқ — orderId'ни кўчирамиз (weightG ҳам ўзи билан кетади).
+              await tx.update(orderItems).set({ orderId: newId }).where(eq(orderItems.id, it.id));
+            } else {
+              // Қисман — манбани камайтириб, янги заказга янги чизиқ (оддий дона).
+              await tx.update(orderItems).set({ qty: it.qty - qty }).where(eq(orderItems.id, it.id));
+              await tx.insert(orderItems).values({
+                orderId: newId,
+                productId: it.productId,
+                name: it.name,
+                price: it.price,
+                qty,
+                note: it.note,
+              });
+            }
+          }
+
+          // Синтетик transfer-тикет: юборилган таом янги заказда ҳам "юборилган"
+          // саналсин (иккинчи марта пиширилмасин). bumpedAt=now → KDS'да кўринмайди.
+          if (transfer.length) {
+            const tk = (
+              await tx
+                .insert(kitchenTickets)
+                .values({
+                  orderId: newId,
+                  createdById: ctx.user.id,
+                  bumpedAt: new Date(),
+                  bumpedById: ctx.user.id,
+                })
+                .returning({ id: kitchenTickets.id })
+            )[0];
+            if (tk) {
+              await tx.insert(kitchenTicketItems).values(
+                transfer.map((t) => ({
+                  ticketId: tk.id,
+                  productId: t.productId,
+                  name: t.name,
+                  qty: t.qty,
+                  note: t.note,
+                })),
+              );
+            }
+          }
+
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "order.split",
+            entity: "order",
+            entityId: input.sourceId,
+            summary: `Счёт бўлинди → ${newId.slice(0, 5).toUpperCase()} (${totalMoveQty} таом)`,
+          });
+          return { id: newId };
+        });
       }),
 
     sendToKitchen: protectedProcedure

@@ -52,6 +52,7 @@ type Order = {
   tableNo: string | null;
   status: string;
   servicePct: number;
+  hallId: string;
   hall: string | null;
   waiter: string | null;
   guests: number | null;
@@ -232,7 +233,14 @@ function EmptyLemon({ title, hint }: { title: string; hint?: string }) {
 export function Pos({ user }: { user: SessionUser }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
-    return <OrderView id={orderId} user={user} onBack={() => setOrderId(null)} />;
+    return (
+      <OrderView
+        id={orderId}
+        user={user}
+        onBack={() => setOrderId(null)}
+        onSwitch={setOrderId}
+      />
+    );
   return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} />;
 }
 
@@ -538,6 +546,12 @@ function FloorView({
             setConflict(null);
             refresh();
           }}
+          onNew={() => {
+            // #3 Банд столга атайин янги заказ (CloPOS «Новый заказ»).
+            const hallId = conflict.orders[0]?.hallId;
+            if (hallId) void create(hallId, conflict.table, 1);
+            setConflict(null);
+          }}
         />
       )}
 
@@ -587,19 +601,21 @@ function ConflictSheet({
   onClose,
   canMerge,
   onMerge,
+  onNew,
 }: {
   data: { table: string; orders: OpenOrder[] };
   onPick: (orderId: string) => void;
   onClose: () => void;
   canMerge: boolean;
   onMerge: (fromId: string, toId: string) => void;
+  onNew: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-semibold text-brand-ink">⚠ «{data.table}» — {data.orders.length} та очиқ заказ</h3>
-        <p className="mt-1 text-xs text-zinc-500">Оффлайнда икки қурилмада очилган бўлиши мумкин. Заказни танланг:</p>
+        <h3 className="font-semibold text-brand-ink">«{data.table}» — {data.orders.length} та очиқ заказ</h3>
+        <p className="mt-1 text-xs text-zinc-500">Заказни танланг ёки шу столга янгисини очинг:</p>
         <div className="mt-3 space-y-2">
           {data.orders.map((o) => (
             <button
@@ -628,6 +644,12 @@ function ConflictSheet({
             🔗 Битта заказга бирлаштириш
           </button>
         )}
+        <button
+          onClick={onNew}
+          className="mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
+        >
+          ➕ Янги заказ шу столга
+        </button>
       </div>
     </div>
   );
@@ -1161,7 +1183,17 @@ function NewOrderSheet({
 }
 
 // ── ORDER SCREEN ────────────────────────────────────────────────────────────
-function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack: () => void }) {
+function OrderView({
+  id,
+  user,
+  onBack,
+  onSwitch,
+}: {
+  id: string;
+  user: SessionUser;
+  onBack: () => void;
+  onSwitch: (id: string) => void;
+}) {
   const canComp = ["director", "manager", "cashier"].includes(user.role);
   const canDiscount = ["director", "manager"].includes(user.role);
   // Чек ёпиш = кассир иши (сервер ҳам cashierProcedure билан ҳимоялайди).
@@ -1209,6 +1241,13 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
   const [precheckOk, setPrecheckOk] = useState(false);
   const [lockBusy, setLockBusy] = useState(false);
   const [weighFor, setWeighFor] = useState<MenuItem | null>(null);
+  // #3 Столда кўп заказ: бир столдаги очиқ оғайни-заказлар (шу заказдан ташқари).
+  const [siblings, setSiblings] = useState<OpenOrder[]>([]);
+  const [showSiblings, setShowSiblings] = useState(false);
+  const [newBusy, setNewBusy] = useState(false);
+  // #4 ⑂ Счёт-бўлиш.
+  const [showSplitBill, setShowSplitBill] = useState(false);
+  const [splitBusy, setSplitBusy] = useState(false);
   const [showStop, setShowStop] = useState(false);
   const [stopQ, setStopQ] = useState("");
   const [stopCat, setStopCat] = useState<string | null>(null);
@@ -1411,6 +1450,62 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
       await refresh();
     } catch (e) {
       setSyncErr(e instanceof Error ? e.message : "Вазн қўшилмади");
+    }
+  }
+
+  // #3 Столда кўп заказ: шу столнинг бошқа очиқ заказлари (dropdown учун).
+  const tno = order?.tableNo ?? null;
+  const hid = order?.hallId ?? null;
+  const loadSiblings = useCallback(async () => {
+    if (!tno || !hid) {
+      setSiblings([]);
+      return;
+    }
+    try {
+      const all = await trpc.pos.openOrders.query();
+      setSiblings(all.filter((o) => o.id !== id && o.hallId === hid && o.tableNo === tno));
+    } catch {
+      /* оффлайн — жим */
+    }
+  }, [id, hid, tno]);
+  useEffect(() => {
+    loadSiblings();
+  }, [loadSiblings]);
+
+  // #3 «+ Янги заказ»: шу столга яна бир очиқ заказ (CloPOS «Новый заказ»). Online.
+  async function createSibling() {
+    if (!order || newBusy) return;
+    setNewBusy(true);
+    try {
+      const nid = uuid();
+      await trpc.pos.create.mutate({
+        id: nid,
+        hallId: order.hallId,
+        tableNo: order.tableNo ?? undefined,
+      });
+      vibrate([10]);
+      setShowSiblings(false);
+      onSwitch(nid);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Янги заказ очилмади");
+    } finally {
+      setNewBusy(false);
+    }
+  }
+
+  // #4 ⑂ Счётни бўлиш: танланган таомлар ЯНГИ заказга кўчади → уни тўлашга ўтамиз.
+  async function doSplit(moves: { orderItemId: string; qty: number }[]) {
+    if (!order || splitBusy || moves.length === 0) return;
+    setSplitBusy(true);
+    try {
+      const res = await trpc.pos.splitOrder.mutate({ sourceId: id, items: moves, newId: uuid() });
+      vibrate([30, 40, 30]);
+      setShowSplitBill(false);
+      onSwitch(res.id);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Счёт бўлинмади");
+    } finally {
+      setSplitBusy(false);
     }
   }
 
@@ -1617,6 +1712,27 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
               {order.tableNo}
             </span>
           )}
+          {/* #3 Столда кўп заказ: оғайни-заказлар орасида ўтиш (CloPOS «#заказ ⌄»). */}
+          {order.tableNo && siblings.length > 0 && (
+            <button
+              onClick={() => setShowSiblings(true)}
+              title="Шу столдаги заказлар орасида ўтиш"
+              className="inline-flex h-9 items-center gap-1 rounded-lg bg-brand-gold/25 px-2.5 text-sm font-semibold text-brand transition hover:bg-brand-gold/40"
+            >
+              ⇅ {siblings.length + 1} заказ
+            </button>
+          )}
+          {/* #3 «+ Янги заказ» — шу столга яна бир очиқ чек (CloPOS «Новый заказ»). */}
+          {order.tableNo && (
+            <button
+              onClick={createSibling}
+              disabled={!online || newBusy}
+              title="Шу столга янги заказ"
+              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+            >
+              ➕ Заказ
+            </button>
+          )}
           <button
             onClick={() => setMoving(true)}
             disabled={!online}
@@ -1633,6 +1749,17 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           >
             {precheckOk ? "✓ Пречек босилди" : "🧾 Пречек"}
           </button>
+          {/* #4 ⑂ Счётни бўлиш — камида 2 таом-бирлиги бўлса (биттаси қолсин). */}
+          {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
+            <button
+              onClick={() => setShowSplitBill(true)}
+              disabled={!online}
+              title={online ? "Счётни бўлиш — таомларни алоҳида чекка" : "Оффлайн — уланганда"}
+              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+            >
+              ⑂ Бўлиш
+            </button>
+          )}
           {canComp && (
             <button
               onClick={toggleLock}
@@ -1694,6 +1821,32 @@ function OrderView({ id, user, onBack }: { id: string; user: SessionUser; onBack
           pricePerKg={weighFor.price}
           onClose={() => setWeighFor(null)}
           onWeigh={addWeighed}
+        />
+      )}
+
+      {/* #3 Оғайни-заказлар свитчери */}
+      {showSiblings && (
+        <SiblingsSheet
+          current={order}
+          siblings={siblings}
+          busy={newBusy}
+          online={online}
+          onClose={() => setShowSiblings(false)}
+          onPick={(oid) => {
+            setShowSiblings(false);
+            onSwitch(oid);
+          }}
+          onNew={createSibling}
+        />
+      )}
+
+      {/* #4 ⑂ Счёт-бўлиш */}
+      {showSplitBill && (
+        <SplitSheet
+          order={order}
+          busy={splitBusy}
+          onClose={() => setShowSplitBill(false)}
+          onSplit={doSplit}
         />
       )}
 
@@ -2952,6 +3105,167 @@ function WeighSheet({
         >
           Қўшиш
         </button>
+      </div>
+    </div>
+  );
+}
+
+// #3 Столда кўп заказ: жорий столнинг очиқ заказлари орасида ўтиш + янги очиш.
+function SiblingsSheet({
+  current,
+  siblings,
+  busy,
+  online,
+  onClose,
+  onPick,
+  onNew,
+}: {
+  current: Order;
+  siblings: OpenOrder[];
+  busy: boolean;
+  online: boolean;
+  onClose: () => void;
+  onPick: (id: string) => void;
+  onNew: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onClick={onClose}>
+      <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-bold text-brand-ink">⇅ {current.tableNo} — заказлар</h3>
+            <p className="text-xs text-zinc-400">Шу столда {siblings.length + 1} та очиқ заказ</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between rounded-xl border-2 border-brand bg-brand-cream/40 px-3 py-2.5">
+            <span className="text-sm font-semibold text-brand-ink">
+              №{current.checkNo} <span className="text-xs font-normal text-brand">(жорий)</span>
+            </span>
+            <span className="text-sm font-bold tabular-nums text-brand-ink">{fmt(current.total)}</span>
+          </div>
+          {siblings.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => onPick(s.id)}
+              className="flex w-full items-center justify-between rounded-xl border border-brand-cream-soft px-3 py-2.5 text-left transition hover:border-brand"
+            >
+              <span className="text-sm font-medium text-brand-ink">
+                №{s.id.slice(0, 5).toUpperCase()} · {s.qty} таом
+              </span>
+              <span className="text-sm font-semibold tabular-nums text-zinc-500">
+                {s.total === null ? "банд" : fmt(s.total)}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onNew}
+          disabled={!online || busy}
+          className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+        >
+          ➕ Янги заказ шу столга
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// #4 ⑂ Счётни бўлиш: ҳар таомдан нечтаси янги чекка ўтишини танлаш. Пул math
+// ўзгармайди — сервер танланган итемларни янги заказга кўчиради, ҳар чек ўзини
+// санайди. Камида битта таом жорий чекда қолиши шарт.
+function SplitSheet({
+  order,
+  busy,
+  onClose,
+  onSplit,
+}: {
+  order: Order;
+  busy: boolean;
+  onClose: () => void;
+  onSplit: (moves: { orderItemId: string; qty: number }[]) => void;
+}) {
+  const [pick, setPick] = useState<Record<string, number>>({});
+  const set = (id: string, q: number) => setPick((p) => ({ ...p, [id]: q }));
+  const totalQty = order.items.reduce((s, i) => s + i.qty, 0);
+  const movedQty = order.items.reduce((s, i) => s + Math.min(pick[i.id] ?? 0, i.qty), 0);
+  const movedSum = order.items.reduce((s, i) => s + i.price * Math.min(pick[i.id] ?? 0, i.qty), 0);
+  const stayQty = totalQty - movedQty;
+  const ok = movedQty >= 1 && stayQty >= 1;
+  const moves = order.items
+    .map((i) => ({ orderItemId: i.id, qty: Math.min(pick[i.id] ?? 0, i.qty) }))
+    .filter((m) => m.qty > 0);
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onClick={onClose}>
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-4 pb-2">
+          <div>
+            <h3 className="text-base font-bold text-brand-ink">⑂ Счётни бўлиш</h3>
+            <p className="text-xs text-zinc-400">Янги чекка ўтадиган таомларни танланг</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4">
+          {order.items.map((i) => {
+            const isWeight = i.weightG != null;
+            const q = Math.min(pick[i.id] ?? 0, i.qty);
+            return (
+              <div key={i.id} className="flex items-center gap-2 rounded-xl border border-brand-cream-soft px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-brand-ink">{i.name}</p>
+                  <p className="text-xs text-zinc-400">
+                    {isWeight ? `⚖️ ${((i.weightG ?? 0) / 1000).toFixed(2)}кг · ` : `${i.qty} × `}
+                    {fmt(i.price)}
+                  </p>
+                </div>
+                {isWeight ? (
+                  <button
+                    onClick={() => set(i.id, q ? 0 : 1)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${q ? "bg-brand text-white" : "bg-brand-cream text-brand"}`}
+                  >
+                    {q ? "✓ Кўчади" : "Кўчириш"}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => set(i.id, Math.max(0, q - 1))}
+                      disabled={q <= 0}
+                      className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-100 text-lg font-bold text-zinc-600 disabled:opacity-30"
+                    >
+                      −
+                    </button>
+                    <span className="w-8 text-center text-sm font-bold tabular-nums">{q}</span>
+                    <button
+                      onClick={() => set(i.id, Math.min(i.qty, q + 1))}
+                      disabled={q >= i.qty}
+                      className="grid h-8 w-8 place-items-center rounded-lg bg-brand-cream text-lg font-bold text-brand disabled:opacity-30"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="space-y-2 border-t border-brand-cream-soft p-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-500">Янги чекка: {movedQty} таом</span>
+            <span className="font-bold tabular-nums text-brand-ink">{fmt(movedSum)} so'm</span>
+          </div>
+          <p className="text-xs text-zinc-400">Жорий чекда қолади: {stayQty} таом</p>
+          <button
+            onClick={() => ok && onSplit(moves)}
+            disabled={!ok || busy}
+            className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+          >
+            {busy ? "Бўлинмоқда…" : `⑂ Бўлиш → янги чек`}
+          </button>
+          {movedQty > 0 && stayQty < 1 && (
+            <p className="text-center text-xs text-red-500">Камида битта таом жорий чекда қолиши керак</p>
+          )}
+        </div>
       </div>
     </div>
   );
