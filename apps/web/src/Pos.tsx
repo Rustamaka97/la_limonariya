@@ -486,7 +486,7 @@ function FloorView({
                               ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
                               : void create(h.id, t.name, 2, "dine_in")
                           }
-                          className="grid h-full w-full place-items-center rounded-xl border border-brand-cream-soft bg-white px-2 py-2 text-center text-xs font-medium leading-tight text-brand-ink/70 shadow-sm transition hover:border-brand hover:text-brand active:scale-95 motion-reduce:active:scale-100"
+                          className="grid h-full w-full place-items-center rounded-lg bg-brand-cream px-2 py-2 text-center text-sm font-semibold leading-tight text-brand-ink/55 transition hover:bg-brand-cream-soft hover:text-brand active:scale-95 motion-reduce:active:scale-100"
                         >
                           <span className="line-clamp-2">{t.name}</span>
                         </button>
@@ -866,10 +866,10 @@ const LONG_PRESS_MOVE_TOLERANCE = 10;
 // ── FLOOR эркин жойлашув: столлар сақланган (x,y)да; директор "Жойлаштириш"да
 // судрайди. Жойлаштирилмаган столлар авто-тўрга тушади. ─────────────────────
 const CANVAS_COLS = 6;
-const CELL_W = 128;
-const CELL_H = 92;
-const TILE_W = 112;
-const TILE_H = 76;
+const CELL_W = 164;
+const CELL_H = 116;
+const TILE_W = 148;
+const TILE_H = 96;
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
@@ -1029,7 +1029,7 @@ function TableTile({
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerLeave}
       style={heatColor ? { backgroundColor: heatColor } : undefined}
-      className={`flex ${fill ? "h-full w-full" : "min-h-[76px]"} flex-col justify-between rounded-xl p-2.5 text-left shadow-sm transition active:scale-95 motion-reduce:active:scale-100 ${
+      className={`flex ${fill ? "h-full w-full" : "min-h-[96px]"} flex-col justify-between rounded-lg p-3 text-left transition active:scale-95 motion-reduce:active:scale-100 ${
         heatColor
           ? "text-brand-ink"
           : conflict
@@ -1038,7 +1038,7 @@ function TableTile({
       }`}
     >
       <div className="flex items-start justify-between gap-1">
-        <span className="line-clamp-2 text-xs font-semibold leading-tight">
+        <span className="line-clamp-2 text-sm font-semibold leading-tight">
           {conflict && !heatColor ? "⚠ " : ""}
           {table}
         </span>
