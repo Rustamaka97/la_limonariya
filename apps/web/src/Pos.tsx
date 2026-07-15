@@ -387,42 +387,53 @@ function FloorView({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-brand-ink">Заллар</h2>
-          <p className="text-xs text-zinc-400">
+      {/* ── CloPOS-услуб тўқ зал-панели: зал-таблар чап, амаллар ўнг ─────────── */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-brand-ink px-3 py-2.5 shadow-md">
+        <div className="flex flex-1 flex-wrap items-center gap-1">
+          {[{ id: "all", name: "Барчаси" }, ...halls].map((h) => (
+            <button
+              key={h.id}
+              onClick={() => setHallFilter(h.id)}
+              className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
+                hallFilter === h.id
+                  ? "bg-white/15 text-white"
+                  : "text-white/55 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {h.name}
+            </button>
+          ))}
+          <span className="ml-1 hidden text-xs text-white/40 sm:inline">
             {orders === null ? "…" : `${busy} банд · ${tbls.length} стол`}
-          </p>
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          {user.role === "director" && (
-            <button
-              onClick={() => setHeatOn((v) => !v)}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[.98] motion-reduce:active:scale-100 ${
-                heatOn ? "bg-brand-gold text-brand-ink" : "bg-white text-brand-ink/70 hover:text-brand"
-              }`}
-            >
-              💰 Иссиқ харита
-            </button>
-          )}
-          {user.role === "director" && (
-            <button
-              onClick={() => setArrange((a) => !a)}
-              className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[.98] motion-reduce:active:scale-100 ${
-                arrange ? "bg-brand-ink text-white" : "bg-white text-brand-ink/70 hover:text-brand"
-              }`}
-            >
-              {arrange ? "✓ Тайёр" : "⠿ Жойлаштириш"}
-            </button>
-          )}
+        {user.role === "director" && (
           <button
-            onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-[.98] motion-reduce:active:scale-100"
+            onClick={() => setHeatOn((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              heatOn ? "bg-brand-gold text-brand-ink" : "bg-white/10 text-white/80 hover:bg-white/20"
+            }`}
           >
-            <IPlus className="h-4 w-4" />
-            Тезкор заказ
+            💰 Иссиқ
           </button>
-        </div>
+        )}
+        {user.role === "director" && (
+          <button
+            onClick={() => setArrange((a) => !a)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              arrange ? "bg-white text-brand-ink" : "bg-white/10 text-white/80 hover:bg-white/20"
+            }`}
+          >
+            {arrange ? "✓ Тайёр" : "⠿ Жойлаштириш"}
+          </button>
+        )}
+        <button
+          onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-gold px-4 py-2 text-sm font-bold text-brand-ink shadow-sm transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100"
+        >
+          <IPlus className="h-4 w-4" />
+          Тезкор заказ
+        </button>
       </div>
 
       {!online && (
@@ -435,23 +446,6 @@ function FloorView({
         <Spin />
       ) : (
         <>
-          {halls.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              {[{ id: "all", name: "Барчаси" }, ...halls].map((h) => (
-                <button
-                  key={h.id}
-                  onClick={() => setHallFilter(h.id)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                    hallFilter === h.id
-                      ? "bg-brand text-white"
-                      : "bg-white text-zinc-500 hover:bg-zinc-100"
-                  }`}
-                >
-                  {h.name}
-                </button>
-              ))}
-            </div>
-          )}
           {halls
             .filter((h) => hallFilter === "all" || h.id === hallFilter)
             .map((h) => {
@@ -1034,7 +1028,9 @@ function TableTile({
           ? "text-brand-ink"
           : conflict
             ? "bg-amber-600 hover:bg-amber-700 text-white"
-            : "bg-brand hover:bg-brand-deep text-white"
+            : order.mine
+              ? "bg-[#1f8fe0] hover:bg-[#1a7ec5] text-white"
+              : "bg-brand hover:bg-brand-deep text-white"
       }`}
     >
       <div>
