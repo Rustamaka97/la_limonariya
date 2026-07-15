@@ -486,7 +486,7 @@ function FloorView({
                               ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
                               : void create(h.id, t.name, 2, "dine_in")
                           }
-                          className="grid h-full w-full place-items-center rounded-lg bg-brand-cream px-2 py-2 text-center text-sm font-semibold leading-tight text-brand-ink/55 transition hover:bg-brand-cream-soft hover:text-brand active:scale-95 motion-reduce:active:scale-100"
+                          className="grid h-full w-full place-items-center rounded-lg bg-[#8a97a0] px-2 py-2 text-center text-sm font-semibold leading-tight text-white/95 shadow-sm transition hover:bg-[#7b8791] active:scale-95 motion-reduce:active:scale-100"
                         >
                           <span className="line-clamp-2">{t.name}</span>
                         </button>
@@ -1029,7 +1029,7 @@ function TableTile({
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerLeave}
       style={heatColor ? { backgroundColor: heatColor } : undefined}
-      className={`flex ${fill ? "h-full w-full" : "min-h-[96px]"} flex-col justify-between rounded-lg p-3 text-left transition active:scale-95 motion-reduce:active:scale-100 ${
+      className={`flex ${fill ? "h-full w-full" : "min-h-[96px]"} flex-col justify-between rounded-lg p-3 text-left shadow-sm transition active:scale-95 motion-reduce:active:scale-100 ${
         heatColor
           ? "text-brand-ink"
           : conflict
@@ -1037,25 +1037,22 @@ function TableTile({
             : "bg-brand hover:bg-brand-deep text-white"
       }`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <span className="line-clamp-2 text-sm font-semibold leading-tight">
+      <div>
+        <div className="line-clamp-1 text-sm font-bold leading-tight">
           {conflict && !heatColor ? "⚠ " : ""}
           {table}
-        </span>
-        {order.guests ? (
-          <span
-            className={`inline-flex shrink-0 items-center gap-0.5 rounded px-1 text-[10px] font-semibold ${
-              heatColor ? "bg-brand-ink/10" : "bg-white/15"
-            }`}
-          >
-            <IUser className="h-3 w-3" />
-            {order.guests}
-          </span>
+        </div>
+        {order.waiter && !heatColor ? (
+          <div className="line-clamp-1 text-xs font-medium text-white/70">({order.waiter})</div>
+        ) : order.guests ? (
+          <div className={`text-xs ${heatColor ? "text-brand-ink/50" : "text-white/60"}`}>
+            <IUser className="inline h-3 w-3" /> {order.guests}
+          </div>
         ) : null}
       </div>
       <div>
-        <div className={`text-sm font-bold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
-          {order.total === null ? "🔒 банд" : fmt(order.total)}
+        <div className={`text-base font-extrabold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
+          {order.total === null ? "🔒 банд" : `${fmt(order.total)} so'm`}
         </div>
         {(() => {
           // Хит-харита режимида ранг = 30 кунлик пул (вақт-эскалация аралашмасин).
