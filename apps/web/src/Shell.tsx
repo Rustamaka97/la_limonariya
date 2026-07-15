@@ -96,16 +96,11 @@ export function Shell({
     return () => clearInterval(t);
   }, []);
   const clock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  // CloPOS каби: PIN'дан кейин биринчи ойна — доим Касса (пол). POS ролларининг
+  // ҳаммаси (директор ҳам) кириши билан столларни кўради; директор истаса
+  // «Бошқарув» табига ўтади. POS'сиз роллар (бозорчи) — обвалка/каталог.
   const [tab, setTab] = useState<Tab>(
-    (posHost || isTerminal) && canPos
-      ? "pos"
-      : isDirector
-        ? "dashboard"
-        : user.role === "cashier" || user.role === "waiter"
-          ? "pos"
-          : canObvalka
-            ? "obvalka"
-            : "catalog",
+    canPos ? "pos" : canObvalka ? "obvalka" : "catalog",
   );
 
   async function logout() {
