@@ -37,6 +37,7 @@ type OpenOrder = {
   tableNo: string | null;
   hallId: string;
   guests: number | null;
+  saleType?: string;
   hall: string | null;
   waiter: string | null;
   qty: number;
@@ -63,6 +64,8 @@ type Order = {
   discountAmount: number;
   discountReason: string | null;
   locked: boolean;
+  serviceWaived: boolean;
+  saleType: string;
   items: {
     id: string;
     productId: string | null;
@@ -88,6 +91,14 @@ const PAY_LABEL: Record<string, string> = {
   payme: "Payme",
   humo: "Ҳумо",
   debt: "Қарз",
+};
+
+// Сотув тури — ёрлиқ + иконка (CloPOS «На месте / Доставка / С собой»).
+const SALE_TYPES = ["dine_in", "delivery", "takeaway"] as const;
+const SALE_TYPE_META: Record<string, { icon: string; label: string }> = {
+  dine_in: { icon: "🍽", label: "Залда" },
+  delivery: { icon: "🛵", label: "Доставка" },
+  takeaway: { icon: "🥡", label: "Собой" },
 };
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
@@ -328,23 +339,32 @@ function FloorView({
     return lerpHeat(pct);
   };
 
-  async function create(hallId: string, table: string | undefined, guests: number) {
+  async function create(hallId: string, table: string | undefined, guests: number, saleType = "dine_in") {
     // Offline-first: локал заказ + навбат; уланганда синхрон (идемпотент client id).
     const hall = halls.find((h) => h.id === hallId);
     const id = uuid();
+    // Доставка/собой — сервис олинмайди (сервер ҳам шундай яратади).
+    const waive = saleType !== "dine_in";
     const persisted = await enqueueCreate({
       id,
       hallId,
       hall: hall?.name ?? null,
       tableNo: table || undefined,
-      servicePct: hall?.servicePct ?? 0,
+      servicePct: waive ? 0 : hall?.servicePct ?? 0,
       guests,
       waiter: user.name,
+      saleType,
     });
     if (!persisted) {
       // IndexedDB йўқ (private mode) — тўғридан-тўғри серверга (идемпотент).
       try {
-        await trpc.pos.create.mutate({ id, hallId, tableNo: table || undefined, guests });
+        await trpc.pos.create.mutate({
+          id,
+          hallId,
+          tableNo: table || undefined,
+          guests,
+          saleType: saleType as "dine_in" | "delivery" | "takeaway",
+        });
       } catch {
         alert("Заказ очилмади — оффлайн ва хотира ишламаяпти.");
         return;
@@ -1075,18 +1095,19 @@ function NewOrderSheet({
   halls: Hall[];
   preset: { hall: Hall; table?: string };
   onClose: () => void;
-  onCreate: (hallId: string, table: string | undefined, guests: number) => void;
+  onCreate: (hallId: string, table: string | undefined, guests: number, saleType: string) => void;
 }) {
   const [hallId, setHallId] = useState(preset.hall.id);
   const [table, setTable] = useState(preset.table ?? "");
   const [guests, setGuests] = useState(2);
+  const [saleType, setSaleType] = useState<string>("dine_in");
   const [busy, setBusy] = useState(false);
   const fixedTable = preset.table !== undefined;
 
   async function go() {
     setBusy(true);
     try {
-      onCreate(hallId, table || undefined, guests);
+      onCreate(hallId, table || undefined, guests, saleType);
     } finally {
       setBusy(false);
     }
@@ -1132,6 +1153,26 @@ function NewOrderSheet({
             />
           </>
         )}
+
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-zinc-500">Сотув тури</p>
+          <div className="flex gap-1.5">
+            {SALE_TYPES.map((st) => (
+              <button
+                key={st}
+                onClick={() => setSaleType(st)}
+                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+                  saleType === st ? "bg-brand text-white" : "bg-brand-cream text-brand hover:bg-brand-cream-soft"
+                }`}
+              >
+                {SALE_TYPE_META[st]?.icon} {SALE_TYPE_META[st]?.label}
+              </button>
+            ))}
+          </div>
+          {saleType !== "dine_in" && (
+            <p className="mt-1.5 text-[11px] text-zinc-400">Хизмат ҳақи олинмайди (кейин ёқса бўлади)</p>
+          )}
+        </div>
 
         <div>
           <p className="mb-1.5 text-xs font-semibold text-zinc-500">Меҳмонлар сони</p>
@@ -1438,6 +1479,36 @@ function OrderView({
     }
   }
 
+  // 🍽 Хизмат ҳақини кечириш/тиклаш (CloPOS «Удалить плату за обслуживание»).
+  // Кечирилса сервис 0 бўлади — олиб кетиш/шикоят/ходим учун.
+  const [serviceBusy, setServiceBusy] = useState(false);
+  async function toggleService() {
+    if (!order) return;
+    const next = !order.serviceWaived;
+    setServiceBusy(true);
+    try {
+      await trpc.pos.setService.mutate({ orderId: id, waived: next });
+      vibrate([10]);
+      await refresh();
+    } catch (e) {
+      setSyncErr(e instanceof Error ? e.message : "Хизмат ҳақи ўзгармади");
+    } finally {
+      setServiceBusy(false);
+    }
+  }
+
+  // Сотув турини ўзгартириш (зал/доставка/собой).
+  async function changeSaleType(st: string) {
+    if (!order || order.saleType === st) return;
+    try {
+      await trpc.pos.setSaleType.mutate({ orderId: id, saleType: st as "dine_in" | "delivery" | "takeaway" });
+      vibrate([10]);
+      await refresh();
+    } catch (e) {
+      setSyncErr(e instanceof Error ? e.message : "Сотув тури ўзгармади");
+    }
+  }
+
   // ⚖️ Оғирлик билан таом қўшиш (гўшт кг): вазн киритилади → сервер чизиқ нархини
   // (кг-нарх × грамм/1000) ҳисоблайди. Ҳар вазнлаш алоҳида чизиқ.
   async function addWeighed(grams: number) {
@@ -1712,6 +1783,22 @@ function OrderView({
               {order.tableNo}
             </span>
           )}
+          {/* Сотув тури чипи — босилса кейинги турга ўтади (зал→доставка→собой). */}
+          <button
+            onClick={() => {
+              const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
+              changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
+            }}
+            disabled={!online}
+            title="Сотув турини ўзгартириш (зал/доставка/собой)"
+            className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
+              order.saleType === "dine_in"
+                ? "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+                : "bg-brand-gold/25 text-brand hover:bg-brand-gold/40"
+            }`}
+          >
+            {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+          </button>
           {/* #3 Столда кўп заказ: оғайни-заказлар орасида ўтиш (CloPOS «#заказ ⌄»). */}
           {order.tableNo && siblings.length > 0 && (
             <button
@@ -1772,6 +1859,21 @@ function OrderView({
               }`}
             >
               {order.locked ? "🔓 Ечиш" : "🔒 Блок"}
+            </button>
+          )}
+          {/* 🍽 Хизмат ҳақи тоггли — сервиси бор ёки кечирилган заказларда. */}
+          {canComp && (order.servicePct > 0 || order.serviceWaived) && (
+            <button
+              onClick={toggleService}
+              disabled={serviceBusy || !online || order.locked}
+              title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш (олиб кетиш/шикоят)"}
+              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm transition disabled:opacity-30 ${
+                order.serviceWaived
+                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+              }`}
+            >
+              {order.serviceWaived ? "🍽 Сервис ёқиш" : "🍽 Сервиссиз"}
             </button>
           )}
           {canComp && (
@@ -2640,7 +2742,23 @@ function OrderView({
               </>
             ) : (
               <div className="space-y-2 rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-3">
-                <p className="text-xs font-semibold text-brand-gold-deep">Текин — сабабини ёзинг</p>
+                <p className="text-xs font-semibold text-brand-gold-deep">Текин — сабабини танланг ёки ёзинг</p>
+                {/* CloPOS «Закрыть без оплаты» сабаб-таксономияси — тез танлаш. */}
+                <div className="flex flex-wrap gap-1.5">
+                  {["Меҳмон кетди", "Компания ҳисобидан", "Официант хатоси", "Директор меҳмони"].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setCompReason(r)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                        compReason === r
+                          ? "bg-brand-gold-deep text-white"
+                          : "bg-white text-brand-gold-deep hover:bg-brand-gold/20"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
                 <input
                   autoFocus
                   value={compReason}

@@ -232,6 +232,11 @@ export const tables = pgTable("tables", {
 
 export const orderStatus = pgEnum("order_status", ["open", "closed", "cancelled"]);
 
+// Сотув тури (CloPOS «На месте / Доставка / С собой»): dine_in = залда (стол
+// керак), delivery = етказиб бериш, takeaway = олиб кетиш (стол шарт эмас).
+// Фақат метадата + чек/KDS ёрлиғи + ҳисобот — пул математикасига тегмайди.
+export const saleType = pgEnum("sale_type", ["dine_in", "delivery", "takeaway"]);
+
 // Қарздор меҳмон: қарз танланганда МАЖБУРИЙ бириктирилади (kim qarzdor —
 // running-balans shu customer bo'yicha). Nom majburiy, telefon ixtiyoriy.
 export const customers = pgTable("customers", {
@@ -305,6 +310,12 @@ export const orders = pgTable(
     locked: boolean("locked").notNull().default(false),
     lockedAt: timestamp("locked_at", { withTimezone: true }),
     lockedById: uuid("locked_by_id").references(() => users.id),
+    // 🍽 Хизмат ҳақи (сервис %) кечирилдими (CloPOS «Удалить плату за
+    // обслуживание») — олиб кетиш/шикоят/ходим. Кечирилганда servicePct=0
+    // қилинади (пул автоматик 0), бу флаг фақат UI ҳолати + аудит учун.
+    serviceWaived: boolean("service_waived").notNull().default(false),
+    // Сотув тури (зал/доставка/собой). Дефолт залда.
+    saleType: saleType("sale_type").notNull().default("dine_in"),
   },
   (t) => [index("orders_status_closed_idx").on(t.status, t.closedAt)],
 );

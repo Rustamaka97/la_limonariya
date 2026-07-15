@@ -24,6 +24,7 @@ export type OutboxOp = { seq: number; tries: number; ts: number } & (
       guests?: number;
       note?: string;
       waiter: string | null;
+      saleType?: string;
     }
   | { kind: "addItem"; orderId: string; opId: string; productId: string; delta: number; name: string; price: number }
   | { kind: "updateMeta"; orderId: string; guests?: number; note?: string }
@@ -41,6 +42,7 @@ export type OverlayHead = {
   guests: number | null;
   note: string | null;
   waiter: string | null;
+  saleType?: string;
   createdAt: string;
   base: LocalItem[]; // сервердаги охирги ҳолат snapshot'и ([] = ҳали синхронланмаган)
   error: string | null;
@@ -61,6 +63,8 @@ export type LocalOrder = {
   compReason: string | null;
   discountAmount: number;
   discountReason: string | null;
+  serviceWaived: boolean;
+  saleType: string;
   items: LocalItem[];
   payments: { method: string; amount: number }[];
   subtotal: number;
@@ -98,7 +102,7 @@ export type Net = {
 
 const realStore: Store = { all: idbAll, put: idbPut, del: idbDel, getIn: idbGetIn, kvGet: idbGet, kvSet: idbSet };
 const realNet: Net = {
-  create: (o) => trpc.pos.create.mutate({ id: o.orderId, hallId: o.hallId, tableNo: o.tableNo, guests: o.guests, note: o.note }),
+  create: (o) => trpc.pos.create.mutate({ id: o.orderId, hallId: o.hallId, tableNo: o.tableNo, guests: o.guests, note: o.note, saleType: o.saleType as "dine_in" | "delivery" | "takeaway" | undefined }),
   addItem: (o) => trpc.pos.addItem.mutate({ orderId: o.orderId, productId: o.productId, delta: o.delta, opId: o.opId }),
   updateMeta: (o) => trpc.pos.updateMeta.mutate({ id: o.orderId, guests: o.guests, note: o.note }),
   sendToKitchen: (o) => trpc.pos.sendToKitchen.mutate({ orderId: o.orderId, ticketId: o.opId }),
@@ -147,6 +151,8 @@ export function deriveOrderFrom(head: OverlayHead, ops: OutboxOp[]): LocalOrder 
     compReason: null,
     discountAmount: 0,
     discountReason: null,
+    serviceWaived: head.saleType != null && head.saleType !== "dine_in",
+    saleType: head.saleType ?? "dine_in",
     items,
     payments: [],
     subtotal,
@@ -214,6 +220,7 @@ export async function enqueueCreate(p: {
   guests?: number;
   note?: string;
   waiter: string | null;
+  saleType?: string;
 }): Promise<boolean> {
   try {
     const seq = await nextSeq();
@@ -231,6 +238,7 @@ export async function enqueueCreate(p: {
       guests: p.guests,
       note: p.note,
       waiter: p.waiter,
+      saleType: p.saleType,
     } satisfies OutboxOp);
     const head: OverlayHead = {
       id: p.id,
@@ -241,6 +249,7 @@ export async function enqueueCreate(p: {
       guests: p.guests ?? null,
       note: p.note ?? null,
       waiter: p.waiter,
+      saleType: p.saleType,
       createdAt: new Date().toISOString(),
       base: [],
       error: null,

@@ -3262,6 +3262,7 @@ export const appRouter = router({
           tableNo: orders.tableNo,
           hallId: orders.hallId,
           guests: orders.guests,
+          saleType: orders.saleType,
           createdAt: orders.createdAt,
           hall: halls.name,
           waiter: users.name,
@@ -3310,6 +3311,8 @@ export const appRouter = router({
               guests: orders.guests,
               note: orders.note,
               locked: orders.locked,
+              serviceWaived: orders.serviceWaived,
+              saleType: orders.saleType,
               hallId: orders.hallId,
               hall: halls.name,
               waiter: users.name,
@@ -3364,6 +3367,7 @@ export const appRouter = router({
           tableNo: z.string().optional(),
           guests: z.number().int().positive().max(999).optional(),
           note: z.string().max(500).optional(),
+          saleType: z.enum(["dine_in", "delivery", "takeaway"]).optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -3371,6 +3375,10 @@ export const appRouter = router({
           await db.select().from(halls).where(eq(halls.id, input.hallId)).limit(1)
         )[0];
         if (!hall) throw new TRPCError({ code: "NOT_FOUND" });
+        // Доставка/собой — хизмат ҳақи одатда олинмайди → авто-кечириш
+        // (servicePct=0, serviceWaived=true). Кассир кейин қайта ёқа олади.
+        const st = input.saleType ?? "dine_in";
+        const waive = st !== "dine_in";
         const row = (
           await db
             .insert(orders)
@@ -3381,7 +3389,9 @@ export const appRouter = router({
               guests: input.guests ?? null,
               note: input.note?.trim() || null,
               waiterId: ctx.user.id,
-              servicePct: hall.servicePct,
+              servicePct: waive ? 0 : hall.servicePct,
+              serviceWaived: waive,
+              saleType: st,
             })
             .onConflictDoNothing()
             .returning()
@@ -3708,6 +3718,74 @@ export const appRouter = router({
           summary: input.locked ? "Заказ блокланди" : "Заказ блокдан ечилди",
         });
         return { ok: true, locked: input.locked };
+      }),
+
+    // 🍽 Хизмат ҳақини кечириш/тиклаш (CloPOS «Удалить плату за обслуживание»):
+    // кечирилса servicePct=0 (пул автоматик 0 — ҳисоб-код тегилмайди), тикланса
+    // залнинг сервис %и қайтади. serviceWaived флаг — UI/аудит учун.
+    setService: cashierProcedure
+      .input(z.object({ orderId: z.string().uuid(), waived: z.boolean() }))
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const head = (
+          await db
+            .select({
+              status: orders.status,
+              serviceWaived: orders.serviceWaived,
+              hallId: orders.hallId,
+            })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.serviceWaived === input.waived)
+          return { ok: true, waived: input.waived };
+        let pct = 0;
+        if (!input.waived) {
+          const hall = (
+            await db
+              .select({ servicePct: halls.servicePct })
+              .from(halls)
+              .where(eq(halls.id, head.hallId))
+              .limit(1)
+          )[0];
+          pct = hall?.servicePct ?? 0;
+        }
+        await db
+          .update(orders)
+          .set({ serviceWaived: input.waived, servicePct: pct })
+          .where(eq(orders.id, input.orderId));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: input.waived ? "order.service_waive" : "order.service_restore",
+          entity: "order",
+          entityId: input.orderId,
+          summary: input.waived ? "Хизмат ҳақи кечирилди" : "Хизмат ҳақи тикланди",
+        });
+        return { ok: true, waived: input.waived };
+      }),
+
+    // Сотув турини ўзгартириш (CloPOS «Изменить тип продажи»): зал/доставка/собой.
+    setSaleType: protectedProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          saleType: z.enum(["dine_in", "delivery", "takeaway"]),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const done = await db
+          .update(orders)
+          .set({ saleType: input.saleType })
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")))
+          .returning({ id: orders.id });
+        if (!done.length)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
+        return { ok: true, saleType: input.saleType };
       }),
 
     // ⚖️ Оғирлик билан сотиш (CloPOS «Продажи по порциям»): гўшт кг таомга вазн
