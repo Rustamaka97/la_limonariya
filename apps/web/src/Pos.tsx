@@ -1765,15 +1765,97 @@ function OrderView({
   );
 
   return (
-    <div className="space-y-3 pb-24 lg:pb-0">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex gap-2 pb-24 lg:pb-0">
+      {/* ── CloPOS-услуб чап амал-рельси (иконкалар) ───────────────────────── */}
+      <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl border border-brand-cream-soft bg-white p-1.5 shadow-sm">
         <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-white hover:text-brand"
+          onClick={() => setMoving(true)}
+          disabled={!online}
+          title={online ? "Бошқа столга кўчириш" : "Оффлайн — уланганда"}
+          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
         >
-          <IBack className="h-4 w-4" />
-          Заллар
+          ⇄
         </button>
+        <button
+          onClick={doPrecheck}
+          disabled={precheckBusy}
+          title="Пречек чоп этиш"
+          className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+            precheckOk ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+          }`}
+        >
+          {precheckOk ? "✓" : "🧾"}
+        </button>
+        {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
+          <button
+            onClick={() => setShowSplitBill(true)}
+            disabled={!online}
+            title={online ? "Счётни бўлиш — таомларни алоҳида чекка" : "Оффлайн — уланганда"}
+            className="grid h-11 w-11 place-items-center rounded-xl text-lg text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+          >
+            ⑂
+          </button>
+        )}
+        {canComp && (
+          <button
+            onClick={toggleLock}
+            disabled={lockBusy || !online}
+            title={order.locked ? "Блокни ечиш" : "Заказни блоклаш — ўзгартиришдан ҳимоя"}
+            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+            }`}
+          >
+            {order.locked ? "🔓" : "🔒"}
+          </button>
+        )}
+        {canComp && (order.servicePct > 0 || order.serviceWaived) && (
+          <button
+            onClick={toggleService}
+            disabled={serviceBusy || !online || order.locked}
+            title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш (олиб кетиш/шикоят)"}
+            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+            }`}
+          >
+            🍽
+          </button>
+        )}
+        {canComp && (
+          <button
+            onClick={() => setShowStop(true)}
+            disabled={!online}
+            title={online ? "Стоп-лист — тугаган таомлар" : "Оффлайн — уланганда"}
+            className="relative grid h-11 w-11 place-items-center rounded-xl text-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+          >
+            🛑
+            {stoppedCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                {stoppedCount}
+              </span>
+            )}
+          </button>
+        )}
+        <div className="my-0.5 h-px bg-brand-cream-soft" />
+        <button
+          onClick={() => setCancelling((v) => !v)}
+          disabled={!online}
+          title={online ? "Заказни бекор қилиш" : "Оффлайн — уланганда"}
+          className="grid h-11 w-11 place-items-center rounded-xl text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+        >
+          <ITrash className="h-5 w-5" />
+        </button>
+      </nav>
+
+      {/* ── Асосий устун (header + меню + cart + модаллар) ──────────────────── */}
+      <div className="min-w-0 flex-1 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-white hover:text-brand"
+          >
+            <IBack className="h-4 w-4" />
+            Заллар
+          </button>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <span className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white">
             {order.hall ?? "Зал"}
@@ -1820,80 +1902,6 @@ function OrderView({
               ➕ Заказ
             </button>
           )}
-          <button
-            onClick={() => setMoving(true)}
-            disabled={!online}
-            title={online ? "Бошқа столга кўчириш" : "Оффлайн — уланганда"}
-            className="grid h-9 w-9 place-items-center rounded-lg text-base text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
-          >
-            ⇄
-          </button>
-          <button
-            onClick={doPrecheck}
-            disabled={precheckBusy}
-            title="Пречек чоп этиш"
-            className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
-          >
-            {precheckOk ? "✓ Пречек босилди" : "🧾 Пречек"}
-          </button>
-          {/* #4 ⑂ Счётни бўлиш — камида 2 таом-бирлиги бўлса (биттаси қолсин). */}
-          {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
-            <button
-              onClick={() => setShowSplitBill(true)}
-              disabled={!online}
-              title={online ? "Счётни бўлиш — таомларни алоҳида чекка" : "Оффлайн — уланганда"}
-              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
-            >
-              ⑂ Бўлиш
-            </button>
-          )}
-          {canComp && (
-            <button
-              onClick={toggleLock}
-              disabled={lockBusy || !online}
-              title={order.locked ? "Блокни ечиш" : "Заказни блоклаш — ўзгартиришдан ҳимоя"}
-              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm transition disabled:opacity-30 ${
-                order.locked
-                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                  : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
-              }`}
-            >
-              {order.locked ? "🔓 Ечиш" : "🔒 Блок"}
-            </button>
-          )}
-          {/* 🍽 Хизмат ҳақи тоггли — сервиси бор ёки кечирилган заказларда. */}
-          {canComp && (order.servicePct > 0 || order.serviceWaived) && (
-            <button
-              onClick={toggleService}
-              disabled={serviceBusy || !online || order.locked}
-              title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш (олиб кетиш/шикоят)"}
-              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm transition disabled:opacity-30 ${
-                order.serviceWaived
-                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                  : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
-              }`}
-            >
-              {order.serviceWaived ? "🍽 Сервис ёқиш" : "🍽 Сервиссиз"}
-            </button>
-          )}
-          {canComp && (
-            <button
-              onClick={() => setShowStop(true)}
-              disabled={!online}
-              title={online ? "Стоп-лист — тугаган таомлар" : "Оффлайн — уланганда"}
-              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
-            >
-              🛑 Стоп{stoppedCount > 0 ? ` · ${stoppedCount}` : ""}
-            </button>
-          )}
-          <button
-            onClick={() => setCancelling((v) => !v)}
-            disabled={!online}
-            title={online ? "Заказни бекор қилиш" : "Оффлайн — уланганда"}
-            className="grid h-9 w-9 place-items-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
-          >
-            <ITrash className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
@@ -2796,6 +2804,7 @@ function OrderView({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
