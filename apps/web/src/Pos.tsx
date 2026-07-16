@@ -2092,76 +2092,90 @@ function OrderView({
               className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
             />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
-            <button
-              onClick={() => setMenuCat(null)}
-              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-1 ${
-                menuCat === null ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "bg-brand-ink/80 hover:bg-brand-ink"
-              }`}
-            >
-              Барчаси
-            </button>
-            {menuCats.map((c) => {
-              const on = menuCat === c;
-              // Рангли категория-плиткалар (CloPOS-услуб тез сканерлаш): фаол =
-              // изумруд+голд ринг, нофаол = катергория ранги (catColor).
-              return (
-                <button
-                  key={c}
-                  onClick={() => setMenuCat(c)}
-                  style={on ? undefined : { backgroundColor: catColor(c) }}
-                  className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-1 ${
-                    on ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "brightness-100 hover:brightness-110"
-                  }`}
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
-          {shown.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-brand-cream-soft bg-white/60">
-              <EmptyLemon title="Топилмади" hint="Қидирув ёки категорияни ўзгартиринг" />
-            </div>
-          ) : (
-            // CloPOS-услуб таом РЎЙХАТИ — ном чапда, нарх ўнгда, категория-ранг чап чизиқда
-            <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
-              {shown.map((m) => {
+          {/* CloPOS drill-down: қидирувсиз ва категориясиз — 5× КАТЕГОРИЯ-СЕТКА;
+              категория/қидирув танланса — таомлар + «орқага». */}
+          {!q && !menuCat ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {menuCats.map((c) => {
+                const n = menu.filter((m) => m.category === c).length;
                 return (
                   <button
-                    key={m.id}
-                    onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
-                    disabled={m.stopped}
-                    className={`group flex w-full items-center gap-3 border-b border-b-brand-cream-soft px-4 py-3 text-left transition last:border-b-0 ${
-                      m.stopped
-                        ? "opacity-50 grayscale"
-                        : "hover:bg-brand-cream/40 active:bg-brand-cream/60"
-                    }`}
+                    key={c}
+                    onClick={() => setMenuCat(c)}
+                    style={{ backgroundColor: catColor(c) }}
+                    className="flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-3 text-center text-sm font-bold uppercase leading-tight tracking-wide text-white shadow-[2px_3px_0_0_rgba(0,0,0,.18)] transition hover:brightness-110 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold motion-reduce:active:scale-100"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-brand-ink">
-                      {m.name}
-                    </span>
-                    <span className="shrink-0 text-sm font-bold tabular-nums text-brand">
-                      {fmt(m.price)}{m.soldByWeight ? "/кг" : ""}
-                    </span>
-                    {m.stopped ? (
-                      <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
-                        СТОП
-                      </span>
-                    ) : (
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
-                        {m.soldByWeight ? <IScale className="h-4 w-4" /> : <IPlus className="h-3.5 w-3.5" />}
-                      </span>
-                    )}
+                    <span className="line-clamp-2">{c}</span>
+                    <span className="text-[11px] font-semibold tabular-nums text-white/75">{n} та</span>
                   </button>
                 );
               })}
             </div>
-          )}
-          {filtered.length > shown.length && (
-            <p className="text-center text-xs text-zinc-400">
-              яна {filtered.length - shown.length} та — қидирувдан фойдаланинг
-            </p>
+          ) : (
+            <div className="space-y-3">
+              {/* Орқага категория-сеткага + жорий контекст */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setMenuCat(null); setQ(""); }}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-cream px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand-cream-soft"
+                >
+                  <IBack className="h-4 w-4" /> Категориялар
+                </button>
+                {menuCat && (
+                  <span
+                    className="inline-flex items-center gap-1.5 truncate rounded-lg px-3 py-2 text-sm font-bold uppercase tracking-wide text-white"
+                    style={{ backgroundColor: catColor(menuCat) }}
+                  >
+                    {menuCat} <span className="font-semibold text-white/75">· {filtered.length}</span>
+                  </span>
+                )}
+                {q && (
+                  <span className="truncate text-sm text-zinc-500">«{q}» — {filtered.length} та</span>
+                )}
+              </div>
+              {shown.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-brand-cream-soft bg-white/60">
+                  <EmptyLemon title="Топилмади" hint="Қидирув ёки категорияни ўзгартиринг" />
+                </div>
+              ) : (
+                // CloPOS-услуб таом РЎЙХАТИ — ном чапда, нарх ўнгда
+                <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
+                  {shown.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
+                      disabled={m.stopped}
+                      className={`group flex w-full items-center gap-3 border-b border-b-brand-cream-soft px-4 py-3 text-left transition last:border-b-0 ${
+                        m.stopped
+                          ? "opacity-50 grayscale"
+                          : "hover:bg-brand-cream/40 active:bg-brand-cream/60"
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-brand-ink">
+                        {m.name}
+                      </span>
+                      <span className="shrink-0 text-sm font-bold tabular-nums text-brand">
+                        {fmt(m.price)}{m.soldByWeight ? "/кг" : ""}
+                      </span>
+                      {m.stopped ? (
+                        <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
+                          СТОП
+                        </span>
+                      ) : (
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
+                          {m.soldByWeight ? <IScale className="h-4 w-4" /> : <IPlus className="h-3.5 w-3.5" />}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {filtered.length > shown.length && (
+                <p className="text-center text-xs text-zinc-400">
+                  яна {filtered.length - shown.length} та — қидирувдан фойдаланинг
+                </p>
+              )}
+            </div>
           )}
           {showStop && (
             <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">

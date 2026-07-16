@@ -52,6 +52,8 @@ export default defineConfig({
     }),
   ],
   server: {
+    // Публичный превью-туннель (Cloudflare) — разрешаем *.trycloudflare.com.
+    allowedHosts: [".trycloudflare.com"],
     proxy: {
       "/trpc": process.env.VITE_API_TARGET || "http://localhost:3000",
       "/api": process.env.VITE_API_TARGET || "http://localhost:3000",
