@@ -242,7 +242,8 @@ export function Shell({
         </div>
       )}
 
-      <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
+      {/* Касса — CloPOS каби четдан-четгача (бар тўлиқ линия бўлсин); қолганлар марказда. */}
+      <main className={`mx-auto ${tab === "pos" ? "max-w-none p-0" : tab === "tv" ? "max-w-6xl p-5" : "max-w-4xl p-5"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "tv" && <Tv />}
         {tab === "kds" && <Kds />}

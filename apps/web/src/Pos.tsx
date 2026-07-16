@@ -399,8 +399,8 @@ function FloorView({
 
   return (
     <div className="space-y-5">
-      {/* ── CloPOS-услуб яшил зал-панели: зал-таблар чап, амаллар ўнг ────────── */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-brand px-3 py-2.5 shadow-md">
+      {/* ── CloPOS-услуб яшил зал-панели: четдан-четгача тўлиқ линия ─────────── */}
+      <div className="flex w-full flex-wrap items-center gap-2 bg-brand px-4 py-2.5 shadow-md">
         <div className="flex flex-1 flex-wrap items-center gap-1">
           {[{ id: "all", name: "Барчаси" }, ...halls].map((h) => (
             <button
@@ -448,6 +448,8 @@ function FloorView({
         </button>
       </div>
 
+      {/* Контент — четдан-четгача бар остида, ўз паддинги билан */}
+      <div className="space-y-5 px-4 pb-6 sm:px-5">
       {!online && (
         <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
           📴 Оффлайн — заказлар шу қурилмада сақланиб, уланганда синхронланади. Тўлов уланганда мумкин.
@@ -615,6 +617,7 @@ function FloorView({
           }}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -1781,8 +1784,8 @@ function OrderView({
 
   return (
     <div className="space-y-2 pb-24 lg:pb-0">
-      {/* ── CloPOS-услуб ТЎЛИҚ юқори бар (рельс + контент устидан) ───────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand px-3 py-2 text-white shadow-md">
+      {/* ── CloPOS-услуб ТЎЛИҚ юқори бар — четдан-четгача линия ──────────────── */}
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 bg-brand px-4 py-2 text-white shadow-md">
         <div className="flex min-w-0 items-center gap-2">
           <button
             onClick={onBack}
@@ -1860,7 +1863,7 @@ function OrderView({
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 px-3 pb-4 sm:px-4">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
       <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl bg-brand-ink p-1.5 shadow-md">
         {/* 👤 Мижоз бириктириш (CloPOS «Клиенты») */}
