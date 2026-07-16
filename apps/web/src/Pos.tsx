@@ -1760,7 +1760,7 @@ function OrderView({
   return (
     <div className="flex gap-2 pb-24 lg:pb-0">
       {/* ── CloPOS-услуб чап амал-рельси (иконкалар) ───────────────────────── */}
-      <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl border border-brand-cream-soft bg-white p-1.5 shadow-sm">
+      <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl bg-brand-ink p-1.5 shadow-md">
         <button
           onClick={() => setMoving(true)}
           disabled={!online}
@@ -1774,7 +1774,7 @@ function OrderView({
           disabled={precheckBusy}
           title="Пречек чоп этиш"
           className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
-            precheckOk ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+            precheckOk ? "bg-emerald-100 text-emerald-700" : "text-white/70 hover:bg-white/15 hover:text-white"
           }`}
         >
           {precheckOk ? "✓" : "🧾"}
@@ -1795,7 +1795,7 @@ function OrderView({
             disabled={lockBusy || !online}
             title={order.locked ? "Блокни ечиш" : "Заказни блоклаш — ўзгартиришдан ҳимоя"}
             className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
-              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
             }`}
           >
             {order.locked ? "🔓" : "🔒"}
@@ -1807,7 +1807,7 @@ function OrderView({
             disabled={serviceBusy || !online || order.locked}
             title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш (олиб кетиш/шикоят)"}
             className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
-              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
             }`}
           >
             🍽
@@ -1818,7 +1818,7 @@ function OrderView({
             onClick={() => setShowStop(true)}
             disabled={!online}
             title={online ? "Стоп-лист — тугаган таомлар" : "Оффлайн — уланганда"}
-            className="relative grid h-11 w-11 place-items-center rounded-xl text-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+            className="relative grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-red-500/40 hover:text-white disabled:opacity-30"
           >
             🛑
             {stoppedCount > 0 && (
@@ -1828,12 +1828,12 @@ function OrderView({
             )}
           </button>
         )}
-        <div className="my-0.5 h-px bg-brand-cream-soft" />
+        <div className="my-0.5 h-px bg-white/15" />
         <button
           onClick={() => setCancelling((v) => !v)}
           disabled={!online}
           title={online ? "Заказни бекор қилиш" : "Оффлайн — уланганда"}
-          className="grid h-11 w-11 place-items-center rounded-xl text-zinc-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+          className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-red-500/40 hover:text-white disabled:opacity-30"
         >
           <ITrash className="h-5 w-5" />
         </button>
@@ -1868,7 +1868,7 @@ function OrderView({
             title="Сотув турини ўзгартириш (зал/доставка/собой)"
             className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
               order.saleType === "dine_in"
-                ? "text-zinc-400 hover:bg-brand-cream hover:text-brand"
+                ? "text-white/70 hover:bg-white/15 hover:text-white"
                 : "bg-brand-gold/25 text-brand hover:bg-brand-gold/40"
             }`}
           >
