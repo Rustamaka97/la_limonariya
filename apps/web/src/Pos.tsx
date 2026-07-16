@@ -387,8 +387,8 @@ function FloorView({
 
   return (
     <div className="space-y-5">
-      {/* ── CloPOS-услуб тўқ зал-панели: зал-таблар чап, амаллар ўнг ─────────── */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-brand-ink px-3 py-2.5 shadow-md">
+      {/* ── CloPOS-услуб яшил зал-панели: зал-таблар чап, амаллар ўнг ────────── */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-brand px-3 py-2.5 shadow-md">
         <div className="flex flex-1 flex-wrap items-center gap-1">
           {[{ id: "all", name: "Барчаси" }, ...halls].map((h) => (
             <button

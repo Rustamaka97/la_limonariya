@@ -153,19 +153,20 @@ export function Shell({
               <span className="text-base font-bold">{BRAND.name}</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
-              <span className="tabular-nums text-white/80">{clock}</span>
-              <span className="hidden font-medium sm:inline">{user.name}</span>
-              <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
-                {ROLE_LABEL[user.role] ?? user.role}
-              </span>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 className="rounded-lg bg-white/15 px-3 py-1.5 font-medium transition hover:bg-white/25"
               >
                 ☰ Меню
               </button>
-              <button onClick={logout} className="text-white/70 transition hover:text-white">
-                Чиқиш
+              <span className="hidden font-medium sm:inline">{user.name}</span>
+              <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
+                {ROLE_LABEL[user.role] ?? user.role}
+              </span>
+              <span className="text-base leading-none" title="Билдиришлар">🔔</span>
+              <span className="tabular-nums text-white/80">{clock}</span>
+              <button onClick={logout} className="text-white/70 transition hover:text-white" title="Чиқиш">
+                ⎋
               </button>
             </div>
           </div>
