@@ -12,3 +12,19 @@
   --color-brand-ink: #13241f;
   --color-brand-bg: #fdf8f2;
 }
+
+/* Клавиатура/терминал: барча интерактив элементга кўринувчи фокус ринги
+   (WCAG focus-visible). Соатли сичқонсиз кассада ҳам навигация мумкин. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-brand-gold), 0 0 0 4px rgba(0, 0, 0, 0.15);
+  border-radius: 0.5rem;
+}
+
+/* Disabled — сичқонли терминалда аниқ «босилмайди» сигнали. */
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}

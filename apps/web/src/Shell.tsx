@@ -20,6 +20,7 @@ import { Recipes } from "./Recipes";
 import { Taannarx } from "./Taannarx";
 import { Vitrina } from "./Vitrina";
 import { trpc } from "./trpc";
+import { IMenu, IBell, ILogout, IPencil, IWarn } from "./icons";
 
 const ROLE_LABEL: Record<string, string> = {
   director: "Директор",
@@ -155,18 +156,25 @@ export function Shell({
             <div className="flex items-center gap-3 text-sm">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="rounded-lg bg-white/15 px-3 py-1.5 font-medium transition hover:bg-white/25"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 font-medium transition hover:bg-white/25"
               >
-                ☰ Меню
+                <IMenu className="h-5 w-5" /> Меню
               </button>
               <span className="hidden font-medium sm:inline">{user.name}</span>
               <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
                 {ROLE_LABEL[user.role] ?? user.role}
               </span>
-              <span className="text-base leading-none" title="Билдиришлар">🔔</span>
+              <span className="grid h-6 w-6 place-items-center text-white/80" title="Билдиришлар" aria-label="Билдиришлар">
+                <IBell className="h-5 w-5" />
+              </span>
               <span className="tabular-nums text-white/80">{clock}</span>
-              <button onClick={logout} className="text-white/70 transition hover:text-white" title="Чиқиш">
-                ⎋
+              <button
+                onClick={logout}
+                className="grid h-9 w-9 place-items-center rounded-lg text-white/70 transition hover:bg-white/15 hover:text-white"
+                title="Чиқиш"
+                aria-label="Чиқиш"
+              >
+                <ILogout className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -237,8 +245,8 @@ export function Shell({
       )}
 
       {!online && (
-        <div className="bg-red-600 px-4 py-1.5 text-center text-sm font-medium text-white">
-          ⚠️ Интернет йўқ — маълумот сақланмайди, уланишни кутинг
+        <div className="flex items-center justify-center gap-2 bg-red-600 px-4 py-1.5 text-center text-sm font-medium text-white">
+          <IWarn className="h-4 w-4 shrink-0" /> Интернет йўқ — маълумот сақланмайди, уланишни кутинг
         </div>
       )}
 
@@ -320,10 +328,11 @@ function StaffSection() {
               </span>
               <button
                 onClick={() => setEditInfo(s)}
-                className="rounded-lg bg-zinc-100 px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-200"
+                className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                 title="Исм/рол"
+                aria-label="Исм/рол таҳрирлаш"
               >
-                ✎
+                <IPencil className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setEditing(s)}

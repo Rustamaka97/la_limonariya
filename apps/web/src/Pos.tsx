@@ -22,6 +22,12 @@ import {
 import { trpc } from "./trpc";
 import QRCode from "qrcode";
 import { payUrl, type PayConfig } from "./payqr";
+import {
+  Svg, type IP, IPlus, IMinus, IBack, ISearch, IFlame, IGift, IPrinter, IChevron,
+  IUser, IUsers, IBank, ICard, IReceipt, IPlate, IClock, IPencil, ITrash, IChat,
+  IPercent, ISplit, ILock, ILockOpen, ICheck, ISwap, IStop, IArrange, IWifiOff,
+  IScale, IGear, IWarn, ILink, IMoped, IBag, ISpin,
+} from "./icons";
 
 type Hall = { id: string; name: string; servicePct: number };
 type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null };
@@ -96,11 +102,20 @@ const PAY_LABEL: Record<string, string> = {
 
 // Сотув тури — ёрлиқ + иконка (CloPOS «На месте / Доставка / С собой»).
 const SALE_TYPES = ["dine_in", "delivery", "takeaway"] as const;
-const SALE_TYPE_META: Record<string, { icon: string; label: string }> = {
-  dine_in: { icon: "🍽", label: "Залда" },
-  delivery: { icon: "🛵", label: "Доставка" },
-  takeaway: { icon: "🥡", label: "Собой" },
+const SALE_TYPE_META: Record<string, { Icon: (p: IP) => ReactNode; label: string }> = {
+  dine_in: { Icon: IPlate, label: "Залда" },
+  delivery: { Icon: IMoped, label: "Доставка" },
+  takeaway: { Icon: IBag, label: "Собой" },
 };
+// Сотув тури ярлиғи — иконка + матн (учта render ўрни учун битта манба).
+function SaleTypeLabel({ type, className }: { type: string; className?: string }) {
+  const m = SALE_TYPE_META[type] ?? SALE_TYPE_META.dine_in!;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <m.Icon className={className ?? "h-4 w-4"} /> {m.label}
+    </span>
+  );
+}
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
 
@@ -174,40 +189,7 @@ function minsAgo(iso: string): string {
 const TABLE_WARN_MIN = 45;
 const TABLE_STALE_MIN = 90;
 
-function Svg({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
-type IP = { className?: string };
-const IPlus = (p: IP) => <Svg {...p}><path d="M12 5v14M5 12h14" /></Svg>;
-const IMinus = (p: IP) => <Svg {...p}><path d="M5 12h14" /></Svg>;
-const IBack = (p: IP) => <Svg {...p}><path d="M15 18l-6-6 6-6" /></Svg>;
-const ISearch = (p: IP) => <Svg {...p}><circle cx="11" cy="11" r="7" /><path d="M21 21l-3.5-3.5" /></Svg>;
-const IFlame = (p: IP) => <Svg {...p}><path d="M12 3s4 3.5 4 8a4 4 0 1 1-8 0c0-1.6.8-2.8 1.6-3.6C10 8.7 12 7 12 3z" /><path d="M12 21a2.4 2.4 0 0 0 2.4-2.4c0-1.6-2.4-3-2.4-3s-2.4 1.4-2.4 3A2.4 2.4 0 0 0 12 21z" /></Svg>;
-const IGift = (p: IP) => <Svg {...p}><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v9h14v-9M12 8v13M12 8C10.3 8 8.5 7.2 8.5 5.5 8.5 4.4 9.4 4 10 4.4 11.3 5.2 12 8 12 8zM12 8c1.7 0 3.5-.8 3.5-2.5C15.5 4.4 14.6 4 14 4.4 12.7 5.2 12 8 12 8z" /></Svg>;
-const IPrinter = (p: IP) => <Svg {...p}><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" rx="1" /></Svg>;
-const IChevron = (p: IP) => <Svg {...p}><path d="M6 9l6 6 6-6" /></Svg>;
-const IUser = (p: IP) => <Svg {...p}><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5" /></Svg>;
-const IUsers = (p: IP) => <Svg {...p}><circle cx="9" cy="8" r="3" /><path d="M2.5 20c0-3.3 2.8-5 6.5-5s6.5 1.7 6.5 5" /><path d="M16 5.2A3 3 0 0 1 16 11M21.5 20c0-2.6-1.6-4.2-4-4.8" /></Svg>;
-const IBank = (p: IP) => <Svg {...p}><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></Svg>;
-const ICard = (p: IP) => <Svg {...p}><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></Svg>;
-const IReceipt = (p: IP) => <Svg {...p}><path d="M5 3v18l2-1.2L9 21l2-1.2L13 21l2-1.2L17 21l2-1.2V3l-2 1.2L15 3l-2 1.2L11 3 9 4.2 7 3z" /><path d="M8 9h8M8 13h6" /></Svg>;
-const IPlate = (p: IP) => <Svg {...p}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.5" /></Svg>;
-const IClock = (p: IP) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Svg>;
-const IPencil = (p: IP) => <Svg {...p}><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z" /><path d="M13.5 6.5l3 3" /></Svg>;
-const ITrash = (p: IP) => <Svg {...p}><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" /></Svg>;
+// Иконка тизими → ./icons (Shell/Kds биргаликда ишлатади)
 
 function Spin() {
   return (
@@ -426,7 +408,7 @@ function FloorView({
               heatOn ? "bg-brand-gold text-brand-ink" : "bg-white/10 text-white/80 hover:bg-white/20"
             }`}
           >
-            💰 Иссиқ
+            <IFlame className="h-4 w-4" /> Иссиқ
           </button>
         )}
         {user.role === "director" && (
@@ -436,7 +418,7 @@ function FloorView({
               arrange ? "bg-white text-brand-ink" : "bg-white/10 text-white/80 hover:bg-white/20"
             }`}
           >
-            {arrange ? "✓ Тайёр" : "⠿ Жойлаштириш"}
+            {arrange ? <><ICheck className="h-4 w-4" /> Тайёр</> : <><IArrange className="h-4 w-4" /> Жойлаштириш</>}
           </button>
         )}
         <button
@@ -449,8 +431,8 @@ function FloorView({
       </div>
 
       {!online && (
-        <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
-          📴 Оффлайн — заказлар шу қурилмада сақланиб, уланганда синхронланади. Тўлов уланганда мумкин.
+        <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+          <IWifiOff className="h-4 w-4 shrink-0" /> Оффлайн — заказлар шу қурилмада сақланиб, уланганда синхронланади. Тўлов уланганда мумкин.
         </div>
       )}
 
@@ -665,16 +647,16 @@ function ConflictSheet({
               // 2-чини 1-чига бирлаштириш (итемлар қўшилади, 2-чи cancelled).
               onMerge(data.orders[1]!.id, data.orders[0]!.id);
             }}
-            className="mt-3 w-full rounded-xl bg-brand-gold py-2.5 text-sm font-semibold text-brand-ink disabled:opacity-40"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gold py-3 text-sm font-semibold text-brand-ink disabled:opacity-40"
           >
-            🔗 Битта заказга бирлаштириш
+            <ILink className="h-4 w-4" /> Битта заказга бирлаштириш
           </button>
         )}
         <button
           onClick={onNew}
-          className="mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-deep"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep"
         >
-          ➕ Янги заказ шу столга
+          <IPlus className="h-4 w-4" /> Янги заказ шу столга
         </button>
       </div>
     </div>
@@ -785,19 +767,19 @@ function QuickActionsSheet({
                 onClick={() => setMode("move")}
                 className="flex w-full items-center gap-2 rounded-xl border border-brand-cream-soft px-4 py-3 text-left text-sm font-medium text-brand-ink transition hover:border-brand hover:bg-brand-cream/40"
               >
-                🔄 Кўчириш
+                <ISwap className="h-5 w-5 text-brand" /> Кўчириш
               </button>
               <button
                 onClick={() => { setGuestsInput(order.guests ?? 1); setMode("guests"); }}
                 className="flex w-full items-center gap-2 rounded-xl border border-brand-cream-soft px-4 py-3 text-left text-sm font-medium text-brand-ink transition hover:border-brand hover:bg-brand-cream/40"
               >
-                👥 Меҳмонлар
+                <IUsers className="h-5 w-5 text-brand" /> Меҳмонлар
               </button>
               <button
                 onClick={() => { setNoteInput(""); setMode("note"); }}
                 className="flex w-full items-center gap-2 rounded-xl border border-brand-cream-soft px-4 py-3 text-left text-sm font-medium text-brand-ink transition hover:border-brand hover:bg-brand-cream/40"
               >
-                📝 Изоҳ
+                <IChat className="h-5 w-5 text-brand" /> Изоҳ
               </button>
             </div>
             <button onClick={onClose} className="mt-3 w-full py-1 text-xs text-zinc-400 transition hover:text-zinc-600">
@@ -808,7 +790,7 @@ function QuickActionsSheet({
 
         {mode === "guests" && (
           <>
-            <h3 className="font-semibold text-brand-ink">👥 Меҳмонлар сони</h3>
+            <h3 className="flex items-center gap-2 font-semibold text-brand-ink"><IUsers className="h-5 w-5 text-brand" /> Меҳмонлар сони</h3>
             <div className="mt-3 flex items-center justify-center gap-4">
               <Step onClick={() => setGuestsInput((g) => Math.max(1, g - 1))}>
                 <IMinus className="h-4 w-4" />
@@ -837,7 +819,7 @@ function QuickActionsSheet({
 
         {mode === "note" && (
           <>
-            <h3 className="font-semibold text-brand-ink">📝 Изоҳ</h3>
+            <h3 className="flex items-center gap-2 font-semibold text-brand-ink"><IChat className="h-5 w-5 text-brand" /> Изоҳ</h3>
             <input
               autoFocus
               value={note}
@@ -1059,8 +1041,8 @@ function TableTile({
         ) : null}
       </div>
       <div>
-        <div className={`text-base font-extrabold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
-          {order.total === null ? "🔒 банд" : `${fmt(order.total)} so'm`}
+        <div className={`flex items-center gap-1 text-base font-extrabold tabular-nums ${heatColor ? "text-brand-ink" : "text-brand-gold"}`}>
+          {order.total === null ? <><ILock className="h-3.5 w-3.5" /> банд</> : `${fmt(order.total)} so'm`}
         </div>
         {(() => {
           // Хит-харита режимида ранг = 30 кунлик пул (вақт-эскалация аралашмасин).
@@ -1070,8 +1052,8 @@ function TableTile({
           if (stale || warn)
             return (
               <div
-                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white ${
-                  stale ? "animate-pulse bg-red-600 motion-reduce:animate-none" : "bg-amber-500"
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  stale ? "animate-pulse bg-red-600 text-white motion-reduce:animate-none" : "bg-amber-400 text-brand-ink"
                 }`}
                 title={stale ? "Узоқ очиқ — тўламай кетган бўлиши мумкин" : "Узоқ ўтирибди"}
               >
@@ -1170,7 +1152,7 @@ function NewOrderSheet({
                   saleType === st ? "bg-brand text-white" : "bg-brand-cream text-brand hover:bg-brand-cream-soft"
                 }`}
               >
-                {SALE_TYPE_META[st]?.icon} {SALE_TYPE_META[st]?.label}
+                <SaleTypeLabel type={st} />
               </button>
             ))}
           </div>
@@ -1461,7 +1443,7 @@ function OrderView({
       setPrecheckOk(true);
       setTimeout(() => setPrecheckOk(false), 2000);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Пречек босилмади");
+      setSyncErr(e instanceof Error ? e.message : "Пречек босилмади");
     } finally {
       setPrecheckBusy(false);
     }
@@ -1566,7 +1548,7 @@ function OrderView({
       setShowSiblings(false);
       onSwitch(nid);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Янги заказ очилмади");
+      setSyncErr(e instanceof Error ? e.message : "Янги заказ очилмади");
     } finally {
       setNewBusy(false);
     }
@@ -1582,7 +1564,7 @@ function OrderView({
       setShowSplitBill(false);
       onSwitch(res.id);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Счёт бўлинмади");
+      setSyncErr(e instanceof Error ? e.message : "Счёт бўлинмади");
     } finally {
       setSplitBusy(false);
     }
@@ -1776,101 +1758,101 @@ function OrderView({
     <div className="flex gap-2 pb-24 lg:pb-0">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
       <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl bg-brand-ink p-1.5 shadow-md">
-        {/* 💬 Чекка изоҳ */}
+        {/* Чекка изоҳ */}
         <button
           onClick={() => setNoteOpen((v) => !v)}
           title="Чекка изоҳ"
-          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white"
+          className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-white/15 hover:text-white"
         >
-          💬
+          <IChat className="h-5 w-5" />
         </button>
-        {/* 🧾 Заказ тарихи (кухня тикетлари) — тикет йўғида silent no-op бўлмасин */}
+        {/* Заказ тарихи (кухня тикетлари) — тикет йўғида silent no-op бўлмасин */}
         <button
           onClick={() => setShowTickets(true)}
           disabled={tickets.length === 0}
           title={tickets.length === 0 ? "Ҳали кухня тикети йўқ" : "Заказ тарихи — кухня тикетлари"}
-          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
+          className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
         >
-          🧾
+          <IReceipt className="h-5 w-5" />
         </button>
-        {/* 🍽 Хизмат ҳақи */}
+        {/* Хизмат ҳақи */}
         {canComp && (order.servicePct > 0 || order.serviceWaived) && (
           <button
             onClick={toggleService}
             disabled={serviceBusy || !online || order.locked}
             title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш"}
-            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+            className={`grid h-11 w-11 place-items-center rounded-xl transition disabled:opacity-30 ${
               order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
             }`}
           >
-            🍽
+            <IPercent className="h-5 w-5" />
           </button>
         )}
-        {/* ⑂ Счётни бўлиш */}
+        {/* Счётни бўлиш */}
         {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
           <button
             onClick={() => setShowSplitBill(true)}
             disabled={!online}
             title="Счётни бўлиш — таомларни алоҳида чекка"
-            className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
+            className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
           >
-            ⑂
+            <ISplit className="h-5 w-5" />
           </button>
         )}
-        {/* 🔒 Блок */}
+        {/* Блок */}
         {canComp && (
           <button
             onClick={toggleLock}
             disabled={lockBusy || !online}
             title={order.locked ? "Блокни ечиш" : "Заказни блоклаш"}
-            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+            className={`grid h-11 w-11 place-items-center rounded-xl transition disabled:opacity-30 ${
               order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
             }`}
           >
-            {order.locked ? "🔓" : "🔒"}
+            {order.locked ? <ILockOpen className="h-5 w-5" /> : <ILock className="h-5 w-5" />}
           </button>
         )}
-        {/* 🖨 Пречек */}
+        {/* Пречек */}
         <button
           onClick={doPrecheck}
           disabled={precheckBusy}
           title="Пречек чоп этиш"
-          className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+          className={`grid h-11 w-11 place-items-center rounded-xl transition disabled:opacity-30 ${
             precheckOk ? "bg-emerald-100 text-emerald-700" : "text-white/70 hover:bg-white/15 hover:text-white"
           }`}
         >
-          {precheckOk ? "✓" : "🖨"}
+          {precheckOk ? <ICheck className="h-5 w-5" /> : <IPrinter className="h-5 w-5" />}
         </button>
-        {/* 💳 Тўлов */}
+        {/* Тўлов */}
         {canClose && (
           <button
             onClick={() => order.items.length > 0 && setPaying(true)}
             disabled={order.items.length === 0 || !online}
             title="Тўлов — чекни ёпиш"
-            className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-emerald-500/40 hover:text-white disabled:opacity-30"
+            className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-emerald-500/40 hover:text-white disabled:opacity-30"
           >
-            💳
+            <ICard className="h-5 w-5" />
           </button>
         )}
         <div className="my-0.5 h-px bg-white/15" />
-        {/* ⇄ Стол кўчириш */}
+        {/* Стол кўчириш */}
         <button
           onClick={() => setMoving(true)}
           disabled={!online}
           title="Бошқа столга кўчириш"
-          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
+          className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
         >
-          ⇄
+          <ISwap className="h-5 w-5" />
         </button>
-        {/* 🛑 Стоп-лист */}
+        {/* Стоп-лист */}
         {canComp && (
           <button
             onClick={() => setShowStop(true)}
             disabled={!online}
             title="Стоп-лист — тугаган таомлар"
-            className="relative grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-red-500/40 hover:text-white disabled:opacity-30"
+            className="relative grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-red-500/40 hover:text-white disabled:opacity-30"
           >
-            🛑
+            <IStop className="h-5 w-5" />
             {stoppedCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
                 {stoppedCount}
@@ -1878,7 +1860,7 @@ function OrderView({
             )}
           </button>
         )}
-        {/* 🗑 Бекор */}
+        {/* Бекор */}
         <button
           onClick={() => setCancelling((v) => !v)}
           disabled={!online}
@@ -1892,7 +1874,7 @@ function OrderView({
       {/* ── Асосий устун (header + меню + cart + модаллар) ──────────────────── */}
       <div className="min-w-0 flex-1 space-y-3">
         {/* ── CloPOS-услуб яшил заказ-бари ──────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand px-3 py-2 text-white shadow-md">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand-deep px-3 py-2 text-white shadow-md">
           <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={onBack}
@@ -1902,7 +1884,7 @@ function OrderView({
               <IBack className="h-4 w-4" />
             </button>
             <span className="truncate text-base font-bold">{order.tableNo ?? order.hall ?? "Заказ"}</span>
-            <span className="hidden shrink-0 items-center gap-1 text-xs text-white/55 sm:inline-flex">
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs tabular-nums text-white/55">
               <IClock className="h-3 w-3" /> {minsAgo(order.createdAt)}
             </span>
             {/* #заказ ⌄ — оғайни-заказлар свитчери */}
@@ -1912,10 +1894,10 @@ function OrderView({
                 title="Шу столдаги заказлар орасида ўтиш"
                 className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
               >
-                #{order.checkNo} <span className="opacity-70">⌄ {siblings.length + 1}</span>
+                #{order.checkNo} <span className="inline-flex items-center gap-0.5 opacity-70"><IChevron className="h-3 w-3" />{siblings.length + 1}</span>
               </button>
             ) : (
-              <span className="hidden shrink-0 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-medium text-white/70 sm:inline">
+              <span className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-medium text-white/70">
                 #{order.checkNo}
               </span>
             )}
@@ -1931,21 +1913,21 @@ function OrderView({
                 }}
                 disabled={!online || order.locked}
                 title="Сотув турини ўзгартириш (зал/доставка/собой)"
-                className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
+                className={`inline-flex h-10 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
                   order.saleType === "dine_in"
                     ? "text-white/75 hover:bg-white/15 hover:text-white"
                     : "bg-brand-gold text-brand-ink"
                 }`}
               >
-                {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+                <SaleTypeLabel type={order.saleType} />
               </button>
             ) : (
               <span
-                className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold ${
+                className={`inline-flex h-10 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold ${
                   order.saleType === "dine_in" ? "text-white/75" : "bg-brand-gold text-brand-ink"
                 }`}
               >
-                {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+                <SaleTypeLabel type={order.saleType} />
               </span>
             )}
             {/* + Янги заказ */}
@@ -1954,7 +1936,7 @@ function OrderView({
                 onClick={createSibling}
                 disabled={!online || newBusy}
                 title="Шу столга янги заказ"
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-sm font-bold text-brand-ink shadow-sm transition hover:brightness-105 disabled:opacity-30"
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-sm font-bold text-brand-ink shadow-sm transition hover:brightness-105 disabled:opacity-30"
               >
                 <IPlus className="h-4 w-4" />
                 Янги заказ
@@ -2019,11 +2001,11 @@ function OrderView({
       )}
 
       {syncErr && (
-        <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">⚠️ {syncErr} — синхронизация тўхтади.</div>
+        <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700"><IWarn className="h-4 w-4 shrink-0" /> {syncErr} — синхронизация тўхтади.</div>
       )}
       {!online && (
-        <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
-          📴 Оффлайн — таом қўшиш ва кухняга юбориш ишлайди, уланганда синхрон. Тўлов уланганда.
+        <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+          <IWifiOff className="h-4 w-4 shrink-0" /> Оффлайн — таом қўшиш ва кухняга юбориш ишлайди, уланганда синхрон. Тўлов уланганда.
         </div>
       )}
 
@@ -2059,7 +2041,7 @@ function OrderView({
           <IUsers className="mx-1 h-4 w-4 text-brand" />
           <button
             onClick={() => setGuests((order.guests ?? 0) - 1)}
-            className="grid h-7 w-7 place-items-center rounded-lg text-brand transition hover:bg-brand-cream active:scale-90 motion-reduce:active:scale-100"
+            className="grid h-10 w-10 place-items-center rounded-lg text-brand transition hover:bg-brand-cream active:scale-90 motion-reduce:active:scale-100"
           >
             <IMinus className="h-3.5 w-3.5" />
           </button>
@@ -2068,7 +2050,7 @@ function OrderView({
           </span>
           <button
             onClick={() => setGuests((order.guests ?? 0) + 1)}
-            className="grid h-7 w-7 place-items-center rounded-lg text-brand transition hover:bg-brand-cream active:scale-90 motion-reduce:active:scale-100"
+            className="grid h-10 w-10 place-items-center rounded-lg text-brand transition hover:bg-brand-cream active:scale-90 motion-reduce:active:scale-100"
           >
             <IPlus className="h-3.5 w-3.5" />
           </button>
@@ -2113,7 +2095,7 @@ function OrderView({
           <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
             <button
               onClick={() => setMenuCat(null)}
-              className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition ${
+              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-1 ${
                 menuCat === null ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "bg-brand-ink/80 hover:bg-brand-ink"
               }`}
             >
@@ -2121,12 +2103,15 @@ function OrderView({
             </button>
             {menuCats.map((c) => {
               const on = menuCat === c;
+              // Рангли категория-плиткалар (CloPOS-услуб тез сканерлаш): фаол =
+              // изумруд+голд ринг, нофаол = катергория ранги (catColor).
               return (
                 <button
                   key={c}
                   onClick={() => setMenuCat(c)}
-                  className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition ${
-                    on ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "bg-brand/85 hover:bg-brand"
+                  style={on ? undefined : { backgroundColor: catColor(c) }}
+                  className={`shrink-0 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-1 ${
+                    on ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "brightness-100 hover:brightness-110"
                   }`}
                 >
                   {c}
@@ -2165,7 +2150,7 @@ function OrderView({
                       </span>
                     ) : (
                       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
-                        {m.soldByWeight ? <span className="text-xs">⚖️</span> : <IPlus className="h-3.5 w-3.5" />}
+                        {m.soldByWeight ? <IScale className="h-4 w-4" /> : <IPlus className="h-3.5 w-3.5" />}
                       </span>
                     )}
                   </button>
@@ -2254,8 +2239,8 @@ function OrderView({
             <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">
               <div className="flex w-full max-w-md flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="min-w-0 truncate text-base font-bold text-brand-ink">
-                    ✎ {noteFor.name}
+                  <h3 className="flex min-w-0 items-center gap-2 truncate text-base font-bold text-brand-ink">
+                    <IPencil className="h-5 w-5 shrink-0" /> {noteFor.name}
                   </h3>
                   <button
                     onClick={() => setNoteFor(null)}
@@ -2332,7 +2317,7 @@ function OrderView({
             ) : (
               <div className="max-h-[42vh] divide-y divide-brand-cream-soft/60 overflow-auto lg:max-h-[52vh]">
                 {order.items.map((it) => (
-                  <div key={it.id} className="flex items-center gap-2 px-3 py-2.5">
+                  <div key={it.id} className="flex items-center gap-2 px-4 py-2.5">
                     <button
                       type="button"
                       disabled={!it.productId || !online}
@@ -2345,16 +2330,20 @@ function OrderView({
                         {it.weightG ? `${(it.weightG / 1000).toFixed(3)} кг · ${fmt(it.price)}` : fmt(it.price)}
                       </div>
                       {it.note ? (
-                        <div className="truncate text-xs font-medium text-amber-600">✎ {it.note}</div>
+                        <div className="flex items-center gap-1 truncate text-xs font-medium text-amber-600">
+                          <IPencil className="h-3 w-3 shrink-0" /> {it.note}
+                        </div>
                       ) : (
                         it.productId && (
-                          <div className="text-[10px] text-zinc-300">✎ изоҳ</div>
+                          <div className="flex items-center gap-1 text-[10px] text-zinc-300">
+                            <IPencil className="h-2.5 w-2.5" /> изоҳ
+                          </div>
                         )
                       )}
                     </button>
                     {it.weightG ? (
-                      <span className="shrink-0 text-xs font-semibold tabular-nums text-brand">
-                        ⚖️ {(it.weightG / 1000).toFixed(2)}кг
+                      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums text-brand">
+                        <IScale className="h-3.5 w-3.5" /> {(it.weightG / 1000).toFixed(2)}кг
                       </span>
                     ) : it.productId ? (
                       <div className="flex shrink-0 items-center gap-1">
@@ -2375,9 +2364,9 @@ function OrderView({
             <div className="space-y-1 border-t border-brand-cream-soft bg-brand-cream/30 px-4 py-3 text-sm">
               <Row label="Оралиқ сумма" value={fmt(order.subtotal)} />
               <Row label={`Хизмат ҳақи (${order.servicePct}%)`} value={fmt(order.service)} muted />
-              <div className="flex items-baseline justify-between pt-1">
-                <span className="font-bold text-brand-ink">ЖАМИ</span>
-                <span className="text-xl font-bold tabular-nums text-brand-ink">
+              <div className="mt-1 flex items-baseline justify-between border-t border-brand-cream-soft pt-2">
+                <span className="text-base font-bold text-brand-ink">ЖАМИ</span>
+                <span className="text-2xl font-extrabold tabular-nums text-brand-ink">
                   {fmt(order.total)} <span className="text-xs font-normal text-zinc-400">so'm</span>
                 </span>
               </div>
@@ -2388,10 +2377,10 @@ function OrderView({
             <button
               onClick={sendToKitchen}
               disabled={sending}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-gold py-3 font-semibold text-brand-ink shadow-sm transition hover:bg-brand-gold-deep active:scale-[.99] disabled:opacity-50 motion-reduce:active:scale-100"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-gold py-3.5 font-semibold text-brand-ink shadow-sm transition hover:bg-brand-gold-deep active:scale-[.99] disabled:opacity-50 motion-reduce:active:scale-100"
             >
-              <IFlame className="h-5 w-5" />
-              Кухняга юбориш ({unsent} та)
+              {sending ? <ISpin className="h-5 w-5" /> : <IFlame className="h-5 w-5" />}
+              {sending ? "Юборилмоқда…" : `Кухняга юбориш (${unsent} та)`}
             </button>
           )}
 
@@ -2430,7 +2419,7 @@ function OrderView({
             </div>
           )}
 
-          {canClose && online ? (
+          {canClose && online && unsent === 0 ? (
             <button
               onClick={() => setPaying(true)}
               disabled={empty}
@@ -2440,8 +2429,14 @@ function OrderView({
               Ёпиш ва чек
             </button>
           ) : (
-            <div className="hidden rounded-2xl bg-brand-cream-soft py-3.5 text-center text-sm font-medium text-brand-ink/60 lg:block">
-              {!online ? "📴 Тўлов уланганда" : "💳 Чекни кассир ёпади"}
+            <div className="hidden items-center justify-center gap-2 rounded-2xl bg-brand-cream-soft py-3.5 text-center text-sm font-medium text-brand-ink/60 lg:flex">
+              {!online ? (
+                <><IWifiOff className="h-4 w-4" /> Тўлов уланганда</>
+              ) : unsent > 0 ? (
+                <><IFlame className="h-4 w-4" /> Аввал кухняга юборинг</>
+              ) : (
+                <><ICard className="h-4 w-4" /> Чекни кассир ёпади</>
+              )}
             </div>
           )}
         </aside>
@@ -2466,8 +2461,8 @@ function OrderView({
                 disabled={sending}
                 className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-gold px-5 py-3 font-semibold text-brand-ink transition active:scale-[.98] disabled:opacity-50 motion-reduce:active:scale-100"
               >
-                <IFlame className="h-5 w-5" />
-                Кухняга ({unsent})
+                {sending ? <ISpin className="h-5 w-5" /> : <IFlame className="h-5 w-5" />}
+                {sending ? "Юборилмоқда…" : `Кухняга (${unsent})`}
               </button>
             ) : canClose && online ? (
               <button
@@ -2478,8 +2473,8 @@ function OrderView({
                 Ёпиш ва чек
               </button>
             ) : (
-              <span className="ml-auto text-sm font-medium text-brand-ink/50">
-                {!online ? "📴 Тўлов уланганда" : "💳 Кассир ёпади"}
+              <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink/50">
+                {!online ? <><IWifiOff className="h-4 w-4" /> Тўлов уланганда</> : <><ICard className="h-4 w-4" /> Кассир ёпади</>}
               </span>
             )}
           </div>
@@ -2593,9 +2588,9 @@ function OrderView({
                           });
                           setCfgOpen(true);
                         }}
-                        className="text-xs font-semibold text-brand underline"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-brand underline"
                       >
-                        ⚙️ ID киритиш
+                        <IGear className="h-3.5 w-3.5" /> ID киритиш
                       </button>
                     ) : (
                       <p className="text-xs text-zinc-400">Директор созлайди</p>
@@ -2613,9 +2608,9 @@ function OrderView({
                   <button
                     onClick={() => pay(showQr)}
                     disabled={closing}
-                    className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
                   >
-                    ✓ Тўланди
+                    {closing ? <ISpin className="h-4 w-4" /> : <ICheck className="h-4 w-4" />} Тўланди
                   </button>
                 </div>
               </div>
@@ -2635,7 +2630,7 @@ function OrderView({
                     <button
                       key={v}
                       onClick={() => setCashGot(String(v))}
-                      className="rounded-lg border border-brand-cream-soft bg-white py-2 text-xs font-semibold tabular-nums text-brand-ink transition hover:border-brand active:scale-[.97] motion-reduce:active:scale-100"
+                      className="grid min-h-11 place-items-center rounded-lg border border-brand-cream-soft bg-white px-1 py-2 text-xs font-semibold tabular-nums text-brand-ink transition hover:border-brand active:scale-[.97] motion-reduce:active:scale-100"
                     >
                       {v === payTotal ? "Тўлиқ" : fmt(v)}
                     </button>
@@ -2791,7 +2786,7 @@ function OrderView({
                       <button
                         onClick={applyDiscount}
                         disabled={!discountInput || !discountReasonInput.trim()}
-                        className="flex-1 rounded-xl bg-brand-gold-deep py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+                        className="flex-1 rounded-xl bg-brand-gold-deep py-3 text-sm font-semibold text-brand-ink disabled:opacity-40"
                       >
                         Қўллаш
                       </button>
@@ -2811,7 +2806,7 @@ function OrderView({
                       onClick={() => setCompReason(r)}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
                         compReason === r
-                          ? "bg-brand-gold-deep text-white"
+                          ? "bg-brand-gold-deep text-brand-ink"
                           : "bg-white text-brand-gold-deep hover:bg-brand-gold/20"
                       }`}
                     >
@@ -2837,7 +2832,7 @@ function OrderView({
                   <button
                     onClick={payComp}
                     disabled={!compReason.trim() || closing}
-                    className="flex-1 rounded-xl bg-brand-gold-deep py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-40"
+                    className="flex-1 rounded-xl bg-brand-gold-deep py-3 text-sm font-semibold text-brand-ink transition hover:brightness-95 disabled:opacity-40"
                   >
                     Текин деб ёпиш
                   </button>
@@ -3218,7 +3213,7 @@ function Step({ onClick, children }: { onClick: () => void; children: ReactNode 
   return (
     <button
       onClick={onClick}
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-cream text-brand transition hover:bg-brand-cream-soft active:scale-90 motion-reduce:active:scale-100"
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-brand transition hover:bg-brand-cream-soft active:scale-90 motion-reduce:active:scale-100"
     >
       {children}
     </button>
@@ -3247,7 +3242,7 @@ function WeighSheet({
       <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-base font-bold text-brand-ink">⚖️ {name}</h3>
+            <h3 className="flex items-center gap-2 text-base font-bold text-brand-ink"><IScale className="h-5 w-5" /> {name}</h3>
             <p className="text-xs text-zinc-400">{fmt(pricePerKg)} so'm/кг — вазн киритинг</p>
           </div>
           <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
@@ -3312,7 +3307,7 @@ function SiblingsSheet({
       <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-base font-bold text-brand-ink">⇅ {current.tableNo} — заказлар</h3>
+            <h3 className="flex items-center gap-2 text-base font-bold text-brand-ink"><ISwap className="h-5 w-5" /> {current.tableNo} — заказлар</h3>
             <p className="text-xs text-zinc-400">Шу столда {siblings.length + 1} та очиқ заказ</p>
           </div>
           <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
@@ -3342,9 +3337,9 @@ function SiblingsSheet({
         <button
           onClick={onNew}
           disabled={!online || busy}
-          className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
         >
-          ➕ Янги заказ шу столга
+          <IPlus className="h-4 w-4" /> Янги заказ шу столга
         </button>
       </div>
     </div>
@@ -3380,7 +3375,7 @@ function SplitSheet({
       <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between p-4 pb-2">
           <div>
-            <h3 className="text-base font-bold text-brand-ink">⑂ Счётни бўлиш</h3>
+            <h3 className="flex items-center gap-2 text-base font-bold text-brand-ink"><ISplit className="h-5 w-5" /> Счётни бўлиш</h3>
             <p className="text-xs text-zinc-400">Янги чекка ўтадиган таомларни танланг</p>
           </div>
           <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
@@ -3393,24 +3388,28 @@ function SplitSheet({
               <div key={i.id} className="flex items-center gap-2 rounded-xl border border-brand-cream-soft px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-brand-ink">{i.name}</p>
-                  <p className="text-xs text-zinc-400">
-                    {isWeight ? `⚖️ ${((i.weightG ?? 0) / 1000).toFixed(2)}кг · ` : `${i.qty} × `}
+                  <p className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                    {isWeight ? (
+                      <><IScale className="h-3 w-3" /> {((i.weightG ?? 0) / 1000).toFixed(2)}кг · </>
+                    ) : (
+                      `${i.qty} × `
+                    )}
                     {fmt(i.price)}
                   </p>
                 </div>
                 {isWeight ? (
                   <button
                     onClick={() => set(i.id, q ? 0 : 1)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${q ? "bg-brand text-white" : "bg-brand-cream text-brand"}`}
+                    className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${q ? "bg-brand text-white" : "bg-brand-cream text-brand"}`}
                   >
-                    {q ? "✓ Кўчади" : "Кўчириш"}
+                    {q ? <><ICheck className="h-3.5 w-3.5" /> Кўчади</> : "Кўчириш"}
                   </button>
                 ) : (
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => set(i.id, Math.max(0, q - 1))}
                       disabled={q <= 0}
-                      className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-100 text-lg font-bold text-zinc-600 disabled:opacity-30"
+                      className="grid h-10 w-10 place-items-center rounded-lg bg-zinc-100 text-lg font-bold text-zinc-600 disabled:opacity-30"
                     >
                       −
                     </button>
@@ -3418,7 +3417,7 @@ function SplitSheet({
                     <button
                       onClick={() => set(i.id, Math.min(i.qty, q + 1))}
                       disabled={q >= i.qty}
-                      className="grid h-8 w-8 place-items-center rounded-lg bg-brand-cream text-lg font-bold text-brand disabled:opacity-30"
+                      className="grid h-10 w-10 place-items-center rounded-lg bg-brand-cream text-lg font-bold text-brand disabled:opacity-30"
                     >
                       +
                     </button>
@@ -3437,9 +3436,9 @@ function SplitSheet({
           <button
             onClick={() => ok && onSplit(moves)}
             disabled={!ok || busy}
-            className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:opacity-40"
           >
-            {busy ? "Бўлинмоқда…" : `⑂ Бўлиш → янги чек`}
+            {busy ? <><ISpin className="h-4 w-4" /> Бўлинмоқда…</> : <><ISplit className="h-4 w-4" /> Бўлиш → янги чек</>}
           </button>
           {movedQty > 0 && stayQty < 1 && (
             <p className="text-center text-xs text-red-500">Камида битта таом жорий чекда қолиши керак</p>

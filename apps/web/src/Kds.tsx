@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "./trpc";
+import { ICheck, ISpin, IFullscreen } from "./icons";
 
 // 🍳 KDS — кухня экрани (ошхона планшети). Пишаётган тикетлар жонли; ошпаз
 // «✓ Тайёр» босади → экрандан кетади. Вақт ошса ранг эскалация (кухня SLA).
@@ -97,7 +98,7 @@ export function Kds() {
           onClick={() => (document.fullscreenElement ? document.exitFullscreen() : boxRef.current?.requestFullscreen?.())}
           className="rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold transition hover:bg-white/20"
         >
-          {fs ? "Чиқиш" : "⛶ Тўлиқ экран"}
+          {fs ? "Чиқиш" : <><IFullscreen className="inline h-4 w-4" /> Тўлиқ экран</>}
         </button>
       </div>
 
@@ -166,9 +167,9 @@ export function Kds() {
                 <button
                   onClick={() => bump(t.id)}
                   disabled={busy === t.id}
-                  className="mt-3 w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-extrabold text-white transition hover:bg-emerald-700 active:scale-[.98] disabled:opacity-50 motion-reduce:active:scale-100"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700 active:scale-[.98] disabled:opacity-50 motion-reduce:active:scale-100"
                 >
-                  ✓ Тайёр
+                  {busy === t.id ? <ISpin className="h-5 w-5" /> : <ICheck className="h-5 w-5" />} Тайёр
                 </button>
               </div>
             );
