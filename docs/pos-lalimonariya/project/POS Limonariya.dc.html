@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+html,body{margin:0;padding:0;background:#F0F1F3;font-family:'Segoe UI',system-ui,-apple-system,Tahoma,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#34305E;text-decoration:none}a:hover{color:#A44CBE}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#c9c9d6;border-radius:4px}
+</style>
+</helmet>
+<div style="width:100%;min-width:1230px;min-height:100vh;background:#F0F1F3;overflow:hidden">
+<sc-if value="{{ isFloor }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:stretch;height:34px;background:#34305E;min-width:1230px">
+    <div style="display:flex;align-items:stretch">
+      <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
+        <div onClick="{{ tb.pick }}" style="display:flex;align-items:center;padding:0 18px;cursor:pointer;font-size:13px;font-weight:{{ tb.fw }};color:{{ tb.color }};background:{{ tb.bg }}">{{ tb.name }}</div>
+      </sc-for>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding-right:14px">
+      <div style="display:flex;align-items:center;gap:6px;background:#29A737;border-radius:3px;height:24px;padding:0 12px;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.2)"><span style="color:#fff;font-size:15px;font-weight:700;line-height:1">+</span><span style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap">Новый заказ</span></div>
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer"><span style="color:#fff;font-size:13px;white-space:nowrap">Чеки</span><span style="width:17px;height:17px;border-radius:50%;background:#3EBD4E;border:1.5px solid #fff;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">3</span></div>
+      <svg width="17" height="14" viewBox="0 0 17 14" style="cursor:pointer"><rect x="0" y="1" width="17" height="2" fill="#fff"></rect><rect x="0" y="6" width="17" height="2" fill="#fff"></rect><rect x="0" y="11" width="17" height="2" fill="#fff"></rect></svg>
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.5"><path d="M10 2H3v12h7"></path><path d="M7 8h8M12 5l3 3-3 3"></path></svg><span style="color:#fff;font-size:13px;white-space:nowrap">Limonariya Li</span></div>
+      <svg width="15" height="16" viewBox="0 0 15 16" fill="none" stroke="#fff" stroke-width="1.4" style="cursor:pointer"><path d="M7.5 2a4 4 0 0 1 4 4v3l1.5 2.5H2L3.5 9V6a4 4 0 0 1 4-4z"></path><path d="M6 13.5a1.5 1.5 0 0 0 3 0"></path></svg>
+      <span style="color:#fff;font-size:13px;font-variant-numeric:tabular-nums">{{ time }}</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 14a2 2 0 1 1 2-2" fill="#4CAF50"></path><circle cx="3" cy="13" r="1.6" fill="#4CAF50"></circle><path d="M2 9a5 5 0 0 1 5 5M2 5a9 9 0 0 1 9 9" stroke="#4CAF50" stroke-width="2" fill="none"></path></svg>
+    </div>
+  </div>
+  <div style="position:relative;height:calc(100vh - 34px);min-width:1230px;overflow:auto">
+    <sc-for list="{{ tables }}" as="t" hint-placeholder-count="8">
+      <div onClick="{{ t.open }}" style="position:absolute;left:{{ t.x }}px;top:{{ t.y }}px;width:{{ t.w }}px;height:{{ t.h }}px;background:{{ t.bg }};box-shadow:2px 3px 0 0 rgba(0,0,0,.24);border-radius:2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;box-sizing:border-box" style-hover="filter:brightness(1.06)">
+        <div style="color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:1.25">{{ t.name }}</div>
+        <sc-if value="{{ t.busy }}" hint-placeholder-val="{{ false }}">
+          <div style="color:#f0dff7;font-size:10px;text-align:center">({{ t.guest }})</div>
+          <div style="color:#f0dff7;font-size:10px;text-align:center;margin-top:2px">{{ t.price }} so'm</div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+<sc-if value="{{ isOrder }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;align-items:stretch;height:34px">
+    <div style="width:490px;background:#262347;display:flex;align-items:center;padding:0 10px;box-sizing:border-box;gap:10px">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#cfcde4" stroke-width="1.4"><path d="M2 13l1-3.5L10.5 2l2.5 2.5L5.5 12z"></path></svg>
+      <span style="color:#fff;font-size:13px;font-weight:700;white-space:nowrap">{{ orderTable }}</span>
+      <span style="flex:1;text-align:center;color:#b9b7d2;font-size:12px;font-variant-numeric:tabular-nums">00:00</span>
+      <span style="color:#b9b7d2;font-size:12px">#b12325a0</span>
+      <div style="width:26px;height:20px;background:#3A366B;border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="#fff" stroke-width="1.6"><path d="M1 1l4 4 4-4"></path></svg></div>
+    </div>
+    <div style="flex:1;background:#34305E;display:flex;align-items:center;justify-content:flex-end;gap:16px;padding-right:14px">
+      <div style="display:flex;align-items:center;gap:6px;background:#29A737;border-radius:3px;height:24px;padding:0 12px;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.2)"><span style="color:#fff;font-size:15px;font-weight:700;line-height:1">+</span><span style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap">Новый заказ</span></div>
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer"><span style="color:#fff;font-size:13px;white-space:nowrap">Чеки</span><span style="width:17px;height:17px;border-radius:50%;background:#3EBD4E;border:1.5px solid #fff;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">3</span></div>
+      <svg width="17" height="14" viewBox="0 0 17 14" style="cursor:pointer"><rect x="0" y="1" width="17" height="2" fill="#fff"></rect><rect x="0" y="6" width="17" height="2" fill="#fff"></rect><rect x="0" y="11" width="17" height="2" fill="#fff"></rect></svg>
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.5"><path d="M10 2H3v12h7"></path><path d="M7 8h8M12 5l3 3-3 3"></path></svg><span style="color:#fff;font-size:13px;white-space:nowrap">Limonariya Li</span></div>
+      <svg width="15" height="16" viewBox="0 0 15 16" fill="none" stroke="#fff" stroke-width="1.4" style="cursor:pointer"><path d="M7.5 2a4 4 0 0 1 4 4v3l1.5 2.5H2L3.5 9V6a4 4 0 0 1 4-4z"></path><path d="M6 13.5a1.5 1.5 0 0 0 3 0"></path></svg>
+      <span style="color:#fff;font-size:13px;font-variant-numeric:tabular-nums">{{ time }}</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="3" cy="13" r="1.6" fill="#4CAF50"></circle><path d="M2 9a5 5 0 0 1 5 5M2 5a9 9 0 0 1 9 9" stroke="#4CAF50" stroke-width="2" fill="none"></path></svg>
+    </div>
+  </div>
+  <div style="display:flex;height:calc(100vh - 34px)">
+    <div style="width:41px;background:#F4F4F8;border-right:1px solid #DDDDE6;display:flex;flex-direction:column;align-items:center;padding:10px 0;box-sizing:border-box;gap:0">
+      <div onClick="{{ backToFloor }}" style="padding:9px 0;cursor:pointer" style-hover="opacity:.6"><svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="#8B87AD" stroke-width="1.8"><path d="M8 1L1 8l7 7M1 8h16"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="#8B87AD" stroke-width="1.5"><circle cx="8.5" cy="5.5" r="3"></circle><path d="M2 15.5c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="18" height="15" viewBox="0 0 18 15" fill="none" stroke="#8B87AD" stroke-width="1.5"><rect x="1" y="1" width="16" height="13" rx="1.5"></rect><path d="M1 5h16M4 10h4"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="#8B87AD"><path d="M8 2l6 7H2z"></path><rect x="2" y="11" width="12" height="2.5"></rect></svg></div>
+      <div style="height:18px"></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="17" height="16" viewBox="0 0 17 16" fill="none" stroke="#8B87AD" stroke-width="1.5"><path d="M1.5 1.5h14v10h-8l-4 3v-3h-2z"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="17" height="15" viewBox="0 0 17 15" fill="none" stroke="#8B87AD" stroke-width="1.6"><path d="M1 2h2M1 7.5h2M1 13h2M6 2h10M6 7.5h10M6 13h10"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="17" height="16" viewBox="0 0 17 16" fill="none" stroke="#8B87AD" stroke-width="1.5"><path d="M8.5 15V7M8.5 7L3 1.5M8.5 7L14 1.5M3 1.5H6M3 1.5V4.5M14 1.5H11M14 1.5V4.5"></path></svg></div>
+      <div style="flex:1"></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#8B87AD" stroke-width="1.5"><rect x="1" y="1" width="16" height="10" rx="1"></rect><path d="M2 13a4 4 0 0 1 4-4M2 10.5A6.5 6.5 0 0 1 8.5 4"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="15" height="17" viewBox="0 0 15 17" fill="none" stroke="#8B87AD" stroke-width="1.5"><rect x="1.5" y="7" width="12" height="8.5" rx="1"></rect><path d="M4.5 7V5a3 3 0 0 1 6 0v2"></path></svg></div>
+      <div style="padding:9px 0;cursor:pointer"><svg width="17" height="16" viewBox="0 0 17 16" fill="none" stroke="#8B87AD" stroke-width="1.5"><path d="M4 5V1.5h9V5M4 12H1.5V5h14V12H13"></path><rect x="4" y="9.5" width="9" height="5"></rect></svg></div>
+      <div style="padding:6px 0;cursor:pointer;color:#8B87AD;font-size:14px;font-weight:700;letter-spacing:1px">···</div>
+    </div>
+    
+    <div style="width:449px;background:#fff;display:flex;flex-direction:column;box-sizing:border-box">
+      <div style="flex: 1; width: 356px; height: 452px"></div>
+      <div style="border-top:1px dashed #d3d3de;margin:0 12px;padding:10px 0 6px;display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#95959f">Промежуточный итог:</span><span style="color:#3a3a44;font-variant-numeric:tabular-nums">0.00so'm</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#95959f">Сервис:</span><span style="color:#3a3a44;font-variant-numeric:tabular-nums">0.00so'm ({{ servicePct }}%)</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#1d1d24;font-weight:700">Итого:</span><span style="color:#1d1d24;font-weight:700;font-variant-numeric:tabular-nums">0.00so'm</span></div>
+      </div>
+      <div style="display:flex;gap:2px;padding:8px 12px 12px">
+        <div style="flex:1;height:48px;background:#E4E4EB;border-radius:3px 0 0 3px;display:flex;align-items:center;justify-content:center;color:#A9A9B6;font-size:14px;font-weight:600;cursor:not-allowed">Отправить</div>
+        <div style="width:34px;height:48px;background:#E4E4EB;border-radius:0 3px 3px 0;display:flex;align-items:center;justify-content:center;color:#A9A9B6;font-size:14px;font-weight:700;cursor:pointer">···</div>
+        <div onClick="{{ backToFloor }}" style="width:212px;height:48px;background:#5C6370;border-radius:3px;margin-left:8px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer" style-hover="background:#525966"><svg width="12" height="12" viewBox="0 0 12 12" stroke="#fff" stroke-width="1.8"><path d="M1 1l10 10M11 1L1 11"></path></svg><span style="color:#fff;font-size:13px;font-weight:600">Отменить продажу</span></div>
+      </div>
+    </div><div style="flex:1;background:#F0F1F4;border-left:1px solid #DDDDE6;padding:8px 10px;box-sizing:border-box;overflow:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="width: 65px; height: 34px; background: #fff; border-radius: 4px 4px 4px 0; box-shadow: 0 1px 2px rgba(0,0,0,.08); display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="17" height="16" viewBox="0 0 17 16" fill="none" stroke="#4A4A55" stroke-width="1.5"><path d="M1.5 7.5L8.5 1l7 6.5M3.5 6v8.5h10V6"></path></svg></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:30px;background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#63637A" stroke-width="1.6"><circle cx="6" cy="6" r="4.5"></circle><path d="M9.5 9.5L13 13"></path></svg></div>
+          <div style="height:30px;background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;gap:7px;padding:0 12px;cursor:pointer"><svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="#63637A" stroke-width="1.4"><path d="M1 3a6.5 5.5 0 0 0 13 0z"></path><path d="M5 11h5M7.5 8.5V11"></path></svg><span style="color:#4A4A55;font-size:11px">Продажи по порциям</span></div>
+          <div style="width:32px;height:30px;background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#63637A;font-size:15px">⚙</div>
+          <div style="width:32px;height:30px;background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#63637A;font-size:15px">☆</div>
+          <div style="width:32px;height:30px;background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7A5FC7" stroke-width="1.4"><circle cx="8" cy="8" r="6.5"></circle><path d="M6.3 5.5v5M9.7 5.5v5" stroke-width="1.6"></path></svg></div>
+          <div style="width:32px;height:30px;background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 14 14" fill="#63637A"><rect x="0" y="0" width="6" height="6" rx="1"></rect><rect x="8" y="0" width="6" height="6" rx="1"></rect><rect x="0" y="8" width="6" height="6" rx="1"></rect><rect x="8" y="8" width="6" height="6" rx="1"></rect></svg></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px">
+        <sc-for list="{{ cats }}" as="c" hint-placeholder-count="10">
+          <div style="background:{{ c.bg }};box-shadow:2px 3px 0 0 rgba(0,0,0,.22);border-radius:2px;min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px 8px;box-sizing:border-box;cursor:pointer;color:#fff;font-size:14px;font-weight:700;line-height:1.3" style-hover="filter:brightness(1.06)">{{ c.name }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;busyColor&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#A44CBE&quot;, &quot;options&quot;: [&quot;#A44CBE&quot;, &quot;#29A737&quot;, &quot;#E0533D&quot;, &quot;#F3B759&quot;], &quot;section&quot;: &quot;Цвета&quot;}, &quot;catColor&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#00BCD4&quot;, &quot;options&quot;: [&quot;#00BCD4&quot;, &quot;#34305E&quot;, &quot;#29A737&quot;, &quot;#7D8E9B&quot;], &quot;section&quot;: &quot;Цвета&quot;}, &quot;servicePct&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 10, &quot;min&quot;: 0, &quot;max&quot;: 30, &quot;unit&quot;: &quot;%&quot;, &quot;section&quot;: &quot;Заказ&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'floor', hall: 'Асосий зал', table: null, time: '' };
+  componentDidMount() {
+    const tick = () => this.setState({ time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) });
+    tick(); this._iv = setInterval(tick, 10000);
+  }
+  componentWillUnmount() { clearInterval(this._iv); }
+  renderVals() {
+    const busyBg = this.props.busyColor ?? '#A44CBE';
+    const catBg = this.props.catColor ?? '#00BCD4';
+    const freeBg = '#7D8E9B';
+    const T = (name, x, y, w, h, guest, price) => ({ name, x, y, w, h, busy: !!guest, guest, price, bg: guest ? busyBg : freeBg, open: () => this.setState({ screen: 'order', table: name }) });
+    const mainHall = [
+      T('4-Банкет зал', 97, 4, 237, 118), T('3-Банкет зал', 302, 210, 237, 118),
+      T('2-Кабина', 67, 416, 237, 118), T('1-Кабина', 67, 591, 237, 118), T('Кичик кабина', 420, 475, 148, 118),
+      T('13 Лимонария', 625, 4, 178, 89), T('1-ЛИМОНАРИЯ', 830, 4, 178, 89), T('2-ЛИМОНАРИЯ', 1040, 4, 178, 89, 'Эзоза', '440000'),
+      T('14 Лимонария', 625, 122, 178, 89), T('3-ЛИМОНАРИЯ', 830, 122, 178, 89), T('4-ЛИМОНАРИЯ', 1040, 122, 178, 89),
+      T('15 Лимонария', 625, 239, 178, 89, 'Шерхон', '171600'), T('5 Лимонария (Чорпоя)', 830, 239, 178, 89), T('6 Лимонария', 1040, 239, 178, 89),
+      T('16 Лимонария', 625, 357, 178, 89), T('7-Лимонария (Чорпоя)', 830, 357, 178, 89), T('8 Лимонария (Чорпоя)', 1040, 357, 178, 89),
+      T('17 Лимонария', 625, 475, 178, 89), T('9 Лимонария (Чорпоя)', 830, 475, 178, 89, 'Абрам', '179300'), T('10 Лимонария (Чорпоя)', 1040, 475, 178, 89),
+      T('11 Лимонария', 830, 592, 178, 89), T('12 Лимонария', 1040, 592, 178, 89)
+    ];
+    const katta = [];
+    for (let i = 0; i < 12; i++) katta.push(T('Стол ' + (i + 1), 70 + (i % 4) * 205, 30 + Math.floor(i / 4) * 118, 178, 89));
+    const soboy = [T('Собой', 70, 30, 178, 89)];
+    const terrasa = [];
+    for (let i = 0; i < 8; i++) terrasa.push(T((i + 1) + '-Терраса', 70 + (i % 4) * 205, 30 + Math.floor(i / 4) * 118, 178, 89));
+    const byHall = { 'Асосий зал': mainHall, 'Катта зал': katta, 'Собой': soboy, 'Терраса': terrasa };
+    const tabs = ['Асосий зал', 'Катта зал', 'Собой', 'Терраса'].map(n => {
+      const act = this.state.hall === n;
+      return { name: n, bg: act ? '#232045' : 'transparent', color: act ? '#fff' : '#C9C7DD', fw: act ? 700 : 400, pick: () => this.setState({ hall: n }) };
+    });
+    const catNames = ['ТАОМЛАР', 'БАЛИКЛАР', 'САЛАТЛАР', 'ИЧИМЛИКЛАР', 'ШАШЛИКЛАР', 'СПИРТЛИ ИЧИМЛИКЛАР', 'ПРОЧЕЕ', 'Ширинликлар', 'Мороженое', 'Non choy'];
+    const cats = catNames.map(n => ({ name: n, bg: n === 'Non choy' ? '#6E8695' : catBg }));
+    return {
+      isFloor: this.state.screen === 'floor',
+      isOrder: this.state.screen === 'order',
+      time: this.state.time,
+      tabs, cats,
+      tables: byHall[this.state.hall] || mainHall,
+      orderTable: this.state.table || '3-Банкет зал',
+      servicePct: this.props.servicePct ?? 10,
+      backToFloor: () => this.setState({ screen: 'floor', table: null })
+    };
+  }
+}
+</script>
+</body>
+</html>
