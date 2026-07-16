@@ -11,8 +11,12 @@ type Ticket = {
   createdAt: string;
   tableNo: string | null;
   hall: string | null;
+  saleType?: string;
   items: KItem[];
 };
+
+// Собой/доставка — ошпаз ўраш кераклигини кўрсин (зал тикетида бейдж йўқ).
+const SALE_TYPE_BADGE: Record<string, string> = { delivery: "🛵 ДОСТАВКА", takeaway: "🥡 СОБОЙ" };
 
 const STATION_COLOR: Record<string, string> = {
   SALAT: "#22c55e",
@@ -125,8 +129,15 @@ export function Kds() {
                   <span className="text-base font-extrabold">
                     {t.tableNo ?? t.hall ?? "Заказ"}
                   </span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold tabular-nums ${st.badge}`}>
-                    {m}′
+                  <span className="flex items-center gap-1.5">
+                    {t.saleType && SALE_TYPE_BADGE[t.saleType] && (
+                      <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-extrabold text-black">
+                        {SALE_TYPE_BADGE[t.saleType]}
+                      </span>
+                    )}
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold tabular-nums ${st.badge}`}>
+                      {m}′
+                    </span>
                   </span>
                 </div>
                 <div className="mt-2 flex-1 space-y-2">

@@ -67,7 +67,14 @@ function hhmm(d: Date): string {
 const fmt = (n: number) => n.toLocaleString("ru-RU");
 
 // ── Кухня тикети (битта станция) ──────────────────────────────────────────
-export type KitchenMeta = { hall: string | null; tableNo: string | null; createdAt: Date; station: string };
+export type KitchenMeta = {
+  hall: string | null;
+  tableNo: string | null;
+  createdAt: Date;
+  station: string;
+  saleType?: string | null;
+};
+const SALE_TYPE_TICKET: Record<string, string> = { delivery: "ДОСТАВКА", takeaway: "СОБОЙ (олиб кетиш)" };
 export function buildKitchenTicket(
   meta: KitchenMeta,
   items: { name: string; qty: number; note?: string | null }[],
@@ -78,12 +85,17 @@ export function buildKitchenTicket(
     ESC.boldOn,
     ESC.dblOn,
     txt(meta.station.toUpperCase()), nl,
+  ];
+  // Собой/доставка — ошпаз ўраш кераклигини ДАРҲОЛ кўрсин (катта ҳарф, стол остида эмас).
+  const stLabel = meta.saleType ? SALE_TYPE_TICKET[meta.saleType] : undefined;
+  if (stLabel) parts.push(txt("* " + stLabel + " *"), nl);
+  parts.push(
     ESC.dblOff,
     ESC.boldOff,
     ESC.alignL,
     hr(),
     twoCol("Зал", meta.hall ?? "—"),
-  ];
+  );
   if (meta.tableNo) parts.push(twoCol("Стол", meta.tableNo));
   parts.push(twoCol("Вақт", hhmm(meta.createdAt)), hr());
   for (const it of items) {

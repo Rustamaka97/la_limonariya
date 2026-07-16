@@ -1350,7 +1350,12 @@ async function firePrintKitchen(
     if (items.length === 0) return;
     const meta = (
       await db
-        .select({ hall: halls.name, tableNo: orders.tableNo, createdAt: orders.createdAt })
+        .select({
+          hall: halls.name,
+          tableNo: orders.tableNo,
+          createdAt: orders.createdAt,
+          saleType: orders.saleType,
+        })
         .from(orders)
         .leftJoin(halls, eq(orders.hallId, halls.id))
         .where(eq(orders.id, orderId))
@@ -3434,7 +3439,8 @@ export const appRouter = router({
         return { ok: true };
       }),
 
-    // Стол кўчириш: очиқ заказни бошқа зал/столга. servicePct янги залдан олинади.
+    // Стол кўчириш: очиқ заказни бошқа зал/столга. servicePct янги залдан олинади,
+    // лекин сервис кечирилган (waived) заказда 0 лигича қолади.
     moveTable: protectedProcedure
       .input(
         z.object({
@@ -3449,9 +3455,21 @@ export const appRouter = router({
           await db.select().from(halls).where(eq(halls.id, input.hallId)).limit(1)
         )[0];
         if (!hall) throw new TRPCError({ code: "NOT_FOUND", message: "Зал топилмади" });
+        const head = (
+          await db
+            .select({ serviceWaived: orders.serviceWaived })
+            .from(orders)
+            .where(eq(orders.id, input.id))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
         const done = await db
           .update(orders)
-          .set({ hallId: hall.id, tableNo: input.tableNo ?? null, servicePct: hall.servicePct })
+          .set({
+            hallId: hall.id,
+            tableNo: input.tableNo ?? null,
+            servicePct: head.serviceWaived ? 0 : hall.servicePct,
+          })
           .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
           .returning({ id: orders.id });
         if (!done.length) throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
@@ -3731,7 +3749,9 @@ export const appRouter = router({
           await db
             .select({
               status: orders.status,
+              locked: orders.locked,
               serviceWaived: orders.serviceWaived,
+              servicePct: orders.servicePct,
               hallId: orders.hallId,
             })
             .from(orders)
@@ -3741,8 +3761,10 @@ export const appRouter = router({
         if (!head) throw new TRPCError({ code: "NOT_FOUND" });
         if (head.status !== "open")
           throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган — аввал блокни ечинг" });
         if (head.serviceWaived === input.waived)
-          return { ok: true, waived: input.waived };
+          return { ok: true, waived: input.waived, pct: head.servicePct };
         let pct = 0;
         if (!input.waived) {
           const hall = (
@@ -3754,10 +3776,13 @@ export const appRouter = router({
           )[0];
           pct = hall?.servicePct ?? 0;
         }
-        await db
+        const done = await db
           .update(orders)
           .set({ serviceWaived: input.waived, servicePct: pct })
-          .where(eq(orders.id, input.orderId));
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")))
+          .returning({ id: orders.id });
+        if (!done.length)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
         await logAudit(db, {
           actorId: ctx.user.id,
           action: input.waived ? "order.service_waive" : "order.service_restore",
@@ -3765,14 +3790,15 @@ export const appRouter = router({
           entityId: input.orderId,
           summary: input.waived ? "Хизмат ҳақи кечирилди" : "Хизмат ҳақи тикланди",
         });
-        return { ok: true, waived: input.waived };
+        return { ok: true, waived: input.waived, pct };
       }),
 
     // Сотув турини ўзгартириш (CloPOS «Изменить тип продажи»): зал/доставка/собой.
     // Сервис create'даги қоида билан қайта ҳисобланади: зал → зал %и, доставка/
-    // собой → 0 (авто-кечириш). Кассир кейин toggle билан қайта ёқа олади.
-    // Пулга тегувчи детерминик қоида — audit_log'га ёзилади (анти-суистеъмол).
-    setSaleType: protectedProcedure
+    // собой → 0 (авто-кечириш). Пулга тегувчи бўлгани учун setService каби
+    // КАССИР-гейт (официант create'да тур танлай олади, кейин ўзгартира олмайди)
+    // + audit_log (анти-суистеъмол).
+    setSaleType: cashierProcedure
       .input(
         z.object({
           orderId: z.string().uuid(),
@@ -3785,7 +3811,9 @@ export const appRouter = router({
           await db
             .select({
               status: orders.status,
+              locked: orders.locked,
               saleType: orders.saleType,
+              servicePct: orders.servicePct,
               hallId: orders.hallId,
             })
             .from(orders)
@@ -3794,8 +3822,10 @@ export const appRouter = router({
         )[0];
         if (!head || head.status !== "open")
           throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
+        if (head.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган — аввал блокни ечинг" });
         if (head.saleType === input.saleType)
-          return { ok: true, saleType: input.saleType };
+          return { ok: true, saleType: input.saleType, pct: head.servicePct };
         const waive = input.saleType !== "dine_in";
         let pct = 0;
         if (!waive) {
@@ -3808,10 +3838,13 @@ export const appRouter = router({
           )[0];
           pct = hall?.servicePct ?? 0;
         }
-        await db
+        const done = await db
           .update(orders)
           .set({ saleType: input.saleType, serviceWaived: waive, servicePct: pct })
-          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")))
+          .returning({ id: orders.id });
+        if (!done.length)
+          throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
         await logAudit(db, {
           actorId: ctx.user.id,
           action: "order.sale_type",
@@ -3819,7 +3852,7 @@ export const appRouter = router({
           entityId: input.orderId,
           summary: `Сотув тури: ${head.saleType} → ${input.saleType} (сервис ${pct}%)`,
         });
-        return { ok: true, saleType: input.saleType };
+        return { ok: true, saleType: input.saleType, pct };
       }),
 
     // ⚖️ Оғирлик билан сотиш (CloPOS «Продажи по порциям»): гўшт кг таомга вазн
@@ -3908,6 +3941,8 @@ export const appRouter = router({
                 hallId: orders.hallId,
                 tableNo: orders.tableNo,
                 servicePct: orders.servicePct,
+                saleType: orders.saleType,
+                serviceWaived: orders.serviceWaived,
               })
               .from(orders)
               .where(eq(orders.id, input.sourceId))
@@ -3955,7 +3990,7 @@ export const appRouter = router({
               message: "Ҳаммасини бўлиб бўлмайди — камида битта таом қолсин",
             });
 
-          // Янги оғайни-заказ (шу стол/зал/servicePct).
+          // Янги оғайни-заказ (шу стол/зал/servicePct/сотув тури/waived).
           const newRow = (
             await tx
               .insert(orders)
@@ -3965,6 +4000,8 @@ export const appRouter = router({
                 tableNo: src.tableNo,
                 waiterId: ctx.user.id,
                 servicePct: src.servicePct,
+                saleType: src.saleType,
+                serviceWaived: src.serviceWaived,
               })
               .returning({ id: orders.id })
           )[0];
@@ -6840,6 +6877,7 @@ export const appRouter = router({
           createdAt: kitchenTickets.createdAt,
           tableNo: orders.tableNo,
           hall: halls.name,
+          saleType: orders.saleType,
         })
         .from(kitchenTickets)
         .innerJoin(orders, eq(kitchenTickets.orderId, orders.id))
@@ -6868,6 +6906,7 @@ export const appRouter = router({
         createdAt: t.createdAt,
         tableNo: t.tableNo,
         hall: t.hall,
+        saleType: t.saleType,
         items: byTicket.get(t.id) ?? [],
       }));
     }),

@@ -43,6 +43,7 @@ export type OverlayHead = {
   note: string | null;
   waiter: string | null;
   saleType?: string;
+  serviceWaived?: boolean;
   createdAt: string;
   base: LocalItem[]; // сервердаги охирги ҳолат snapshot'и ([] = ҳали синхронланмаган)
   error: string | null;
@@ -151,7 +152,8 @@ export function deriveOrderFrom(head: OverlayHead, ops: OutboxOp[]): LocalOrder 
     compReason: null,
     discountAmount: 0,
     discountReason: null,
-    serviceWaived: head.saleType != null && head.saleType !== "dine_in",
+    // Сервер флаги устувор; локал (ҳали синх бўлмаган) заказда турдан келтирилади.
+    serviceWaived: head.serviceWaived ?? (head.saleType != null && head.saleType !== "dine_in"),
     saleType: head.saleType ?? "dine_in",
     items,
     payments: [],
@@ -352,6 +354,8 @@ export async function syncBaseFromServer(
     waiter: string | null;
     guests: number | null;
     note: string | null;
+    saleType?: string;
+    serviceWaived?: boolean;
     createdAt: string;
     status: string;
     items: { productId: string | null; name: string; price: number; qty: number }[];
@@ -372,6 +376,8 @@ export async function syncBaseFromServer(
       guests: o.guests,
       note: o.note,
       waiter: o.waiter,
+      saleType: o.saleType ?? prev?.saleType,
+      serviceWaived: o.serviceWaived ?? prev?.serviceWaived,
       createdAt: o.createdAt,
       base: o.items.map((it) => ({
         id: it.productId ? `local:${it.productId}` : `srv:${it.name}`,
@@ -383,6 +389,21 @@ export async function syncBaseFromServer(
       error: null,
     };
     await store.put(OVERLAY, head);
+  } catch {
+    /* noop */
+  }
+}
+
+// Онлайн мутация (setService/setSaleType) муваффақиятидан кейин overlay head'ни
+// янгилаш — pending op бор пайтда ҳам derived кўриниш stale бўлиб қолмасин.
+export async function patchOverlayHead(
+  id: string,
+  patch: Partial<Pick<OverlayHead, "saleType" | "serviceWaived" | "servicePct">>,
+): Promise<void> {
+  try {
+    const prev = await store.getIn<OverlayHead>(OVERLAY, id);
+    if (!prev) return;
+    await store.put(OVERLAY, { ...prev, ...patch });
   } catch {
     /* noop */
   }

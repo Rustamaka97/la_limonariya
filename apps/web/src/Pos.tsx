@@ -15,6 +15,7 @@ import {
   listOverlayOpenOrders,
   localUnsent,
   mergeOpenOrders,
+  patchOverlayHead,
   pendingOpsFor,
   syncBaseFromServer,
 } from "./lib/outbox";
@@ -339,7 +340,18 @@ function FloorView({
     return lerpHeat(pct);
   };
 
+  const createBusyRef = useRef(false);
   async function create(hallId: string, table: string | undefined, guests: number, saleType = "dine_in") {
+    // Double-tap ҳимояси: ҳар тап янги uuid ясайди → гардсиз 2 заказ очилади.
+    if (createBusyRef.current) return;
+    createBusyRef.current = true;
+    try {
+      await createInner(hallId, table, guests, saleType);
+    } finally {
+      createBusyRef.current = false;
+    }
+  }
+  async function createInner(hallId: string, table: string | undefined, guests: number, saleType: string) {
     // Offline-first: локал заказ + навбат; уланганда синхрон (идемпотент client id).
     const hall = halls.find((h) => h.id === hallId);
     const id = uuid();
@@ -1480,7 +1492,9 @@ function OrderView({
     const next = !order.serviceWaived;
     setServiceBusy(true);
     try {
-      await trpc.pos.setService.mutate({ orderId: id, waived: next });
+      const r = await trpc.pos.setService.mutate({ orderId: id, waived: next });
+      // Overlay head ҳам янгилансин — pending op бор пайтда derived stale бўлмасин.
+      await patchOverlayHead(id, { serviceWaived: next, servicePct: r.pct });
       vibrate([10]);
       await refresh();
     } catch (e) {
@@ -1494,7 +1508,8 @@ function OrderView({
   async function changeSaleType(st: string) {
     if (!order || order.saleType === st) return;
     try {
-      await trpc.pos.setSaleType.mutate({ orderId: id, saleType: st as "dine_in" | "delivery" | "takeaway" });
+      const r = await trpc.pos.setSaleType.mutate({ orderId: id, saleType: st as "dine_in" | "delivery" | "takeaway" });
+      await patchOverlayHead(id, { saleType: st, serviceWaived: st !== "dine_in", servicePct: r.pct });
       vibrate([10]);
       await refresh();
     } catch (e) {
@@ -1769,11 +1784,12 @@ function OrderView({
         >
           💬
         </button>
-        {/* 🧾 Заказ тарихи (кухня тикетлари) */}
+        {/* 🧾 Заказ тарихи (кухня тикетлари) — тикет йўғида silent no-op бўлмасин */}
         <button
           onClick={() => setShowTickets(true)}
-          title="Заказ тарихи — кухня тикетлари"
-          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white"
+          disabled={tickets.length === 0}
+          title={tickets.length === 0 ? "Ҳали кухня тикети йўқ" : "Заказ тарихи — кухня тикетлари"}
+          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
         >
           🧾
         </button>
@@ -1905,22 +1921,33 @@ function OrderView({
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Сотув тури чипи */}
-            <button
-              onClick={() => {
-                const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
-                changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
-              }}
-              disabled={!online}
-              title="Сотув турини ўзгартириш (зал/доставка/собой)"
-              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
-                order.saleType === "dine_in"
-                  ? "text-white/75 hover:bg-white/15 hover:text-white"
-                  : "bg-brand-gold text-brand-ink"
-              }`}
-            >
-              {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
-            </button>
+            {/* Сотув тури чипи — ўзгартириш фақат кассир+ (сервис %га тегади),
+                официантга ярлиқ кўринади (кухня учун маълумот). */}
+            {canComp ? (
+              <button
+                onClick={() => {
+                  const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
+                  changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
+                }}
+                disabled={!online || order.locked}
+                title="Сотув турини ўзгартириш (зал/доставка/собой)"
+                className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
+                  order.saleType === "dine_in"
+                    ? "text-white/75 hover:bg-white/15 hover:text-white"
+                    : "bg-brand-gold text-brand-ink"
+                }`}
+              >
+                {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+              </button>
+            ) : (
+              <span
+                className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold ${
+                  order.saleType === "dine_in" ? "text-white/75" : "bg-brand-gold text-brand-ink"
+                }`}
+              >
+                {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+              </span>
+            )}
             {/* + Янги заказ */}
             {order.tableNo && (
               <button
