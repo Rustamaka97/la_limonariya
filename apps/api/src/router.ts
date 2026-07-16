@@ -3769,6 +3769,9 @@ export const appRouter = router({
       }),
 
     // Сотув турини ўзгартириш (CloPOS «Изменить тип продажи»): зал/доставка/собой.
+    // Сервис create'даги қоида билан қайта ҳисобланади: зал → зал %и, доставка/
+    // собой → 0 (авто-кечириш). Кассир кейин toggle билан қайта ёқа олади.
+    // Пулга тегувчи детерминик қоида — audit_log'га ёзилади (анти-суистеъмол).
     setSaleType: protectedProcedure
       .input(
         z.object({
@@ -3778,13 +3781,44 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         await assertOrderAccess(db, ctx.user, input.orderId);
-        const done = await db
-          .update(orders)
-          .set({ saleType: input.saleType })
-          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")))
-          .returning({ id: orders.id });
-        if (!done.length)
+        const head = (
+          await db
+            .select({
+              status: orders.status,
+              saleType: orders.saleType,
+              hallId: orders.hallId,
+            })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head || head.status !== "open")
           throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
+        if (head.saleType === input.saleType)
+          return { ok: true, saleType: input.saleType };
+        const waive = input.saleType !== "dine_in";
+        let pct = 0;
+        if (!waive) {
+          const hall = (
+            await db
+              .select({ servicePct: halls.servicePct })
+              .from(halls)
+              .where(eq(halls.id, head.hallId))
+              .limit(1)
+          )[0];
+          pct = hall?.servicePct ?? 0;
+        }
+        await db
+          .update(orders)
+          .set({ saleType: input.saleType, serviceWaived: waive, servicePct: pct })
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "order.sale_type",
+          entity: "order",
+          entityId: input.orderId,
+          summary: `Сотув тури: ${head.saleType} → ${input.saleType} (сервис ${pct}%)`,
+        });
         return { ok: true, saleType: input.saleType };
       }),
 
