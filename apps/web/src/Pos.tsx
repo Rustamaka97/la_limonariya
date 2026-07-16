@@ -1294,6 +1294,11 @@ function OrderView({
   // #4 ⑂ Счёт-бўлиш.
   const [showSplitBill, setShowSplitBill] = useState(false);
   const [splitBusy, setSplitBusy] = useState(false);
+  // 👤 Мижоз бириктириш (CloPOS «Клиенты», лоялти/кешбэк) — ёпишда customerId бўлиб кетади.
+  const [showCustomer, setShowCustomer] = useState(false);
+  const [selCustomer, setSelCustomer] = useState<{ id: string; name: string } | null>(null);
+  // ⏸ Меню-панелни яшириш (CloPOS фокус режими).
+  const [menuHidden, setMenuHidden] = useState(false);
   const [showStop, setShowStop] = useState(false);
   const [stopQ, setStopQ] = useState("");
   const [stopCat, setStopCat] = useState<string | null>(null);
@@ -1593,10 +1598,12 @@ function OrderView({
     setCloseErr(null);
     setClosing(true);
     try {
+      // Қарз оқимидаги мижоз устувор; бўлмаса 👤 рельсдан бириктирилгани (лоялти).
+      const cid = customerId ?? selCustomer?.id;
       await trpc.pos.close.mutate({
         id,
         payments,
-        ...(customerId ? { customerId } : {}),
+        ...(cid ? { customerId: cid } : {}),
         ...(discount ? { discount } : {}),
       });
       cancelPay();
@@ -1801,6 +1808,15 @@ function OrderView({
               #{order.checkNo}
             </span>
           )}
+          {selCustomer && (
+            <button
+              onClick={() => setShowCustomer(true)}
+              title="Бириктирилган мижоз"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-gold px-2.5 py-1.5 text-xs font-bold text-brand-ink transition hover:brightness-105"
+            >
+              👤 {selCustomer.name}
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {/* Сотув тури чипи — ўзгартириш фақат кассир+ (сервис %га тегади),
@@ -1847,6 +1863,34 @@ function OrderView({
       <div className="flex gap-2">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
       <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl bg-brand-ink p-1.5 shadow-md">
+        {/* 👤 Мижоз бириктириш (CloPOS «Клиенты») */}
+        <button
+          onClick={() => setShowCustomer(true)}
+          disabled={!online}
+          title={selCustomer ? `Мижоз: ${selCustomer.name}` : "Мижоз бириктириш (лоялти/кешбэк)"}
+          className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+            selCustomer ? "bg-brand-gold text-brand-ink" : "text-white/70 hover:bg-white/15 hover:text-white"
+          }`}
+        >
+          👤
+        </button>
+        {/* % Чегирма (CloPOS «Скидка») — директор/менежер, тўлов ойнасини чегирма кўриниши билан очади */}
+        {canDiscount && (
+          <button
+            onClick={() => {
+              if (empty) return;
+              setPaying(true);
+              setShowDiscount(true);
+            }}
+            disabled={empty || !online || !canClose}
+            title={discount ? `Чегирма: −${fmt(discount.amount)}` : "Чегирма бериш"}
+            className={`grid h-11 w-11 place-items-center rounded-xl text-lg font-bold transition disabled:opacity-30 ${
+              discount ? "bg-brand-gold text-brand-ink" : "text-white/70 hover:bg-white/15 hover:text-white"
+            }`}
+          >
+            %
+          </button>
+        )}
         {/* 💬 Чекка изоҳ */}
         <button
           onClick={() => setNoteOpen((v) => !v)}
@@ -2018,6 +2062,54 @@ function OrderView({
         />
       )}
 
+      {/* 👤 Мижоз бириктириш (CloPOS «Клиенты») */}
+      {showCustomer && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+          onClick={() => setShowCustomer(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-bold text-brand-ink">👤 Мижоз бириктириш</h3>
+                <p className="text-xs text-zinc-400">Лоялти/кешбэк — чек ёпилганда ҳисобланади</p>
+              </div>
+              <button
+                onClick={() => setShowCustomer(false)}
+                className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100"
+              >
+                Ёпиш
+              </button>
+            </div>
+            {selCustomer && (
+              <div className="flex items-center justify-between rounded-xl bg-brand-gold/15 px-3 py-2.5">
+                <span className="text-sm font-semibold text-brand-ink">👤 {selCustomer.name}</span>
+                <button
+                  onClick={() => {
+                    setSelCustomer(null);
+                    setShowCustomer(false);
+                  }}
+                  className="text-xs font-medium text-red-500 underline"
+                >
+                  олиб ташлаш
+                </button>
+              </div>
+            )}
+            <CustomerPicker
+              closing={false}
+              onBack={() => setShowCustomer(false)}
+              onPick={(id, name) => {
+                setSelCustomer({ id, name });
+                setShowCustomer(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {syncErr && (
         <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700">⚠️ {syncErr} — синхронизация тўхтади.</div>
       )}
@@ -2101,15 +2193,41 @@ function OrderView({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[24rem_minmax(0,1fr)] lg:items-start">
         {/* MENU (CloPOS: ЎНГДА) */}
         <section className="order-1 min-w-0 space-y-3 lg:order-2">
-          <div className="flex items-center gap-2 rounded-2xl border border-brand-cream-soft bg-white px-3.5 py-2.5 shadow-sm">
-            <ISearch className="h-4 w-4 shrink-0 text-zinc-400" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Таом қидириш..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
-            />
+          {/* CloPOS-услуб меню-тулбар: 🏠 бош + қидирув + ⏸ панель-яшириш */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setMenuCat(null);
+                setQ("");
+              }}
+              title="Бош — барча категориялар"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-brand-cream-soft bg-white text-base shadow-sm transition hover:border-brand hover:text-brand"
+            >
+              🏠
+            </button>
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-brand-cream-soft bg-white px-3.5 py-2.5 shadow-sm">
+              <ISearch className="h-4 w-4 shrink-0 text-zinc-400" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Таом қидириш..."
+                className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
+              />
+            </div>
+            <button
+              onClick={() => setMenuHidden((v) => !v)}
+              title={menuHidden ? "Менюни кўрсатиш" : "Менюни яшириш (фокус)"}
+              className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-base shadow-sm transition ${
+                menuHidden
+                  ? "border-brand bg-brand text-white"
+                  : "border-brand-cream-soft bg-white hover:border-brand hover:text-brand"
+              }`}
+            >
+              {menuHidden ? "▶" : "⏸"}
+            </button>
           </div>
+          {!menuHidden && (
+          <>
           <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
             <button
               onClick={() => setMenuCat(null)}
@@ -2177,6 +2295,8 @@ function OrderView({
             <p className="text-center text-xs text-zinc-400">
               яна {filtered.length - shown.length} та — қидирувдан фойдаланинг
             </p>
+          )}
+          </>
           )}
           {showStop && (
             <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">
@@ -2384,16 +2504,25 @@ function OrderView({
             </div>
           </div>
 
-          {unsent > 0 && (
+          {/* CloPOS-услуб паст қатор: Отправить (кухня) + Отменить продажу */}
+          <div className="flex gap-2">
             <button
               onClick={sendToKitchen}
-              disabled={sending}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-gold py-3 font-semibold text-brand-ink shadow-sm transition hover:bg-brand-gold-deep active:scale-[.99] disabled:opacity-50 motion-reduce:active:scale-100"
+              disabled={sending || unsent === 0}
+              className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-brand-gold py-3 font-semibold text-brand-ink shadow-sm transition hover:bg-brand-gold-deep active:scale-[.99] disabled:opacity-40 motion-reduce:active:scale-100"
             >
               <IFlame className="h-5 w-5" />
-              Кухняга юбориш ({unsent} та)
+              Юбориш{unsent > 0 ? ` (${unsent})` : ""}
             </button>
-          )}
+            <button
+              onClick={() => setCancelling((v) => !v)}
+              disabled={!online}
+              title="Заказни бекор қилиш"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand-cream-soft bg-white py-3 text-sm font-medium text-zinc-500 shadow-sm transition hover:border-red-300 hover:text-red-600 disabled:opacity-40"
+            >
+              ✕ Бекор
+            </button>
+          </div>
 
           {tickets.length > 0 && (
             <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
@@ -2870,7 +2999,7 @@ function CustomerPicker({
 }: {
   closing: boolean;
   onBack: () => void;
-  onPick: (customerId: string) => void;
+  onPick: (customerId: string, name: string) => void;
 }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ id: string; name: string; phone: string | null }[]>([]);
@@ -2891,7 +3020,7 @@ function CustomerPicker({
     setBusy(true);
     try {
       const { id } = await trpc.finance.customers.create.mutate({ name: name.trim(), phone: phone.trim() || undefined });
-      onPick(id);
+      onPick(id, name.trim());
     } finally {
       setBusy(false);
     }
@@ -2916,7 +3045,7 @@ function CustomerPicker({
               results.map((c) => (
                 <button
                   key={c.id}
-                  onClick={() => onPick(c.id)}
+                  onClick={() => onPick(c.id, c.name)}
                   disabled={closing}
                   className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-brand-cream/40 disabled:opacity-40"
                 >
