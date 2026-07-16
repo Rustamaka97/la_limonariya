@@ -330,6 +330,13 @@
       "when": 1784128401478,
       "tag": "0046_service_and_saletype",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1784210626622,
+      "tag": "0047_table_size",
+      "breakpoints": true
     }
   ]
 }

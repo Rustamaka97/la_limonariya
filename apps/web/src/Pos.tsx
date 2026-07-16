@@ -24,7 +24,17 @@ import QRCode from "qrcode";
 import { payUrl, type PayConfig } from "./payqr";
 
 type Hall = { id: string; name: string; servicePct: number };
-type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null };
+type Table = {
+  id: string;
+  hallId: string;
+  name: string;
+  sort: number;
+  posX: number | null;
+  posY: number | null;
+  // Плитка ўлчами (CloPOS каби катта банкет-зал); null = дефолт TILE_W×TILE_H.
+  w?: number | null;
+  h?: number | null;
+};
 type MenuItem = {
   id: string;
   name: string;
@@ -902,9 +912,19 @@ function HallCanvas({
   const [drag, setDrag] = useState<{ id: string; offX: number; offY: number } | null>(null);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(null);
 
-  const canvasW = CANVAS_COLS * CELL_W + 24;
+  // Ўлчам ёрдамчилари: null = дефолт плитка (CloPOS каби банкет-зал катта бўлиши мумкин).
+  const sizeOf = (t: Table) => ({ w: t.w ?? TILE_W, h: t.h ?? TILE_H });
+  // Канвас чегараси: авто-тўр ҲАМДА қўлда жойлаштирилган (катта) плиткаларни қамрасин.
   const rows = Math.max(1, Math.ceil(tables.length / CANVAS_COLS));
-  const canvasH = Math.max(180, rows * CELL_H + 24);
+  const canvasW = Math.max(
+    CANVAS_COLS * CELL_W + 24,
+    ...tables.map((t) => (t.posX != null ? t.posX + sizeOf(t).w + 12 : 0)),
+  );
+  const canvasH = Math.max(
+    180,
+    rows * CELL_H + 24,
+    ...tables.map((t) => (t.posY != null ? t.posY + sizeOf(t).h + 12 : 0)),
+  );
 
   function posOf(t: Table, i: number): { x: number; y: number } {
     if (live?.id === t.id) return { x: live.x, y: live.y };
@@ -921,8 +941,10 @@ function HallCanvas({
   function onPointerMove(e: ReactPointerEvent) {
     if (!drag || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = clamp(e.clientX - rect.left - drag.offX, 0, canvasW - TILE_W);
-    const y = clamp(e.clientY - rect.top - drag.offY, 0, canvasH - TILE_H);
+    const dt = tables.find((t) => t.id === drag.id);
+    const sz = dt ? sizeOf(dt) : { w: TILE_W, h: TILE_H };
+    const x = clamp(e.clientX - rect.left - drag.offX, 0, canvasW - sz.w);
+    const y = clamp(e.clientY - rect.top - drag.offY, 0, canvasH - sz.h);
     setLive({ id: drag.id, x, y });
   }
   function endDrag() {
@@ -945,13 +967,14 @@ function HallCanvas({
       <div style={{ position: "relative", width: canvasW, height: canvasH }}>
         {tables.map((t, i) => {
           const p = posOf(t, i);
+          const sz = sizeOf(t);
           const dragging = drag?.id === t.id;
           const style: CSSProperties = {
             position: "absolute",
             left: p.x,
             top: p.y,
-            width: TILE_W,
-            height: TILE_H,
+            width: sz.w,
+            height: sz.h,
             zIndex: dragging ? 10 : 1,
             transition: dragging ? "none" : "left .12s, top .12s",
           };

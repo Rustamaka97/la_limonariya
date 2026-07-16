@@ -3225,6 +3225,8 @@ export const appRouter = router({
           sort: tables.sort,
           posX: tables.posX,
           posY: tables.posY,
+          w: tables.w,
+          h: tables.h,
         })
         .from(tables)
         .where(eq(tables.active, true))
