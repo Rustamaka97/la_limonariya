@@ -11,6 +11,27 @@
   --color-brand-gold-deep: #d99a2b;
   --color-brand-ink: #13241f;
   --color-brand-bg: #fdf8f2;
+
+  /* CloPOS-палитра — POS-экраны точь-в-точь по макету владельца
+     (Claude Design handoff, POS Limonariya.dc.html, 2026-07-16). */
+  --color-clopos-bar: #34305e;
+  --color-clopos-bar-active: #232045;
+  --color-clopos-dark: #262347;
+  --color-clopos-chip: #3a366b;
+  --color-clopos-green: #29a737;
+  --color-clopos-badge: #3ebd4e;
+  --color-clopos-busy: #a44cbe;
+  --color-clopos-busy-text: #f0dff7;
+  --color-clopos-free: #7d8e9b;
+  --color-clopos-cat: #00bcd4;
+  --color-clopos-cat-alt: #6e8695;
+  --color-clopos-bg: #f0f1f3;
+  --color-clopos-rail: #f4f4f8;
+  --color-clopos-icon: #8b87ad;
+  --color-clopos-line: #dddde6;
+  --color-clopos-cancel: #5c6370;
+  --color-clopos-disabled: #e4e4eb;
+  --color-clopos-disabled-text: #a9a9b6;
 }
 
 /* Клавиатура/терминал: барча интерактив элементга кўринувчи фокус ринги
