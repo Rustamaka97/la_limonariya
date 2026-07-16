@@ -1759,16 +1759,62 @@ function OrderView({
 
   return (
     <div className="flex gap-2 pb-24 lg:pb-0">
-      {/* ── CloPOS-услуб чап амал-рельси (иконкалар) ───────────────────────── */}
+      {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
       <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl bg-brand-ink p-1.5 shadow-md">
+        {/* 💬 Чекка изоҳ */}
         <button
-          onClick={() => setMoving(true)}
-          disabled={!online}
-          title={online ? "Бошқа столга кўчириш" : "Оффлайн — уланганда"}
-          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+          onClick={() => setNoteOpen((v) => !v)}
+          title="Чекка изоҳ"
+          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white"
         >
-          ⇄
+          💬
         </button>
+        {/* 🧾 Заказ тарихи (кухня тикетлари) */}
+        <button
+          onClick={() => setShowTickets(true)}
+          title="Заказ тарихи — кухня тикетлари"
+          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white"
+        >
+          🧾
+        </button>
+        {/* 🍽 Хизмат ҳақи */}
+        {canComp && (order.servicePct > 0 || order.serviceWaived) && (
+          <button
+            onClick={toggleService}
+            disabled={serviceBusy || !online || order.locked}
+            title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш"}
+            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
+            }`}
+          >
+            🍽
+          </button>
+        )}
+        {/* ⑂ Счётни бўлиш */}
+        {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
+          <button
+            onClick={() => setShowSplitBill(true)}
+            disabled={!online}
+            title="Счётни бўлиш — таомларни алоҳида чекка"
+            className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
+          >
+            ⑂
+          </button>
+        )}
+        {/* 🔒 Блок */}
+        {canComp && (
+          <button
+            onClick={toggleLock}
+            disabled={lockBusy || !online}
+            title={order.locked ? "Блокни ечиш" : "Заказни блоклаш"}
+            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
+              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
+            }`}
+          >
+            {order.locked ? "🔓" : "🔒"}
+          </button>
+        )}
+        {/* 🖨 Пречек */}
         <button
           onClick={doPrecheck}
           disabled={precheckBusy}
@@ -1777,47 +1823,35 @@ function OrderView({
             precheckOk ? "bg-emerald-100 text-emerald-700" : "text-white/70 hover:bg-white/15 hover:text-white"
           }`}
         >
-          {precheckOk ? "✓" : "🧾"}
+          {precheckOk ? "✓" : "🖨"}
         </button>
-        {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
+        {/* 💳 Тўлов */}
+        {canClose && (
           <button
-            onClick={() => setShowSplitBill(true)}
-            disabled={!online}
-            title={online ? "Счётни бўлиш — таомларни алоҳида чекка" : "Оффлайн — уланганда"}
-            className="grid h-11 w-11 place-items-center rounded-xl text-lg text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
+            onClick={() => order.items.length > 0 && setPaying(true)}
+            disabled={order.items.length === 0 || !online}
+            title="Тўлов — чекни ёпиш"
+            className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-emerald-500/40 hover:text-white disabled:opacity-30"
           >
-            ⑂
+            💳
           </button>
         )}
-        {canComp && (
-          <button
-            onClick={toggleLock}
-            disabled={lockBusy || !online}
-            title={order.locked ? "Блокни ечиш" : "Заказни блоклаш — ўзгартиришдан ҳимоя"}
-            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
-              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
-            }`}
-          >
-            {order.locked ? "🔓" : "🔒"}
-          </button>
-        )}
-        {canComp && (order.servicePct > 0 || order.serviceWaived) && (
-          <button
-            onClick={toggleService}
-            disabled={serviceBusy || !online || order.locked}
-            title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш (олиб кетиш/шикоят)"}
-            className={`grid h-11 w-11 place-items-center rounded-xl text-lg transition disabled:opacity-30 ${
-              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-white/70 hover:bg-white/15 hover:text-white"
-            }`}
-          >
-            🍽
-          </button>
-        )}
+        <div className="my-0.5 h-px bg-white/15" />
+        {/* ⇄ Стол кўчириш */}
+        <button
+          onClick={() => setMoving(true)}
+          disabled={!online}
+          title="Бошқа столга кўчириш"
+          className="grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-white/15 hover:text-white disabled:opacity-30"
+        >
+          ⇄
+        </button>
+        {/* 🛑 Стоп-лист */}
         {canComp && (
           <button
             onClick={() => setShowStop(true)}
             disabled={!online}
-            title={online ? "Стоп-лист — тугаган таомлар" : "Оффлайн — уланганда"}
+            title="Стоп-лист — тугаган таомлар"
             className="relative grid h-11 w-11 place-items-center rounded-xl text-lg text-white/70 transition hover:bg-red-500/40 hover:text-white disabled:opacity-30"
           >
             🛑
@@ -1828,11 +1862,11 @@ function OrderView({
             )}
           </button>
         )}
-        <div className="my-0.5 h-px bg-white/15" />
+        {/* 🗑 Бекор */}
         <button
           onClick={() => setCancelling((v) => !v)}
           disabled={!online}
-          title={online ? "Заказни бекор қилиш" : "Оффлайн — уланганда"}
+          title="Заказни бекор қилиш"
           className="grid h-11 w-11 place-items-center rounded-xl text-white/70 transition hover:bg-red-500/40 hover:text-white disabled:opacity-30"
         >
           <ITrash className="h-5 w-5" />
@@ -1841,62 +1875,66 @@ function OrderView({
 
       {/* ── Асосий устун (header + меню + cart + модаллар) ──────────────────── */}
       <div className="min-w-0 flex-1 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-white hover:text-brand"
-          >
-            <IBack className="h-4 w-4" />
-            Заллар
-          </button>
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <span className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white">
-            {order.hall ?? "Зал"}
-          </span>
-          {order.tableNo && (
-            <span className="rounded-lg bg-brand-cream px-3 py-1.5 text-sm font-semibold text-brand">
-              {order.tableNo}
+        {/* ── CloPOS-услуб яшил заказ-бари ──────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand px-3 py-2 text-white shadow-md">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={onBack}
+              title="Залларга қайтиш"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+            >
+              <IBack className="h-4 w-4" />
+            </button>
+            <span className="truncate text-base font-bold">{order.tableNo ?? order.hall ?? "Заказ"}</span>
+            <span className="hidden shrink-0 items-center gap-1 text-xs text-white/55 sm:inline-flex">
+              <IClock className="h-3 w-3" /> {minsAgo(order.createdAt)}
             </span>
-          )}
-          {/* Сотув тури чипи — босилса кейинги турга ўтади (зал→доставка→собой). */}
-          <button
-            onClick={() => {
-              const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
-              changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
-            }}
-            disabled={!online}
-            title="Сотув турини ўзгартириш (зал/доставка/собой)"
-            className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
-              order.saleType === "dine_in"
-                ? "text-white/70 hover:bg-white/15 hover:text-white"
-                : "bg-brand-gold/25 text-brand hover:bg-brand-gold/40"
-            }`}
-          >
-            {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
-          </button>
-          {/* #3 Столда кўп заказ: оғайни-заказлар орасида ўтиш (CloPOS «#заказ ⌄»). */}
-          {order.tableNo && siblings.length > 0 && (
+            {/* #заказ ⌄ — оғайни-заказлар свитчери */}
+            {order.tableNo && siblings.length > 0 ? (
+              <button
+                onClick={() => setShowSiblings(true)}
+                title="Шу столдаги заказлар орасида ўтиш"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
+              >
+                #{order.checkNo} <span className="opacity-70">⌄ {siblings.length + 1}</span>
+              </button>
+            ) : (
+              <span className="hidden shrink-0 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-medium text-white/70 sm:inline">
+                #{order.checkNo}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {/* Сотув тури чипи */}
             <button
-              onClick={() => setShowSiblings(true)}
-              title="Шу столдаги заказлар орасида ўтиш"
-              className="inline-flex h-9 items-center gap-1 rounded-lg bg-brand-gold/25 px-2.5 text-sm font-semibold text-brand transition hover:bg-brand-gold/40"
+              onClick={() => {
+                const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
+                changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
+              }}
+              disabled={!online}
+              title="Сотув турини ўзгартириш (зал/доставка/собой)"
+              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
+                order.saleType === "dine_in"
+                  ? "text-white/75 hover:bg-white/15 hover:text-white"
+                  : "bg-brand-gold text-brand-ink"
+              }`}
             >
-              ⇅ {siblings.length + 1} заказ
+              {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
             </button>
-          )}
-          {/* #3 «+ Янги заказ» — шу столга яна бир очиқ чек (CloPOS «Новый заказ»). */}
-          {order.tableNo && (
-            <button
-              onClick={createSibling}
-              disabled={!online || newBusy}
-              title="Шу столга янги заказ"
-              className="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm text-zinc-400 transition hover:bg-brand-cream hover:text-brand disabled:opacity-30"
-            >
-              ➕ Заказ
-            </button>
-          )}
+            {/* + Янги заказ */}
+            {order.tableNo && (
+              <button
+                onClick={createSibling}
+                disabled={!online || newBusy}
+                title="Шу столга янги заказ"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-sm font-bold text-brand-ink shadow-sm transition hover:brightness-105 disabled:opacity-30"
+              >
+                <IPlus className="h-4 w-4" />
+                Янги заказ
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
       {moving && (
         <MoveSheet
