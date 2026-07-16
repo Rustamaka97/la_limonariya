@@ -1773,7 +1773,78 @@ function OrderView({
   );
 
   return (
-    <div className="flex gap-2 pb-24 lg:pb-0">
+    <div className="space-y-2 pb-24 lg:pb-0">
+      {/* ── CloPOS-услуб ТЎЛИҚ юқори бар (рельс + контент устидан) ───────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand px-3 py-2 text-white shadow-md">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            onClick={onBack}
+            title="Залларга қайтиш"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+          >
+            <IBack className="h-4 w-4" />
+          </button>
+          <span className="truncate text-base font-bold">{order.tableNo ?? order.hall ?? "Заказ"}</span>
+          <span className="hidden shrink-0 items-center gap-1 text-xs text-white/55 sm:inline-flex">
+            <IClock className="h-3 w-3" /> {minsAgo(order.createdAt)}
+          </span>
+          {order.tableNo && siblings.length > 0 ? (
+            <button
+              onClick={() => setShowSiblings(true)}
+              title="Шу столдаги заказлар орасида ўтиш"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
+            >
+              #{order.checkNo} <span className="opacity-70">⌄ {siblings.length + 1}</span>
+            </button>
+          ) : (
+            <span className="hidden shrink-0 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-medium text-white/70 sm:inline">
+              #{order.checkNo}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {/* Сотув тури чипи — ўзгартириш фақат кассир+ (сервис %га тегади),
+              официантга ярлиқ кўринади (кухня учун маълумот). */}
+          {canComp ? (
+            <button
+              onClick={() => {
+                const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
+                changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
+              }}
+              disabled={!online || order.locked}
+              title="Сотув турини ўзгартириш (зал/доставка/собой)"
+              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
+                order.saleType === "dine_in"
+                  ? "text-white/75 hover:bg-white/15 hover:text-white"
+                  : "bg-brand-gold text-brand-ink"
+              }`}
+            >
+              {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+            </button>
+          ) : (
+            <span
+              className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold ${
+                order.saleType === "dine_in" ? "text-white/75" : "bg-brand-gold text-brand-ink"
+              }`}
+            >
+              {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
+            </span>
+          )}
+          {order.tableNo && (
+            <button
+              onClick={createSibling}
+              disabled={!online || newBusy}
+              title="Шу столга янги заказ"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-sm font-bold text-brand-ink shadow-sm transition hover:brightness-105 disabled:opacity-30"
+            >
+              <IPlus className="h-4 w-4" />
+              Янги заказ
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
       <nav className="sticky top-24 flex h-fit shrink-0 flex-col gap-1 self-start rounded-2xl bg-brand-ink p-1.5 shadow-md">
         {/* 💬 Чекка изоҳ */}
@@ -1891,77 +1962,6 @@ function OrderView({
 
       {/* ── Асосий устун (header + меню + cart + модаллар) ──────────────────── */}
       <div className="min-w-0 flex-1 space-y-3">
-        {/* ── CloPOS-услуб яшил заказ-бари ──────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-brand px-3 py-2 text-white shadow-md">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              onClick={onBack}
-              title="Залларга қайтиш"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
-            >
-              <IBack className="h-4 w-4" />
-            </button>
-            <span className="truncate text-base font-bold">{order.tableNo ?? order.hall ?? "Заказ"}</span>
-            <span className="hidden shrink-0 items-center gap-1 text-xs text-white/55 sm:inline-flex">
-              <IClock className="h-3 w-3" /> {minsAgo(order.createdAt)}
-            </span>
-            {/* #заказ ⌄ — оғайни-заказлар свитчери */}
-            {order.tableNo && siblings.length > 0 ? (
-              <button
-                onClick={() => setShowSiblings(true)}
-                title="Шу столдаги заказлар орасида ўтиш"
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-              >
-                #{order.checkNo} <span className="opacity-70">⌄ {siblings.length + 1}</span>
-              </button>
-            ) : (
-              <span className="hidden shrink-0 rounded-lg bg-white/10 px-2.5 py-1 text-xs font-medium text-white/70 sm:inline">
-                #{order.checkNo}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            {/* Сотув тури чипи — ўзгартириш фақат кассир+ (сервис %га тегади),
-                официантга ярлиқ кўринади (кухня учун маълумот). */}
-            {canComp ? (
-              <button
-                onClick={() => {
-                  const i = SALE_TYPES.indexOf(order.saleType as (typeof SALE_TYPES)[number]);
-                  changeSaleType(SALE_TYPES[(i + 1) % SALE_TYPES.length]!);
-                }}
-                disabled={!online || order.locked}
-                title="Сотув турини ўзгартириш (зал/доставка/собой)"
-                className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition disabled:opacity-30 ${
-                  order.saleType === "dine_in"
-                    ? "text-white/75 hover:bg-white/15 hover:text-white"
-                    : "bg-brand-gold text-brand-ink"
-                }`}
-              >
-                {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
-              </button>
-            ) : (
-              <span
-                className={`inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold ${
-                  order.saleType === "dine_in" ? "text-white/75" : "bg-brand-gold text-brand-ink"
-                }`}
-              >
-                {SALE_TYPE_META[order.saleType]?.icon} {SALE_TYPE_META[order.saleType]?.label}
-              </span>
-            )}
-            {/* + Янги заказ */}
-            {order.tableNo && (
-              <button
-                onClick={createSibling}
-                disabled={!online || newBusy}
-                title="Шу столга янги заказ"
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-gold px-3 text-sm font-bold text-brand-ink shadow-sm transition hover:brightness-105 disabled:opacity-30"
-              >
-                <IPlus className="h-4 w-4" />
-                Янги заказ
-              </button>
-            )}
-          </div>
-        </div>
 
       {moving && (
         <MoveSheet
@@ -2856,6 +2856,7 @@ function OrderView({
           </div>
         </div>
       )}
+      </div>
       </div>
     </div>
   );
