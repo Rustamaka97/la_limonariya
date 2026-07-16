@@ -2033,9 +2033,9 @@ function OrderView({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-        {/* MENU */}
-        <section className="order-1 min-w-0 space-y-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[24rem_minmax(0,1fr)] lg:items-start">
+        {/* MENU (CloPOS: ЎНГДА) */}
+        <section className="order-1 min-w-0 space-y-3 lg:order-2">
           <div className="flex items-center gap-2 rounded-2xl border border-brand-cream-soft bg-white px-3.5 py-2.5 shadow-sm">
             <ISearch className="h-4 w-4 shrink-0 text-zinc-400" />
             <input
@@ -2055,15 +2055,13 @@ function OrderView({
               Барчаси
             </button>
             {menuCats.map((c) => {
-              const color = catColor(c);
               const on = menuCat === c;
               return (
                 <button
                   key={c}
                   onClick={() => setMenuCat(c)}
-                  style={{ backgroundColor: color }}
                   className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition ${
-                    on ? "ring-2 ring-brand-gold ring-offset-1" : "opacity-80 hover:opacity-100"
+                    on ? "bg-brand ring-2 ring-brand-gold ring-offset-1" : "bg-brand/85 hover:bg-brand"
                   }`}
                 >
                   {c}
@@ -2079,14 +2077,12 @@ function OrderView({
             // CloPOS-услуб таом РЎЙХАТИ — ном чапда, нарх ўнгда, категория-ранг чап чизиқда
             <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
               {shown.map((m) => {
-                const color = catColor(m.category);
                 return (
                   <button
                     key={m.id}
                     onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
                     disabled={m.stopped}
-                    style={{ borderLeftColor: m.stopped ? "#d4d4d8" : color }}
-                    className={`group flex w-full items-center gap-3 border-b border-l-4 border-b-brand-cream-soft px-4 py-3 text-left transition last:border-b-0 ${
+                    className={`group flex w-full items-center gap-3 border-b border-b-brand-cream-soft px-4 py-3 text-left transition last:border-b-0 ${
                       m.stopped
                         ? "opacity-50 grayscale"
                         : "hover:bg-brand-cream/40 active:bg-brand-cream/60"
@@ -2260,7 +2256,7 @@ function OrderView({
         </section>
 
         {/* CART */}
-        <aside className="order-2 min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
+        <aside className="order-2 min-w-0 space-y-3 lg:order-1 lg:sticky lg:top-24 lg:self-start">
           <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-brand-cream-soft px-4 py-3">
               <span className="font-semibold text-brand-ink">Заказ</span>
