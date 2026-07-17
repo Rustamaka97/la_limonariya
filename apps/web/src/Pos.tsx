@@ -907,17 +907,28 @@ function HallCanvas({
   const [drag, setDrag] = useState<{ id: string; offX: number; offY: number } | null>(null);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(null);
 
-  // Контейнер кенглиги (авто-грид фолбек учун). Қўлда қўйилган posX/posY эркин
-  // жойлашувни сақлайди; катта плитка (w/h) банкет-зал/кабина учун.
+  // Контейнер ўлчами (авто-грид фолбек + кўринадиган бутун майдонни судраш зонаси
+  // қилиш учун). Қўлда қўйилган posX/posY эркин жойлашувни сақлайди; катта плитка
+  // (w/h) банкет-зал/кабина учун.
   const [contW, setContW] = useState(CANVAS_COLS * CELL_W + 24);
+  const [contH, setContH] = useState(0);
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
-    const update = () => setContW(el.clientWidth);
+    const update = () => {
+      setContW(el.clientWidth);
+      // Канвас юқорисидан экран тагигача — судраш зонаси шу баланд бўлсин.
+      const top = el.getBoundingClientRect().top;
+      setContH(Math.max(200, window.innerHeight - top - 8));
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
   }, []);
   const sizeOf = (t: Table) => ({ w: t.w ?? TILE_W, h: t.h ?? TILE_H });
   const cols = Math.max(CANVAS_COLS, Math.floor((Math.max(contW, CANVAS_COLS * CELL_W + 24) - 24) / CELL_W));
@@ -928,11 +939,13 @@ function HallCanvas({
     return defaultPos(i, cols);
   }
 
-  // Канвас жойлаштирилган катта плиткаларни ва авто-грид кенглигини қамрайди.
+  // Канвас = жойлаштирилган плиткалар + кўринадиган майдон; Жойлаштиришда пастга/
+  // ўнгга қўшимча жой (директор столларни бўш ерга ҳам судраб қўйсин — «пастгача»).
+  const pad = arrange ? 320 : 12;
   const maxRight = tables.reduce((m, t, i) => Math.max(m, posOf(t, i).x + sizeOf(t).w), 0);
   const maxBottom = tables.reduce((m, t, i) => Math.max(m, posOf(t, i).y + sizeOf(t).h), 0);
-  const canvasW = Math.max(contW, maxRight + 12);
-  const canvasH = Math.max(180, maxBottom + 12);
+  const canvasW = Math.max(contW, maxRight + pad);
+  const canvasH = Math.max(contH, maxBottom + pad, 180);
 
   function startDrag(e: ReactPointerEvent, t: Table, i: number) {
     if (!arrange || !canvasRef.current) return;
