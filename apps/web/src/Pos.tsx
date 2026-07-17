@@ -1816,7 +1816,7 @@ function OrderView({
   );
 
   return (
-    <div className="flex gap-2 pb-24 lg:pb-0">
+    <div className="flex gap-2 pb-24 lg:min-h-0 lg:flex-1 lg:pb-0">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
       <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start rounded-r-lg border-r border-brand-deep bg-clopos-rail py-2.5">
         {/* Чекка изоҳ */}
@@ -1933,7 +1933,7 @@ function OrderView({
       </nav>
 
       {/* ── Асосий устун (header + меню + cart + модаллар) ──────────────────── */}
-      <div className="min-w-0 flex-1 space-y-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0">
         {/* ── CloPOS сплит-бар 34px (handoff-макет): чапда тўқ панел (стол · таймер
             · #чек · ⌄), ўнгда Новый заказ · Чеки · тур · исм · соат · wifi ──── */}
         <div className="flex h-[34px] items-stretch overflow-hidden">
@@ -2154,9 +2154,9 @@ function OrderView({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[449px_minmax(0,1fr)] lg:gap-0 lg:items-stretch">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[449px_minmax(0,1fr)] lg:gap-0 lg:items-stretch">
         {/* MENU (CloPOS: ЎНГДА, фон #F0F1F4, handoff-макет) */}
-        <section className="order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-menu p-2.5 lg:order-2 lg:border-l">
+        <section className="order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-menu p-2.5 lg:order-2 lg:overflow-y-auto lg:border-l">
           {/* CloPOS тулбар: уй-плитка чапда, ўнгда қидирув · порция · ⚙ · ☆ · стоп · сетка */}
           <div className="flex items-center justify-between gap-2">
             <button
@@ -2455,7 +2455,7 @@ function OrderView({
         </section>
 
         {/* CART */}
-        <aside className="order-2 flex min-w-0 flex-col border border-clopos-line bg-white lg:order-1 lg:sticky lg:top-24 lg:self-start">
+        <aside className="order-2 flex min-w-0 flex-col border border-clopos-line bg-white lg:order-1 lg:overflow-hidden">
           <div className="flex min-h-[300px] flex-1 flex-col">
             <div className="flex items-center justify-between px-3 py-2">
               <span className="text-[13px] font-semibold text-[#3a3a44]">Заказ</span>
