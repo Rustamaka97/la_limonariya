@@ -437,10 +437,10 @@ function FloorView({
           )}
           <button
             onClick={() => halls[0] && setNewFor({ hall: halls[0] })}
-            className="flex h-6 items-center gap-1.5 rounded-[3px] bg-clopos-green px-3 shadow-[0_1px_0_rgba(0,0,0,.2)] transition hover:brightness-105"
+            className="flex h-6 items-center gap-1.5 rounded-[3px] bg-clopos-gold px-3 shadow-[0_1px_0_rgba(0,0,0,.2)] transition hover:brightness-105"
           >
-            <span className="text-[15px] font-bold leading-none text-white">+</span>
-            <span className="whitespace-nowrap text-[13px] font-semibold text-white">Новый заказ</span>
+            <span className="text-[15px] font-bold leading-none text-clopos-gold-text">+</span>
+            <span className="whitespace-nowrap text-[13px] font-semibold text-clopos-gold-text">Новый заказ</span>
           </button>
           <span className="flex cursor-default items-center gap-1.5">
             <span className="whitespace-nowrap text-[13px] text-white">Чеки</span>
@@ -1930,10 +1930,10 @@ function OrderView({
               <button
                 onClick={createSibling}
                 disabled={!online || newBusy}
-                className="flex h-6 items-center gap-1.5 rounded-[3px] bg-clopos-green px-3 shadow-[0_1px_0_rgba(0,0,0,.2)] transition hover:brightness-105 disabled:opacity-40"
+                className="flex h-6 items-center gap-1.5 rounded-[3px] bg-clopos-gold px-3 shadow-[0_1px_0_rgba(0,0,0,.2)] transition hover:brightness-105 disabled:opacity-40"
               >
-                <span className="text-[15px] font-bold leading-none text-white">+</span>
-                <span className="whitespace-nowrap text-[13px] font-semibold text-white">Новый заказ</span>
+                <span className="text-[15px] font-bold leading-none text-clopos-gold-text">+</span>
+                <span className="whitespace-nowrap text-[13px] font-semibold text-clopos-gold-text">Новый заказ</span>
               </button>
             )}
             {openCount !== null && (

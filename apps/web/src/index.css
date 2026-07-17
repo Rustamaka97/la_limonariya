@@ -12,26 +12,29 @@
   --color-brand-ink: #13241f;
   --color-brand-bg: #fdf8f2;
 
-  /* CloPOS-палитра — POS-экраны точь-в-точь по макету владельца
-     (Claude Design handoff, POS Limonariya.dc.html, 2026-07-16). */
-  --color-clopos-bar: #34305e;
-  --color-clopos-bar-active: #232045;
-  --color-clopos-dark: #262347;
-  --color-clopos-chip: #3a366b;
-  --color-clopos-green: #29a737;
-  --color-clopos-badge: #3ebd4e;
-  --color-clopos-busy: #a44cbe;
-  --color-clopos-busy-text: #f0dff7;
-  --color-clopos-free: #7d8e9b;
-  --color-clopos-cat: #00bcd4;
-  --color-clopos-cat-alt: #6e8695;
-  --color-clopos-bg: #f0f1f3;
-  --color-clopos-rail: #f4f4f8;
-  --color-clopos-icon: #8b87ad;
-  --color-clopos-line: #dddde6;
-  --color-clopos-cancel: #5c6370;
-  --color-clopos-disabled: #e4e4eb;
-  --color-clopos-disabled-text: #a9a9b6;
+  /* CloPOS-лайоут — La Limonariya изумруд/олтин ре-скин (макет структураси
+     точь-в-точь, ранглар бренд: бинафша → яшил, бирюза → яшил, банд → олтин).
+     Нейтраллар (фон/рельс/бўш стол/чизиқ) ўзгармайди. */
+  --color-clopos-bar: #0e4037;         /* эди #34305e — тепа бар = brand */
+  --color-clopos-bar-active: #092f28;  /* эди #232045 — актив таб = brand-deep */
+  --color-clopos-dark: #092f28;        /* эди #262347 — заказ сплит-шапка = brand-deep */
+  --color-clopos-chip: #16553f;        /* эди #3a366b — #чек чипи = brand-soft */
+  --color-clopos-green: #29a737;       /* ЎЗГАРМАЙДИ — Отправить/Оплата оқ устун'да яшил (CloPOS-native) */
+  --color-clopos-gold: #f3b759;        /* ЯНГИ — +Янги заказ яшил бар устида олтин порласин */
+  --color-clopos-gold-text: #13241f;   /* ЯНГИ — олтин устида тўқ матн (WCAG) */
+  --color-clopos-badge: #3ebd4e;       /* ЎЗГАРМАЙДИ — Чеки N бейджи (оқ ҳошия ажратади) */
+  --color-clopos-busy: #f3b759;        /* эди #a44cbe — БАНД стол = олтин */
+  --color-clopos-busy-text: #13241f;   /* эди #f0dff7 — олтин устида тўқ (brand-ink) */
+  --color-clopos-free: #7d8e9b;        /* ЎЗГАРМАЙДИ — бўш стол кулранг */
+  --color-clopos-cat: #0e4037;         /* эди #00bcd4 — категория плитка = brand (актив ринг = олтин) */
+  --color-clopos-cat-alt: #6e8695;     /* ЎЗГАРМАЙДИ — Non choy кулранг */
+  --color-clopos-bg: #f0f1f3;          /* ЎЗГАРМАЙДИ — экран фони */
+  --color-clopos-rail: #f4f4f8;        /* ЎЗГАРМАЙДИ — рельс фони (оч) */
+  --color-clopos-icon: #16553f;        /* эди #8b87ad — рельс иконка = brand-soft */
+  --color-clopos-line: #dddde6;        /* ЎЗГАРМАЙДИ — чизиқ */
+  --color-clopos-cancel: #5c6370;      /* ЎЗГАРМАЙДИ — Отменить продажу */
+  --color-clopos-disabled: #e4e4eb;    /* ЎЗГАРМАЙДИ */
+  --color-clopos-disabled-text: #a9a9b6;/* ЎЗГАРМАЙДИ */
 }
 
 /* Клавиатура/терминал: барча интерактив элементга кўринувчи фокус ринги
