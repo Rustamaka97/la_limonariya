@@ -145,7 +145,7 @@ export function Shell({
   ];
 
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-900">
+    <div className="flex min-h-dvh flex-col bg-zinc-50 text-zinc-900">
       {isTerminal ? (
         <header className="sticky top-0 z-20 bg-brand text-white shadow-sm">
           <div className="flex items-center justify-between px-4 py-2">
@@ -250,7 +250,7 @@ export function Shell({
         </div>
       )}
 
-      <main className={`mx-auto p-5 ${tab === "pos" ? "max-w-6xl" : tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
+      <main className={tab === "pos" ? "flex flex-1 flex-col p-0" : `mx-auto p-5 ${tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "tv" && <Tv />}
         {tab === "kds" && <Kds />}

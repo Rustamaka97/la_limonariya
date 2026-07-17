@@ -395,7 +395,7 @@ function FloorView({
   const busy = orders?.length ?? 0;
 
   return (
-    <div className="space-y-0" style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif" }}>
+    <div className="flex flex-1 flex-col" style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif" }}>
       {/* ── CloPOS индиго-бар 34px (handoff-макет, точь-в-точь): зал-таблар чап,
           ўнгда Новый заказ · Чеки · ☰ · исм · 🔔 · соат · wifi ─────────────── */}
       <div className="flex h-[34px] min-w-0 items-stretch bg-clopos-bar">
@@ -466,7 +466,7 @@ function FloorView({
         </div>
       </div>
 
-      <div className="space-y-4 bg-clopos-bg p-3">
+      <div className="flex-1 space-y-4 bg-clopos-bg p-3">
       {!online && (
         <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
           <IWifiOff className="h-4 w-4 shrink-0" /> Оффлайн — заказлар шу қурилмада сақланиб, уланганда синхронланади. Тўлов уланганда мумкин.
