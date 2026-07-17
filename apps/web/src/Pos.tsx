@@ -275,6 +275,8 @@ function FloorView({
   const [heatOn, setHeatOn] = useState(false);
   const [heat, setHeat] = useState<{ hallId: string; hallName: string; tableNo: string; revenue: number }[] | null>(null);
   const [arrange, setArrange] = useState(false);
+  const [showChecks, setShowChecks] = useState(false); // Чеки → очиқ-чеклар рўйхати
+  const [checksQ, setChecksQ] = useState(""); // рўйхат қидируви (стол/официант)
   const [hallFilter, setHallFilter] = useState<string>("all");
   // Стол вақт-ҳалқаси жонли ўтсин — рефетчсиз (openOrders фақат mount/drain'да
   // янгиланади). Дақиқа гранулярлиги учун 60с кифоя.
@@ -449,12 +451,16 @@ function FloorView({
             <span className="text-[15px] font-bold leading-none text-clopos-gold-text">+</span>
             <span className="whitespace-nowrap text-[13px] font-semibold text-clopos-gold-text">Новый заказ</span>
           </button>
-          <span className="flex cursor-default items-center gap-1.5" title="Очиқ чеклар сони">
+          <button
+            onClick={() => setShowChecks(true)}
+            title="Очиқ чеклар рўйхати"
+            className="flex items-center gap-1.5 rounded-[3px] px-2 py-0.5 transition hover:bg-white/15"
+          >
             <span className="whitespace-nowrap text-[13px] text-white">Чеки</span>
             <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-clopos-gold-text">
               {busy}
             </span>
-          </span>
+          </button>
           <button
             onClick={onLogout}
             title="Чиқиш — сеансни ёпиш"
@@ -571,6 +577,72 @@ function FloorView({
           onClose={() => setNewFor(null)}
           onCreate={create}
         />
+      )}
+
+      {/* Открытые чеки — барча очиқ чеклар рўйхати (CloPOS «Чеки»), босса → очилади */}
+      {showChecks && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+          onClick={() => setShowChecks(false)}
+        >
+          <div
+            className="flex max-h-[85dvh] w-full max-w-2xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-brand-ink">Очиқ чеклар — {(orders ?? []).length}</h3>
+              <button
+                onClick={() => setShowChecks(false)}
+                className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+              >
+                Ёпиш
+              </button>
+            </div>
+            <input
+              value={checksQ}
+              onChange={(e) => setChecksQ(e.target.value)}
+              placeholder="Стол ёки официант…"
+              className="w-full rounded-lg border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+              {(orders ?? [])
+                .filter((o) => {
+                  const q = checksQ.trim().toLowerCase();
+                  if (!q) return true;
+                  return (o.tableNo ?? "").toLowerCase().includes(q) || (o.waiter ?? "").toLowerCase().includes(q);
+                })
+                .slice()
+                .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                .map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => {
+                      setShowChecks(false);
+                      onOpen(o.id);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-3 py-2.5 text-left transition hover:border-brand hover:bg-brand-cream/30"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-brand-ink">
+                        {o.tableNo ?? "—"} <span className="font-normal text-zinc-400">· {o.hall ?? ""}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500">
+                        {o.waiter && <span>{o.waiter}</span>}
+                        <span>· {SALE_TYPE_META[o.saleType ?? "dine_in"]?.label ?? "Залда"}</span>
+                        <span>· {minsAgo(o.createdAt)}</span>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-sm font-bold tabular-nums text-brand">
+                      {o.total === null ? "банд" : `${fmt(o.total)} so'm`}
+                    </div>
+                  </button>
+                ))}
+              {(orders ?? []).length === 0 && (
+                <p className="py-8 text-center text-sm text-zinc-400">Очиқ чек йўқ</p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {conflict && (
