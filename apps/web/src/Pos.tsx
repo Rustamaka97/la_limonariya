@@ -26,7 +26,7 @@ import {
   Svg, type IP, IPlus, IMinus, IBack, ISearch, IFlame, IGift, IPrinter, IChevron,
   IUser, IUsers, IBank, ICard, IReceipt, IPlate, IClock, IPencil, ITrash, IChat,
   IPercent, ISplit, ILock, ILockOpen, ICheck, ISwap, IStop, IArrange, IWifiOff,
-  IScale, IGear, IWarn, ILink, IMoped, IBag, ISpin, ILogout, IBell,
+  IScale, IGear, IWarn, ILink, IMoped, IBag, ISpin, ILogout,
 } from "./icons";
 
 type Hall = { id: string; name: string; servicePct: number };
@@ -239,7 +239,7 @@ function EmptyLemon({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-export function Pos({ user }: { user: SessionUser }) {
+export function Pos({ user, onLogout }: { user: SessionUser; onLogout: () => void }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
     return (
@@ -250,7 +250,7 @@ export function Pos({ user }: { user: SessionUser }) {
         onSwitch={setOrderId}
       />
     );
-  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} />;
+  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} />;
 }
 
 // ── FLOOR: visual hall/table map (Clopos only has a flat list) ──────────────
@@ -258,10 +258,12 @@ function FloorView({
   user,
   onOpen,
   onNew,
+  onLogout,
 }: {
   user: SessionUser;
   onOpen: (id: string) => void;
   onNew: (id: string) => void;
+  onLogout: () => void;
 }) {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [tbls, setTbls] = useState<Table[]>([]);
@@ -447,16 +449,19 @@ function FloorView({
             <span className="text-[15px] font-bold leading-none text-clopos-gold-text">+</span>
             <span className="whitespace-nowrap text-[13px] font-semibold text-clopos-gold-text">Новый заказ</span>
           </button>
-          <span className="flex cursor-default items-center gap-1.5">
+          <span className="flex cursor-default items-center gap-1.5" title="Очиқ чеклар сони">
             <span className="whitespace-nowrap text-[13px] text-white">Чеки</span>
             <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-clopos-gold-text">
               {busy}
             </span>
           </span>
-          <span className="hidden items-center gap-1.5 text-[13px] text-white sm:flex">
+          <button
+            onClick={onLogout}
+            title="Чиқиш — сеансни ёпиш"
+            className="hidden items-center gap-1.5 rounded-[3px] px-2 py-0.5 text-[13px] text-white transition hover:bg-white/15 sm:flex"
+          >
             <ILogout className="h-4 w-4" /> {user.name}
-          </span>
-          <IBell className="hidden h-4 w-4 text-white sm:block" />
+          </button>
           <FloorClock />
           <span title={online ? "Алоқа бор" : "Оффлайн"}>
             {online ? (
