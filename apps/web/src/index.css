@@ -19,18 +19,19 @@
   --color-clopos-bar-active: #092f28;  /* эди #232045 — актив таб = brand-deep */
   --color-clopos-dark: #092f28;        /* эди #262347 — заказ сплит-шапка = brand-deep */
   --color-clopos-chip: #16553f;        /* эди #3a366b — #чек чипи = brand-soft */
-  --color-clopos-green: #29a737;       /* ЎЗГАРМАЙДИ — Отправить/Оплата оқ устун'да яшил (CloPOS-native) */
-  --color-clopos-gold: #f3b759;        /* ЯНГИ — +Янги заказ яшил бар устида олтин порласин */
-  --color-clopos-gold-text: #13241f;   /* ЯНГИ — олтин устида тўқ матн (WCAG) */
-  --color-clopos-badge: #3ebd4e;       /* ЎЗГАРМАЙДИ — Чеки N бейджи (оқ ҳошия ажратади) */
-  --color-clopos-busy: #f3b759;        /* эди #a44cbe — БАНД стол = олтин */
-  --color-clopos-busy-text: #13241f;   /* эди #f0dff7 — олтин устида тўқ (brand-ink) */
+  --color-clopos-green: #0e4037;       /* dc.html v2 — Отправить актив = изумруд (оқ устун) */
+  --color-clopos-gold: #f3b759;        /* +Янги заказ · Отменить · таом ＋ = олтин порласин */
+  --color-clopos-gold-text: #13241f;   /* олтин устида тўқ матн (WCAG) */
+  --color-clopos-badge: #f3b759;       /* dc.html v2 — Чеки N бейджи = олтин (матн тўқ) */
+  --color-clopos-busy: #16553f;        /* dc.html v2 — БАНД стол = ТЎҚ ЯШИЛ (олтин фақат аксент) */
+  --color-clopos-busy-text: #cfe0d8;   /* тўқ яшил устида оч-яшил суб-матн */
   --color-clopos-free: #7d8e9b;        /* ЎЗГАРМАЙДИ — бўш стол кулранг */
-  --color-clopos-cat: #0e4037;         /* эди #00bcd4 — категория плитка = brand (актив ринг = олтин) */
+  --color-clopos-cat: #0e4037;         /* категория плитка = изумруд (Non choy кулранг) */
   --color-clopos-cat-alt: #6e8695;     /* ЎЗГАРМАЙДИ — Non choy кулранг */
-  --color-clopos-bg: #f0f1f3;          /* ЎЗГАРМАЙДИ — экран фони */
-  --color-clopos-rail: #f4f4f8;        /* ЎЗГАРМАЙДИ — рельс фони (оч) */
-  --color-clopos-icon: #16553f;        /* эди #8b87ad — рельс иконка = brand-soft */
+  --color-clopos-bg: #f0f1f3;          /* ЎЗГАРМАЙДИ — флоор фони кулранг */
+  --color-clopos-menu: #fff0e5;        /* dc.html v2 — заказ-меню майдони = крем */
+  --color-clopos-rail: #16553f;        /* dc.html v2 — чап рельс = ТЎҚ ЯШИЛ */
+  --color-clopos-icon: #eaf3ee;        /* dc.html v2 — рельс иконка = оч (тўқ рельс устида) */
   --color-clopos-line: #dddde6;        /* ЎЗГАРМАЙДИ — чизиқ */
   --color-clopos-cancel: #5c6370;      /* ЎЗГАРМАЙДИ — Отменить продажу */
   --color-clopos-disabled: #e4e4eb;    /* ЎЗГАРМАЙДИ */

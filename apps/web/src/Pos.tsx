@@ -444,7 +444,7 @@ function FloorView({
           </button>
           <span className="flex cursor-default items-center gap-1.5">
             <span className="whitespace-nowrap text-[13px] text-white">Чеки</span>
-            <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-white">
+            <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-clopos-gold-text">
               {busy}
             </span>
           </span>
@@ -1818,12 +1818,12 @@ function OrderView({
   return (
     <div className="flex gap-2 pb-24 lg:pb-0">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
-      <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start border-r border-clopos-line bg-clopos-rail py-2.5">
+      <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start rounded-r-lg border-r border-brand-deep bg-clopos-rail py-2.5">
         {/* Чекка изоҳ */}
         <button
           onClick={() => setNoteOpen((v) => !v)}
           title="Чекка изоҳ"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-black/5 hover:text-clopos-dark"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
         >
           <IChat className="h-5 w-5" />
         </button>
@@ -1832,7 +1832,7 @@ function OrderView({
           onClick={() => setShowTickets(true)}
           disabled={tickets.length === 0}
           title={tickets.length === 0 ? "Ҳали кухня тикети йўқ" : "Заказ тарихи — кухня тикетлари"}
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-black/5 hover:text-clopos-dark disabled:opacity-30"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
         >
           <IReceipt className="h-5 w-5" />
         </button>
@@ -1843,7 +1843,7 @@ function OrderView({
             disabled={serviceBusy || !online || order.locked}
             title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш"}
             className={`grid h-10 w-9 place-items-center rounded-md transition disabled:opacity-30 ${
-              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-black/5 hover:text-clopos-dark"
+              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
             }`}
           >
             <IPercent className="h-5 w-5" />
@@ -1855,7 +1855,7 @@ function OrderView({
             onClick={() => setShowSplitBill(true)}
             disabled={!online}
             title="Счётни бўлиш — таомларни алоҳида чекка"
-            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-black/5 hover:text-clopos-dark disabled:opacity-30"
+            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
           >
             <ISplit className="h-5 w-5" />
           </button>
@@ -1867,7 +1867,7 @@ function OrderView({
             disabled={lockBusy || !online}
             title={order.locked ? "Блокни ечиш" : "Заказни блоклаш"}
             className={`grid h-10 w-9 place-items-center rounded-md transition disabled:opacity-30 ${
-              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-black/5 hover:text-clopos-dark"
+              order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
             }`}
           >
             {order.locked ? <ILockOpen className="h-5 w-5" /> : <ILock className="h-5 w-5" />}
@@ -1879,7 +1879,7 @@ function OrderView({
           disabled={precheckBusy}
           title="Пречек чоп этиш"
           className={`grid h-10 w-9 place-items-center rounded-md transition disabled:opacity-30 ${
-            precheckOk ? "bg-emerald-100 text-emerald-700" : "text-clopos-icon hover:bg-black/5 hover:text-clopos-dark"
+            precheckOk ? "bg-emerald-100 text-emerald-700" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
           }`}
         >
           {precheckOk ? <ICheck className="h-5 w-5" /> : <IPrinter className="h-5 w-5" />}
@@ -1890,7 +1890,7 @@ function OrderView({
             onClick={() => order.items.length > 0 && setPaying(true)}
             disabled={order.items.length === 0 || !online}
             title="Тўлов — чекни ёпиш"
-            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-black/5 hover:text-clopos-green disabled:opacity-30"
+            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
           >
             <ICard className="h-5 w-5" />
           </button>
@@ -1901,7 +1901,7 @@ function OrderView({
           onClick={() => setMoving(true)}
           disabled={!online}
           title="Бошқа столга кўчириш"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-black/5 hover:text-clopos-dark disabled:opacity-30"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
         >
           <ISwap className="h-5 w-5" />
         </button>
@@ -1911,7 +1911,7 @@ function OrderView({
             onClick={() => setShowStop(true)}
             disabled={!online}
             title="Стоп-лист — тугаган таомлар"
-            className="relative grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+            className="relative grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-500/25 hover:text-red-200 disabled:opacity-30"
           >
             <IStop className="h-5 w-5" />
             {stoppedCount > 0 && (
@@ -1926,7 +1926,7 @@ function OrderView({
           onClick={() => setCancelling((v) => !v)}
           disabled={!online}
           title="Заказни бекор қилиш"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-500/25 hover:text-red-200 disabled:opacity-30"
         >
           <ITrash className="h-5 w-5" />
         </button>
@@ -1973,7 +1973,7 @@ function OrderView({
             {openCount !== null && (
               <span className="flex cursor-default items-center gap-1.5">
                 <span className="whitespace-nowrap text-[13px] text-white">Чеки</span>
-                <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-white">
+                <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-clopos-gold-text">
                   {openCount}
                 </span>
               </span>
@@ -2156,7 +2156,7 @@ function OrderView({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[449px_minmax(0,1fr)] lg:gap-0 lg:items-stretch">
         {/* MENU (CloPOS: ЎНГДА, фон #F0F1F4, handoff-макет) */}
-        <section className="order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-bg p-2.5 lg:order-2 lg:border-l">
+        <section className="order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-menu p-2.5 lg:order-2 lg:border-l">
           {/* CloPOS тулбар: уй-плитка чапда, ўнгда қидирув · порция · ⚙ · ☆ · стоп · сетка */}
           <div className="flex items-center justify-between gap-2">
             <button
@@ -2236,7 +2236,7 @@ function OrderView({
                 <button
                   key={c}
                   onClick={() => setMenuCat(c)}
-                  className={`flex min-h-[44px] items-center justify-center rounded-[2px] px-2 py-2.5 text-center text-[14px] font-bold leading-[1.3] text-white shadow-[2px_3px_0_0_rgba(0,0,0,.22)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
+                  className={`flex min-h-[52px] items-center justify-center rounded-[2px] px-2 py-2.5 text-center text-[14px] font-normal leading-[1.3] text-white shadow-[2px_3px_0_0_rgba(0,0,0,.22)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold ${
                     /non\s*choy/i.test(c) ? "bg-clopos-cat-alt" : "bg-clopos-cat"
                   }`}
                 >
@@ -2273,34 +2273,34 @@ function OrderView({
                   <EmptyLemon title="Топилмади" hint="Қидирув ёки категорияни ўзгартиринг" />
                 </div>
               ) : (
-                // CloPOS-услуб таом РЎЙХАТИ — ном чапда, нарх ўнгда
-                <div className="overflow-hidden rounded-2xl border border-brand-cream-soft bg-white shadow-sm">
+                // CloPOS-услуб таом ГРИДИ (dc.html v2) — 4 устун карточка, олтин ＋
+                <div className="grid grid-cols-2 gap-[7px] sm:grid-cols-3 lg:grid-cols-4">
                   {shown.map((m) => (
                     <button
                       key={m.id}
                       onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
                       disabled={m.stopped}
-                      className={`group flex w-full items-center gap-3 border-b border-b-brand-cream-soft px-4 py-3 text-left transition last:border-b-0 ${
-                        m.stopped
-                          ? "opacity-50 grayscale"
-                          : "hover:bg-brand-cream/40 active:bg-brand-cream/60"
+                      className={`flex min-h-[76px] flex-col justify-between rounded-[2px] bg-white p-2.5 text-left shadow-[2px_3px_0_0_rgba(0,0,0,.14)] transition ${
+                        m.stopped ? "opacity-50 grayscale" : "hover:bg-brand-cream-soft active:brightness-95"
                       }`}
                     >
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-brand-ink">
+                      <span className="line-clamp-2 text-[13px] font-semibold leading-tight text-brand-ink">
                         {m.name}
                       </span>
-                      <span className="shrink-0 text-sm font-bold tabular-nums text-brand">
-                        {fmt(m.price)}{m.soldByWeight ? "/кг" : ""}
+                      <span className="mt-1.5 flex items-end justify-between gap-1.5">
+                        <span className="text-[12px] tabular-nums text-[#8a938f]">
+                          {fmt(m.price)}{m.soldByWeight ? "/кг" : ""} so'm
+                        </span>
+                        {m.stopped ? (
+                          <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
+                            СТОП
+                          </span>
+                        ) : (
+                          <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[3px] bg-clopos-gold text-[16px] font-bold text-clopos-gold-text shadow-[0_1px_0_rgba(0,0,0,.2)]">
+                            {m.soldByWeight ? <IScale className="h-4 w-4" /> : <IPlus className="h-4 w-4" />}
+                          </span>
+                        )}
                       </span>
-                      {m.stopped ? (
-                        <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-600">
-                          СТОП
-                        </span>
-                      ) : (
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-cream text-brand transition group-hover:bg-brand group-hover:text-white">
-                          {m.soldByWeight ? <IScale className="h-4 w-4" /> : <IPlus className="h-3.5 w-3.5" />}
-                        </span>
-                      )}
                     </button>
                   ))}
                 </div>
@@ -2565,7 +2565,7 @@ function OrderView({
             <button
               onClick={() => setCancelling((v) => !v)}
               disabled={!online}
-              className="ml-2 flex h-12 shrink-0 items-center justify-center gap-2 rounded-[3px] bg-clopos-cancel px-4 text-[13px] font-semibold text-white transition hover:brightness-95 disabled:opacity-50"
+              className="ml-2 flex h-12 shrink-0 items-center justify-center gap-2 rounded-[3px] bg-clopos-gold px-4 text-[13px] font-semibold text-clopos-gold-text transition hover:brightness-95 disabled:opacity-50"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="1.8" fill="none" aria-hidden="true">
                 <path d="M1 1l10 10M11 1L1 11" />
