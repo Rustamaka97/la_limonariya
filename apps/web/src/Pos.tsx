@@ -888,8 +888,8 @@ const TILE_H = 96;
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
-function defaultPos(i: number): { x: number; y: number } {
-  return { x: 12 + (i % CANVAS_COLS) * CELL_W, y: 12 + Math.floor(i / CANVAS_COLS) * CELL_H };
+function defaultPos(i: number, cols: number): { x: number; y: number } {
+  return { x: 12 + (i % cols) * CELL_W, y: 12 + Math.floor(i / cols) * CELL_H };
 }
 
 function HallCanvas({
@@ -907,14 +907,27 @@ function HallCanvas({
   const [drag, setDrag] = useState<{ id: string; offX: number; offY: number } | null>(null);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(null);
 
-  const canvasW = CANVAS_COLS * CELL_W + 24;
-  const rows = Math.max(1, Math.ceil(tables.length / CANVAS_COLS));
+  // Канвас контейнер кенглигига мосланади (кенг экранда ўнгда бўш қолмасин) —
+  // авто-грид устунлар сони экран кенглигидан ҳисобланади; қўлда қўйилган
+  // позиция (posX/posY) сақланади.
+  const [canvasW, setCanvasW] = useState(CANVAS_COLS * CELL_W + 24);
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const update = () => setCanvasW(Math.max(CANVAS_COLS * CELL_W + 24, el.clientWidth));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const cols = Math.max(CANVAS_COLS, Math.floor((canvasW - 24) / CELL_W));
+  const rows = Math.max(1, Math.ceil(tables.length / cols));
   const canvasH = Math.max(180, rows * CELL_H + 24);
 
   function posOf(t: Table, i: number): { x: number; y: number } {
     if (live?.id === t.id) return { x: live.x, y: live.y };
     if (t.posX != null && t.posY != null) return { x: t.posX, y: t.posY };
-    return defaultPos(i);
+    return defaultPos(i, cols);
   }
   function startDrag(e: ReactPointerEvent, t: Table, i: number) {
     if (!arrange || !canvasRef.current) return;
@@ -942,7 +955,7 @@ function HallCanvas({
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      className={`relative overflow-x-auto rounded-xl transition-colors ${
+      className={`relative w-full overflow-x-auto rounded-xl transition-colors ${
         arrange ? "border border-dashed border-brand bg-brand-cream/30" : ""
       }`}
       style={{ height: canvasH, touchAction: arrange ? "none" : undefined }}
