@@ -3243,6 +3243,15 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    // Стол плитка ўлчами (Жойлаштиришда судраб; CloPOS каби катта банкет-зал).
+    // Директор гейти — фақат директор флоор харитасини созлайди.
+    setTableSize: directorProcedure
+      .input(z.object({ id: z.string().uuid(), w: z.number().int().min(80).max(600), h: z.number().int().min(60).max(400) }))
+      .mutation(async ({ input }) => {
+        await db.update(tables).set({ w: input.w, h: input.h }).where(eq(tables.id, input.id));
+        return { ok: true };
+      }),
+
     menu: protectedProcedure.query(async () => {
       return db
         .select({

@@ -316,6 +316,11 @@ function FloorView({
     trpc.pos.setTablePosition.mutate({ id: tid, posX: x, posY: y }).catch(() => refresh());
   }
 
+  function resized(tid: string, w: number, h: number) {
+    setTbls((prev) => prev.map((t) => (t.id === tid ? { ...t, w, h } : t)));
+    trpc.pos.setTableSize.mutate({ id: tid, w, h }).catch(() => refresh());
+  }
+
   useEffect(() => {
     if (!heatOn) return;
     const to = new Date();
@@ -487,6 +492,7 @@ function FloorView({
                   tables={hallTables}
                   arrange={arrange}
                   onMoved={moved}
+                  onResized={resized}
                   renderTile={(t) => {
                     const os = byKey.get(key(h.id, t.name)) ?? [];
                     const rev = heatByKey.get(key(h.id, t.name)) ?? 0;
@@ -896,16 +902,21 @@ function HallCanvas({
   tables,
   arrange,
   onMoved,
+  onResized,
   renderTile,
 }: {
   tables: Table[];
   arrange: boolean;
   onMoved: (id: string, x: number, y: number) => void;
+  onResized: (id: string, w: number, h: number) => void;
   renderTile: (t: Table) => ReactNode;
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ id: string; offX: number; offY: number } | null>(null);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(null);
+  // Ўлчам судраш (resize-даста): бошланғич сичқон + плитка ўлчами.
+  const [rez, setRez] = useState<{ id: string; startX: number; startY: number; w0: number; h0: number } | null>(null);
+  const [liveSize, setLiveSize] = useState<{ id: string; w: number; h: number } | null>(null);
 
   // Контейнер ўлчами (авто-грид фолбек + кўринадиган бутун майдонни судраш зонаси
   // қилиш учун). Қўлда қўйилган posX/posY эркин жойлашувни сақлайди; катта плитка
@@ -930,7 +941,10 @@ function HallCanvas({
       window.removeEventListener("resize", update);
     };
   }, []);
-  const sizeOf = (t: Table) => ({ w: t.w ?? TILE_W, h: t.h ?? TILE_H });
+  const sizeOf = (t: Table) => {
+    if (liveSize?.id === t.id) return { w: liveSize.w, h: liveSize.h };
+    return { w: t.w ?? TILE_W, h: t.h ?? TILE_H };
+  };
   const cols = Math.max(CANVAS_COLS, Math.floor((Math.max(contW, CANVAS_COLS * CELL_W + 24) - 24) / CELL_W));
 
   function posOf(t: Table, i: number): { x: number; y: number } {
@@ -954,7 +968,21 @@ function HallCanvas({
     setDrag({ id: t.id, offX: e.clientX - rect.left - p.x, offY: e.clientY - rect.top - p.y });
     e.currentTarget.setPointerCapture(e.pointerId);
   }
+  function startResize(e: ReactPointerEvent, t: Table) {
+    if (!arrange) return;
+    e.stopPropagation();
+    const sz = sizeOf(t);
+    setRez({ id: t.id, startX: e.clientX, startY: e.clientY, w0: sz.w, h0: sz.h });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
   function onPointerMove(e: ReactPointerEvent) {
+    if (rez) {
+      // 4px тўрга ёпишиб, минимал/максимал орасида (CloPOS каби катта плитка).
+      const w = clamp(Math.round((rez.w0 + (e.clientX - rez.startX)) / 4) * 4, 80, 600);
+      const h = clamp(Math.round((rez.h0 + (e.clientY - rez.startY)) / 4) * 4, 60, 400);
+      setLiveSize({ id: rez.id, w, h });
+      return;
+    }
     if (!drag || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const dt = tables.find((t) => t.id === drag.id);
@@ -964,9 +992,12 @@ function HallCanvas({
     setLive({ id: drag.id, x, y });
   }
   function endDrag() {
+    if (rez && liveSize) onResized(liveSize.id, liveSize.w, liveSize.h);
     if (drag && live) onMoved(live.id, Math.round(live.x), Math.round(live.y));
     setDrag(null);
     setLive(null);
+    setRez(null);
+    setLiveSize(null);
   }
 
   return (
@@ -984,6 +1015,7 @@ function HallCanvas({
         {tables.map((t, i) => {
           const p = posOf(t, i);
           const dragging = drag?.id === t.id;
+          const resizing = rez?.id === t.id;
           const sz = sizeOf(t);
           const style: CSSProperties = {
             position: "absolute",
@@ -991,18 +1023,37 @@ function HallCanvas({
             top: p.y,
             width: sz.w,
             height: sz.h,
-            zIndex: dragging ? 10 : 1,
-            transition: dragging ? "none" : "left .12s, top .12s",
+            zIndex: dragging || resizing ? 10 : 1,
+            transition: dragging || resizing ? "none" : "left .12s, top .12s",
           };
           return (
             <div key={t.id} style={style}>
               {renderTile(t)}
               {arrange && (
-                <div
-                  onPointerDown={(e) => startDrag(e, t, i)}
-                  className="absolute inset-0 cursor-grab rounded-xl border-2 border-brand/50 bg-brand/5"
-                  style={{ touchAction: "none", zIndex: 20 }}
-                />
+                <>
+                  <div
+                    onPointerDown={(e) => startDrag(e, t, i)}
+                    className="absolute inset-0 cursor-grab rounded-xl border-2 border-brand/50 bg-brand/5"
+                    style={{ touchAction: "none", zIndex: 20 }}
+                  />
+                  {/* Ўлчам дастаси (ўнг-паст бурчак) — судраб катта/кичик қил */}
+                  <div
+                    onPointerDown={(e) => startResize(e, t)}
+                    title="Ўлчамни ўзгартириш"
+                    className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 cursor-nwse-resize place-items-center rounded-md border-2 border-white bg-brand-gold text-brand-ink shadow-md"
+                    style={{ touchAction: "none", zIndex: 30 }}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                      <path d="M9.5 3v6.5H3M9.5 9.5L4.5 4.5" />
+                    </svg>
+                  </div>
+                  {/* Ўлчам ёзуви судраш пайтида */}
+                  {resizing && (
+                    <div className="absolute left-1 top-1 z-30 rounded bg-brand-ink/85 px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                      {sz.w}×{sz.h}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           );
