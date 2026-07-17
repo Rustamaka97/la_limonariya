@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SessionUser } from "./App";
 import { BRAND } from "./brand";
 import { trpc } from "./trpc";
@@ -30,6 +30,27 @@ export function Login({ onSuccess }: { onSuccess: (u: SessionUser) => void }) {
     setPin(next);
     if (next.length === 4) void submit(next);
   }
+
+  // Физик клавиатура: рақам (устки қатор ва numpad) → PIN; Backspace → ўчириш;
+  // Enter → 4 рақамда юбориш. Кассада клавиатура/сканер билан ҳам киритиш мумкин.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (busy) return;
+      if (e.key >= "0" && e.key <= "9") {
+        e.preventDefault();
+        press(e.key);
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        setError(null);
+        setPin((p) => p.slice(0, -1));
+      } else if (e.key === "Enter" && pin.length === 4) {
+        e.preventDefault();
+        void submit(pin);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pin, busy]);
 
   const key =
     "rounded-2xl bg-brand-soft py-4 text-2xl font-mono font-semibold transition-transform active:bg-brand active:scale-95 disabled:opacity-40";
