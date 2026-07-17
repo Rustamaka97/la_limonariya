@@ -227,6 +227,9 @@ export const tables = pgTable("tables", {
   // ҳали жойлаштирилмаган → авто-тўр.
   posX: integer("pos_x"),
   posY: integer("pos_y"),
+  // Плитка ўлчами px (CloPOS каби катта банкет-зал/кабина); null = дефолт 148×96.
+  w: integer("w"),
+  h: integer("h"),
   active: boolean("active").notNull().default(true),
 });
 

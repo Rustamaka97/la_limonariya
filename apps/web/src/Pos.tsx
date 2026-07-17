@@ -30,7 +30,7 @@ import {
 } from "./icons";
 
 type Hall = { id: string; name: string; servicePct: number };
-type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null };
+type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null; w?: number | null; h?: number | null };
 type MenuItem = {
   id: string;
   name: string;
@@ -907,28 +907,33 @@ function HallCanvas({
   const [drag, setDrag] = useState<{ id: string; offX: number; offY: number } | null>(null);
   const [live, setLive] = useState<{ id: string; x: number; y: number } | null>(null);
 
-  // Канвас контейнер кенглигига мосланади (кенг экранда ўнгда бўш қолмасин) —
-  // авто-грид устунлар сони экран кенглигидан ҳисобланади; қўлда қўйилган
-  // позиция (posX/posY) сақланади.
-  const [canvasW, setCanvasW] = useState(CANVAS_COLS * CELL_W + 24);
+  // Контейнер кенглиги (авто-грид фолбек учун). Қўлда қўйилган posX/posY эркин
+  // жойлашувни сақлайди; катта плитка (w/h) банкет-зал/кабина учун.
+  const [contW, setContW] = useState(CANVAS_COLS * CELL_W + 24);
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
-    const update = () => setCanvasW(Math.max(CANVAS_COLS * CELL_W + 24, el.clientWidth));
+    const update = () => setContW(el.clientWidth);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const cols = Math.max(CANVAS_COLS, Math.floor((canvasW - 24) / CELL_W));
-  const rows = Math.max(1, Math.ceil(tables.length / cols));
-  const canvasH = Math.max(180, rows * CELL_H + 24);
+  const sizeOf = (t: Table) => ({ w: t.w ?? TILE_W, h: t.h ?? TILE_H });
+  const cols = Math.max(CANVAS_COLS, Math.floor((Math.max(contW, CANVAS_COLS * CELL_W + 24) - 24) / CELL_W));
 
   function posOf(t: Table, i: number): { x: number; y: number } {
     if (live?.id === t.id) return { x: live.x, y: live.y };
     if (t.posX != null && t.posY != null) return { x: t.posX, y: t.posY };
     return defaultPos(i, cols);
   }
+
+  // Канвас жойлаштирилган катта плиткаларни ва авто-грид кенглигини қамрайди.
+  const maxRight = tables.reduce((m, t, i) => Math.max(m, posOf(t, i).x + sizeOf(t).w), 0);
+  const maxBottom = tables.reduce((m, t, i) => Math.max(m, posOf(t, i).y + sizeOf(t).h), 0);
+  const canvasW = Math.max(contW, maxRight + 12);
+  const canvasH = Math.max(180, maxBottom + 12);
+
   function startDrag(e: ReactPointerEvent, t: Table, i: number) {
     if (!arrange || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -939,8 +944,10 @@ function HallCanvas({
   function onPointerMove(e: ReactPointerEvent) {
     if (!drag || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = clamp(e.clientX - rect.left - drag.offX, 0, canvasW - TILE_W);
-    const y = clamp(e.clientY - rect.top - drag.offY, 0, canvasH - TILE_H);
+    const dt = tables.find((t) => t.id === drag.id);
+    const sz = dt ? sizeOf(dt) : { w: TILE_W, h: TILE_H };
+    const x = clamp(e.clientX - rect.left - drag.offX, 0, canvasW - sz.w);
+    const y = clamp(e.clientY - rect.top - drag.offY, 0, canvasH - sz.h);
     setLive({ id: drag.id, x, y });
   }
   function endDrag() {
@@ -964,12 +971,13 @@ function HallCanvas({
         {tables.map((t, i) => {
           const p = posOf(t, i);
           const dragging = drag?.id === t.id;
+          const sz = sizeOf(t);
           const style: CSSProperties = {
             position: "absolute",
             left: p.x,
             top: p.y,
-            width: TILE_W,
-            height: TILE_H,
+            width: sz.w,
+            height: sz.h,
             zIndex: dragging ? 10 : 1,
             transition: dragging ? "none" : "left .12s, top .12s",
           };
