@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,600&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --gold:#cda85f; --gold-soft:#c9a86a; --cream:#f3ecda; --ink:#0e211c;
+}
+html,body{ width:1024px; height:1536px; }
+.page{
+  position:relative; width:1024px; height:1536px; overflow:hidden;
+  background:#12261f;
+  font-family:'Playfair Display','PT Serif',serif;
+  color:var(--cream);
+}
+.bg{ position:absolute; inset:0; background:url('flatlay/bg-green-marble.png') center/cover no-repeat; }
+.bg-tint{ position:absolute; inset:0;
+  background:
+    radial-gradient(120% 80% at 8% 4%, rgba(232,214,150,.20), rgba(232,214,150,0) 42%),
+    linear-gradient(180deg, rgba(9,26,20,.62) 0%, rgba(9,26,20,.34) 30%, rgba(9,26,20,.42) 70%, rgba(9,26,20,.72) 100%);
+}
+.frame{ position:absolute; inset:26px; border:1.5px solid rgba(205,168,95,.55);
+  box-shadow:inset 0 0 0 4px rgba(205,168,95,.10); pointer-events:none; }
+.frame::after{ content:""; position:absolute; inset:6px; border:.8px solid rgba(205,168,95,.28); }
+
+.inner{ position:absolute; inset:26px; display:flex; flex-direction:column;
+  padding:52px 66px 40px; }
+
+/* ---------- header ---------- */
+.brand{ text-align:center; }
+.brand .wordmark{ font-style:italic; font-weight:700; font-size:42px; color:var(--gold);
+  letter-spacing:.5px; line-height:1; text-shadow:0 1px 10px rgba(0,0,0,.35); }
+.brand .sub{ margin-top:9px; font-family:'PT Serif',serif; font-size:12.5px; letter-spacing:6.5px;
+  color:var(--gold-soft); text-transform:uppercase; }
+.orn{ display:flex; align-items:center; justify-content:center; gap:14px; margin:16px 0 6px; }
+.orn i{ height:1px; width:74px; background:linear-gradient(90deg,transparent,rgba(205,168,95,.75)); }
+.orn i:last-child{ background:linear-gradient(90deg,rgba(205,168,95,.75),transparent); }
+.orn b{ color:var(--gold); font-size:13px; }
+.title{ text-align:center; font-weight:900; font-size:70px; line-height:1.02; color:var(--cream);
+  letter-spacing:3px; text-shadow:0 2px 22px rgba(0,0,0,.45); margin-top:2px; }
+.tagline{ text-align:center; font-style:italic; font-family:'PT Serif',serif; font-size:20px;
+  color:var(--gold-soft); margin-top:12px; }
+.tagline b{ color:var(--gold); font-style:normal; margin:0 8px; font-size:13px; vertical-align:2px; }
+
+/* ---------- dish list ---------- */
+.list{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-top:14px; }
+.row{ display:flex; align-items:center; gap:32px; padding:14px 6px; position:relative; }
+.row + .row{ border-top:1px solid rgba(205,168,95,.24); }
+.row + .row::before{ content:"\2666"; position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+  color:var(--gold); font-size:12px; background:transparent; padding:0 8px;
+  text-shadow:0 0 10px rgba(9,26,20,.9),0 0 4px rgba(9,26,20,1); }
+.plate{ width:172px; height:172px; border-radius:50%; flex:none; overflow:hidden;
+  box-shadow:0 14px 30px rgba(0,0,0,.5), inset 0 0 0 2px rgba(205,168,95,.34);
+  background:#0e211c; }
+.plate img{ width:100%; height:100%; object-fit:cover; object-position:50% 47%;
+  transform:scale(1.28); display:block; }
+.meta{ flex:1; }
+.meta .uz{ font-weight:700; font-size:35px; color:var(--cream); line-height:1.06;
+  letter-spacing:.4px; text-shadow:0 1px 10px rgba(0,0,0,.4); }
+.meta .ru{ margin-top:7px; font-style:italic; font-family:'PT Serif',serif; font-size:20px;
+  color:var(--gold-soft); }
+.meta .rule{ margin-top:11px; width:58px; height:1px; background:linear-gradient(90deg,var(--gold),transparent); }
+
+/* ---------- footer ---------- */
+.foot{ text-align:center; font-family:'PT Serif',serif; font-size:13px; letter-spacing:4px;
+  color:var(--gold-soft); text-transform:uppercase; padding-top:8px; }
+.foot b{ color:var(--gold); margin:0 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="bg"></div>
+  <div class="bg-tint"></div>
+  <div class="frame"></div>
+  <div class="inner">
+    <div class="brand">
+      <div class="wordmark">Limonariya</div>
+      <div class="sub">Янги · Уйғур таомлари</div>
+    </div>
+    <div class="orn"><i></i><b>&#9670;</b><i></i></div>
+    <div class="title">ИССИҚҚИНА ЛАЗЗАТ</div>
+    <div class="tagline">Қўлда чўзилган лагмон <b>&#9670;</b> буги бурқираган манти</div>
+
+    <div class="list">
+      <div class="row">
+        <div class="plate"><img src="food/dish-lagmon.png" alt=""></div>
+        <div class="meta"><div class="uz">Уйғурча лагмон</div><div class="ru">Уйгурский лагман</div><div class="rule"></div></div>
+      </div>
+      <div class="row">
+        <div class="plate"><img src="food/dish-manti.png" alt=""></div>
+        <div class="meta"><div class="uz">Уйғур манти</div><div class="ru">Уйгурские манты</div><div class="rule"></div></div>
+      </div>
+      <div class="row">
+        <div class="plate"><img src="food/dish-pelmen.png" alt=""></div>
+        <div class="meta"><div class="uz">Пельмен шўрво</div><div class="ru">Пельменный суп</div><div class="rule"></div></div>
+      </div>
+      <div class="row">
+        <div class="plate"><img src="food/dish-qovurma.png" alt=""></div>
+        <div class="meta"><div class="uz">Қовурма лагмон</div><div class="ru">Жареный лагман</div><div class="rule"></div></div>
+      </div>
+      <div class="row">
+        <div class="plate"><img src="food/sarogli-juja.png" alt="" style="transform:scale(1.06);object-position:50% 44%;"></div>
+        <div class="meta"><div class="uz">Сарёғли жужа</div><div class="ru">Цыплёнок на масле</div><div class="rule"></div></div>
+      </div>
+    </div>
+
+    <div class="foot">Боғишамол кўчаси, 109 <b>&#9670;</b> 09:00 – 23:00</div>
+  </div>
+</div>
+</body>
+</html>

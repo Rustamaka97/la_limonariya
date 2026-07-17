@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<title>WOW-4 — Шамса ва хатчўп</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  .page {
+    position: relative;
+    width: 210mm; height: 297mm;
+    background-image: url("bg-filigran.png");
+    background-size: 100% 100%;
+    overflow: hidden;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    color: #F3EEE2;
+  }
+  /* ---------- hanging suzani bookmark ribbon ---------- */
+  .ribbon {
+    position: absolute;
+    top: 0; left: 16.5%;
+    width: 9mm; height: 27%;
+    overflow: hidden;
+    clip-path: polygon(0 0, 100% 0, 100% 96.5%, 50% 100%, 0 96.5%);
+    border-left: 0.45mm solid #B8934F;
+    border-right: 0.45mm solid #B8934F;
+    filter: drop-shadow(1mm 1.6mm 2.2mm rgba(0,0,0,0.55));
+  }
+  .ribbon img { display: block; width: 100%; height: auto; }
+  /* ---------- shamsa (manuscript rosette) ---------- */
+  .shamsa {
+    position: relative;
+    width: 26mm; height: 26mm;
+    margin: 0 auto 3mm;
+  }
+  .shamsa .ring {
+    position: absolute; inset: 0;
+    border: 0.45mm dashed rgba(205,170,109,0.85);
+    border-radius: 50%;
+  }
+  .shamsa .ring2 {
+    position: absolute; inset: 2.6mm;
+    border: 0.3mm solid rgba(205,170,109,0.55);
+    border-radius: 50%;
+  }
+  .shamsa img {
+    position: absolute; inset: 4.5mm;
+    width: calc(100% - 9mm); height: calc(100% - 9mm);
+    filter: drop-shadow(0 0.7mm 1.4mm rgba(0,0,0,0.5));
+  }
+  .content {
+    position: absolute;
+    top: 11.5%; left: 16%; right: 15%; bottom: 12%;
+  }
+  .cat-ru {
+    font-family: "Playfair Display", serif;
+    font-size: 19pt; letter-spacing: 0.18em;
+    color: #CDAA6D; text-transform: uppercase;
+    text-align: center;
+  }
+  .cat-uz {
+    font-size: 11pt; font-style: italic;
+    color: #E8DFC8; opacity: 0.85;
+    text-align: center; margin-top: 0.8mm;
+  }
+  .cat-rule {
+    display: flex; align-items: center; justify-content: center;
+    gap: 2.5mm; margin: 2.5mm 0 6mm;
+  }
+  .cat-rule .line { width: 32mm; height: 1px; background: linear-gradient(to right, transparent, #CDAA6D); }
+  .cat-rule .line.r { background: linear-gradient(to left, transparent, #CDAA6D); }
+  .cat-rule .dot { width: 1.5mm; height: 1.5mm; border-radius: 50%; background: #B8934F; }
+  /* ---------- second section header ---------- */
+  .sec2 {
+    display: flex; align-items: center; justify-content: center;
+    gap: 4mm;
+    margin: 7mm 0 5mm;
+  }
+  .sec2 .line { width: 26mm; height: 1px; background: linear-gradient(to right, transparent, #CDAA6D); }
+  .sec2 .line.r { background: linear-gradient(to left, transparent, #CDAA6D); }
+  .sec2 img {
+    width: 9.5mm; height: 9.5mm;
+    filter: drop-shadow(0 0.5mm 1mm rgba(0,0,0,0.45));
+  }
+  .sec2-titles { text-align: center; }
+  .sec2-ru {
+    font-family: "Playfair Display", serif;
+    font-size: 15pt; letter-spacing: 0.15em;
+    color: #CDAA6D; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .sec2-uz {
+    font-size: 10pt; font-style: italic;
+    color: #E8DFC8; opacity: 0.85;
+  }
+  /* ---------- items ---------- */
+  .item { margin-bottom: 4.4mm; }
+  .row { display: flex; align-items: baseline; gap: 2mm; }
+  .nm {
+    font-family: "Playfair Display", serif;
+    font-size: 12pt; font-weight: 600; color: #F6EFDD;
+    white-space: nowrap;
+  }
+  .uzin { font-size: 10pt; font-style: italic; color: #CDAA6D; white-space: nowrap; }
+  .dots { flex: 1; border-bottom: 1px dotted rgba(205,170,109,0.55); transform: translateY(-2px); }
+  .pr {
+    font-family: "Playfair Display", serif;
+    font-size: 12pt; font-weight: 600; color: #CDAA6D;
+    white-space: nowrap;
+  }
+  .wrap { margin-right: 37%; }
+  .footer {
+    position: absolute; left: 16%; bottom: 9.6%;
+    font-size: 8.5pt; letter-spacing: 0.14em; color: #D6CDB8;
+  }
+  .footer .num { color: #CDAA6D; font-family: "Playfair Display", serif; font-size: 9.5pt; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="ribbon"><img src="suzani-ribbon-vert.png" alt="" /></div>
+    <div class="content">
+      <div class="shamsa">
+        <div class="ring"></div>
+        <div class="ring2"></div>
+        <img src="medallion-single.png" alt="" />
+      </div>
+      <div class="cat-ru">Первые блюда</div>
+      <div class="cat-uz">Биринчи таомлар</div>
+      <div class="cat-rule"><div class="line"></div><div class="dot"></div><div class="line r"></div></div>
+
+      <div class="item"><div class="row"><span class="nm">Шурпа (говядина)</span><span class="uzin">Шурво (мол гўшти)</span><span class="dots"></span><span class="pr">30 000</span></div></div>
+      <div class="item"><div class="row"><span class="nm">Мастава</span><span class="uzin">Мастава</span><span class="dots"></span><span class="pr">35 000</span></div></div>
+      <div class="item"><div class="row"><span class="nm">Шурпа «Балаза»</span><span class="uzin">Балаза шурво</span><span class="dots"></span><span class="pr">35 000</span></div></div>
+      <div class="item"><div class="row"><span class="nm">Шурпа с тушёнкой</span><span class="uzin">Тушонка шурво</span><span class="dots"></span><span class="pr">40 000</span></div></div>
+      <div class="item"><div class="row"><span class="nm">Бульон</span><span class="uzin">Бульон</span><span class="dots"></span><span class="pr">10 000</span></div></div>
+
+      <div class="sec2">
+        <div class="line"></div>
+        <img src="medallion-single.png" alt="" />
+        <div class="sec2-titles">
+          <div class="sec2-ru">Вторые блюда</div>
+          <div class="sec2-uz">Иккинчи таомлар</div>
+        </div>
+        <img src="medallion-single.png" alt="" />
+        <div class="line r"></div>
+      </div>
+
+      <div class="item"><div class="row"><span class="nm">Плов (на заказ)</span><span class="uzin">Ош (заказга)</span><span class="dots"></span><span class="pr">250 000</span></div></div>
+      <div class="item"><div class="row"><span class="nm">Казан-кебаб (баранина)</span><span class="uzin">Қозон кабоб</span><span class="dots"></span><span class="pr">260 000</span></div></div>
+      <div class="item wrap"><div class="row"><span class="nm">Жиз по-афгански</span><span class="uzin">Авғон жиз</span><span class="dots"></span><span class="pr">250 000</span></div></div>
+      <div class="item wrap"><div class="row"><span class="nm">Жиз по-уйгурски</span><span class="uzin">Уйғурча жиз</span><span class="dots"></span><span class="pr">250 000</span></div></div>
+      <div class="item wrap"><div class="row"><span class="nm">Жиз «Умакай»</span><span class="uzin">Умакай жиз</span><span class="dots"></span><span class="pr">250 000</span></div></div>
+      <div class="item wrap"><div class="row"><span class="nm">Жиз из филе</span><span class="uzin">Жиз феле</span><span class="dots"></span><span class="pr">240 000</span></div></div>
+      <div class="item wrap"><div class="row"><span class="nm">Буглама</span><span class="uzin">Буғлама</span><span class="dots"></span><span class="pr">250 000</span></div></div>
+      <div class="item wrap"><div class="row"><span class="nm">Вагури</span><span class="uzin">Вағури</span><span class="dots"></span><span class="pr">260 000</span></div></div>
+    </div>
+    <div class="footer">БОГИШАМОЛ КЎЧАСИ, 109 &nbsp;•&nbsp; 09:00 – 23:00 &nbsp;•&nbsp; <span class="num">2</span></div>
+  </div>
+</body>
+</html>

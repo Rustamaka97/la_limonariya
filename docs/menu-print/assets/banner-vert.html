@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<title>Banner вертикал — нархлар билан</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@0,600;0,700;0,800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  .banner {
+    position: relative;
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    color: #F3EEE2;
+    background-image: url("bg-filigran.png");
+    background-size: cover; background-position: center;
+  }
+  .tint { position: absolute; inset: 0; background: rgba(9,32,23,0.30); }
+  .frame {
+    position: absolute; inset: 30px;
+    border: 2px solid rgba(205,170,109,0.85);
+    box-shadow: inset 0 0 0 5px rgba(205,170,109,0.15);
+    pointer-events: none; z-index: 6;
+  }
+  .frame::before { content:""; position:absolute; inset:9px; border:1px solid rgba(205,170,109,0.38); }
+  .inner { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; }
+
+  .top { text-align: center; padding-top: 96px; }
+  .shamsa { position: relative; width: 140px; height: 140px; margin: 0 auto 24px; }
+  .shamsa .ring { position: absolute; inset: 0; border: 2px dashed rgba(205,170,109,0.8); border-radius: 50%; }
+  .shamsa img { position: absolute; inset: 24px; width: calc(100% - 48px); height: calc(100% - 48px); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5)); }
+  .wordmark { font-family: "Playfair Display", serif; font-style: italic; font-weight: 600; font-size: 54px; color: #F4ECD8; }
+  .kicker { font-size: 19px; letter-spacing: 0.34em; text-indent: 0.34em; color: #D8B87E; margin-top: 12px; }
+  .orn { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 22px 0 0; }
+  .orn .l { width: 110px; height: 1px; background: linear-gradient(to right, transparent, #CDAA6D); }
+  .orn .l.r { background: linear-gradient(to left, transparent, #CDAA6D); }
+  .orn .d { width: 9px; height: 9px; transform: rotate(45deg); background: #CDAA6D; box-shadow: 0 0 8px rgba(205,170,109,0.6); }
+  .headline {
+    font-family: "Playfair Display", serif; font-weight: 800;
+    font-size: 62px; letter-spacing: 0.04em; margin-top: 22px; line-height: 1;
+    background: linear-gradient(180deg, #F3DEAC 0%, #E7C88C 38%, #C69A55 72%, #B8934F 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 3px 9px rgba(0,0,0,0.55));
+  }
+  .headline-sub { font-size: 26px; font-style: italic; color: #EFE7D2; margin-top: 16px; filter: drop-shadow(0 1px 5px rgba(0,0,0,0.7)); }
+
+  .menu { margin: 60px 92px 0; }
+  .row {
+    display: flex; align-items: center; gap: 34px;
+    padding: 26px 0;
+    border-bottom: 1px solid rgba(205,170,109,0.30);
+  }
+  .row:last-child { border-bottom: none; }
+  .thumb {
+    width: 150px; height: 150px; border-radius: 50%; object-fit: cover;
+    border: 3px solid #CDAA6D; flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  }
+  .info { flex: 1; min-width: 0; }
+  .rowtop { display: flex; align-items: baseline; gap: 16px; }
+  .nm { font-family: "Playfair Display", serif; font-weight: 700; font-size: 40px; color: #F6EFDD; white-space: nowrap; }
+  .leader { flex: 1; border-bottom: 2px dotted rgba(205,170,109,0.5); transform: translateY(-8px); }
+  .price { font-family: "Playfair Display", serif; font-weight: 700; font-size: 40px; color: #CDAA6D; white-space: nowrap; }
+  .price .cur { font-size: 22px; font-weight: 600; margin-left: 6px; color: #C7A667; }
+  .ru { font-size: 25px; font-style: italic; color: #D8B87E; margin-top: 6px; }
+
+  .footer {
+    margin-top: auto; text-align: center; padding-bottom: 74px;
+    font-size: 22px; letter-spacing: 0.2em; color: #CDBE9B;
+    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7));
+  }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="tint"></div>
+    <div class="frame"></div>
+    <div class="inner">
+      <div class="top">
+        <div class="shamsa"><div class="ring"></div><img src="medallion-single.png" alt="" /></div>
+        <div class="wordmark">Limonariya</div>
+        <div class="kicker">ЯНГИ · УЙҒУР ТАОМЛАРИ</div>
+        <div class="orn"><span class="l"></span><span class="d"></span><span class="l r"></span></div>
+        <div class="headline">ҚЎЛДА ЧЎЗИЛГАН ЛАЗЗАТ</div>
+        <div class="headline-sub">Ҳар порция — уста қўли билан</div>
+      </div>
+
+      <div class="menu">
+        <div class="row">
+          <img class="thumb" src="food/dish-lagmon.png" alt="" />
+          <div class="info">
+            <div class="rowtop"><span class="nm">Уйғурча лағмон</span><span class="leader"></span><span class="price">45 000<span class="cur">сўм</span></span></div>
+            <div class="ru">Уйгурский лагман</div>
+          </div>
+        </div>
+        <div class="row">
+          <img class="thumb" src="food/dish-manti.png" alt="" />
+          <div class="info">
+            <div class="rowtop"><span class="nm">Уйғур манти</span><span class="leader"></span><span class="price">42 000<span class="cur">сўм</span></span></div>
+            <div class="ru">Уйгурские манты</div>
+          </div>
+        </div>
+        <div class="row">
+          <img class="thumb" src="food/dish-pelmen.png" alt="" />
+          <div class="info">
+            <div class="rowtop"><span class="nm">Пельмен шўрво</span><span class="leader"></span><span class="price">38 000<span class="cur">сўм</span></span></div>
+            <div class="ru">Пельменный суп</div>
+          </div>
+        </div>
+        <div class="row">
+          <img class="thumb" src="food/dish-qovurma.png" alt="" />
+          <div class="info">
+            <div class="rowtop"><span class="nm">Қовурма лағмон</span><span class="leader"></span><span class="price">48 000<span class="cur">сўм</span></span></div>
+            <div class="ru">Жареный лагман</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">БОГИШАМОЛ КЎЧАСИ, 109 &nbsp;•&nbsp; 09:00 – 23:00</div>
+    </div>
+  </div>
+</body>
+</html>

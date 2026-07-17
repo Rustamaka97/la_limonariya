@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<title>Banner вертикал — 5 таом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,600;0,700;0,800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  .banner {
+    position: relative;
+    width: 1080px; height: 2200px;
+    overflow: hidden;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    color: #F3EEE2;
+    background: #0C2A1F;
+  }
+  .bg { position: absolute; inset: 0; z-index: 0; }
+  .bg img { width: 100%; height: 100%; object-fit: cover; filter: blur(16px) brightness(0.66) saturate(1.12); transform: scale(1.12); }
+  .bg-ov {
+    position: absolute; inset: 0; z-index: 1;
+    background:
+      radial-gradient(70% 40% at 50% 12%, rgba(18,66,51,0.5) 0%, rgba(9,32,23,0) 60%),
+      linear-gradient(to bottom, rgba(9,32,23,0.80) 0%, rgba(9,32,23,0.72) 40%, rgba(9,32,23,0.86) 100%);
+  }
+  .frame {
+    position: absolute; inset: 28px; z-index: 8; pointer-events: none;
+    border: 2px solid rgba(205,170,109,0.9);
+    box-shadow: inset 0 0 0 6px rgba(205,170,109,0.15);
+  }
+  .frame::before { content:""; position:absolute; inset:9px; border:1px solid rgba(205,170,109,0.38); }
+
+  .content { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; }
+
+  .masthead { text-align: center; padding-top: 96px; }
+  .wordmark { font-family: "Playfair Display", serif; font-style: italic; font-weight: 600; font-size: 54px; color: #F4ECD8; filter: drop-shadow(0 2px 7px rgba(0,0,0,0.6)); }
+  .kicker { font-size: 19px; letter-spacing: 0.34em; text-indent: 0.34em; color: #D8B87E; margin-top: 12px; }
+  .orn { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; }
+  .orn .l { width: 120px; height: 1px; background: linear-gradient(to right, transparent, #CDAA6D); }
+  .orn .l.r { background: linear-gradient(to left, transparent, #CDAA6D); }
+  .orn .d { width: 9px; height: 9px; transform: rotate(45deg); background: #CDAA6D; box-shadow: 0 0 8px rgba(205,170,109,0.6); }
+  .headline {
+    font-family: "Playfair Display", serif; font-weight: 800;
+    font-size: 66px; letter-spacing: 0.05em; margin-top: 18px; line-height: 1;
+    background: linear-gradient(180deg, #F3DEAC 0%, #E7C88C 38%, #C69A55 72%, #B8934F 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 3px 10px rgba(0,0,0,0.6));
+  }
+  .headline-sub { font-size: 25px; font-style: italic; color: #EFE7D2; margin-top: 15px; filter: drop-shadow(0 1px 5px rgba(0,0,0,0.7)); }
+
+  .list { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; padding: 30px 78px 20px; }
+  .row { display: flex; align-items: center; gap: 46px; }
+  .dish {
+    width: 250px; height: 250px; border-radius: 50%; object-fit: cover;
+    border: 3px solid #CDAA6D; flex-shrink: 0;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.6);
+  }
+  .nameblock { flex: 1; }
+  .nm { font-family: "Playfair Display", serif; font-weight: 700; font-size: 50px; color: #F6EFDD; line-height: 1.05; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7)); }
+  .ru { font-size: 27px; font-style: italic; color: #D8B87E; margin-top: 8px; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7)); }
+  .new-tag {
+    display: inline-block; margin-top: 12px;
+    font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 600;
+    letter-spacing: 0.22em; text-indent: 0.22em; color: #0C2A1F;
+    background: linear-gradient(180deg, #E7C88C, #C69A55); border-radius: 3px;
+    padding: 3px 12px;
+  }
+  .divider { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 0 30px; }
+  .divider .l { flex: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(205,170,109,0.55), transparent); }
+  .divider .d { width: 8px; height: 8px; transform: rotate(45deg); background: #CDAA6D; box-shadow: 0 0 7px rgba(205,170,109,0.6); }
+
+  .footer { text-align: center; padding-bottom: 84px; font-size: 20px; letter-spacing: 0.22em; text-indent: 0.22em; color: #CDBE9B; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.7)); }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="bg"><img src="food/dish-qovurma.png" alt="" /></div>
+    <div class="bg-ov"></div>
+    <div class="frame"></div>
+
+    <div class="content">
+      <div class="masthead">
+        <div class="wordmark">Limonariya</div>
+        <div class="kicker">ЯНГИ · УЙҒУР ТАОМЛАРИ</div>
+        <div class="orn"><span class="l"></span><span class="d"></span><span class="l r"></span></div>
+        <div class="headline">ИССИҚҚИНА ЛАЗЗАТ</div>
+        <div class="headline-sub">Қўлда чўзилган лағмон · буғи бурқираган манти</div>
+      </div>
+
+      <div class="list">
+        <div class="row">
+          <img class="dish" src="food/dish-lagmon.png" alt="" />
+          <div class="nameblock"><div class="nm">Уйғурча лағмон</div><div class="ru">Уйгурский лагман</div></div>
+        </div>
+        <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+        <div class="row">
+          <img class="dish" src="food/dish-manti.png" alt="" />
+          <div class="nameblock"><div class="nm">Уйғур манти</div><div class="ru">Уйгурские манты</div></div>
+        </div>
+        <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+        <div class="row">
+          <img class="dish" src="food/dish-pelmen.png" alt="" />
+          <div class="nameblock"><div class="nm">Пельмен шўрво</div><div class="ru">Пельменный суп</div></div>
+        </div>
+        <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+        <div class="row">
+          <img class="dish" src="food/dish-pelmeni-quruq.png" alt="" />
+          <div class="nameblock"><div class="nm">Пельмени</div><div class="ru">Пельмени со сметаной</div><span class="new-tag">ЯНГИ</span></div>
+        </div>
+        <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+        <div class="row">
+          <img class="dish" src="food/dish-qovurma.png" alt="" />
+          <div class="nameblock"><div class="nm">Қовурма лағмон</div><div class="ru">Жареный лагман</div></div>
+        </div>
+      </div>
+
+      <div class="footer">БОГИШАМОЛ КЎЧАСИ, 109 &nbsp;•&nbsp; 09:00 – 23:00</div>
+    </div>
+  </div>
+</body>
+</html>

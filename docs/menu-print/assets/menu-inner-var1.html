@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<title>La Limonariya — ички саҳифа v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #888; }
+  .page {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto;
+    background-image: url("cover-concept-1-emblem.png");
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    color: #F3EEE2;
+  }
+  .content {
+    position: absolute;
+    top: 15.5%;
+    left: 20%;
+    right: 20%;
+    bottom: 14%;
+    display: flex;
+    flex-direction: column;
+  }
+  /* ---------- centered suzani ribbon above header ---------- */
+  .top-band {
+    display: block;
+    width: 56%;
+    margin: 0 auto 5mm;
+    border-top: 0.5mm solid #CDAA6D;
+    border-bottom: 0.5mm solid #CDAA6D;
+    box-shadow: 0 1mm 2.5mm rgba(0,0,0,0.35);
+  }
+  .cat-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7mm;
+    margin-bottom: 3.5mm;
+  }
+  .cat-titles { text-align: center; }
+  .cat-ru {
+    font-family: "Playfair Display", serif;
+    font-size: 19pt;
+    letter-spacing: 0.16em;
+    color: #CDAA6D;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .cat-uz {
+    font-size: 11.5pt;
+    font-style: italic;
+    color: #E8DFC8;
+    opacity: 0.85;
+    margin-top: 0.8mm;
+  }
+  .cat-rule {
+    display: flex; align-items: center; justify-content: center;
+    gap: 2.5mm;
+    margin-bottom: 8mm;
+  }
+  .cat-rule .line { width: 34mm; height: 1px; background: linear-gradient(to right, transparent, #CDAA6D); }
+  .cat-rule .line.r { background: linear-gradient(to left, transparent, #CDAA6D); }
+  .cat-rule .dot { width: 1.6mm; height: 1.6mm; border-radius: 50%; background: #B8934F; }
+  /* ---------- dishes ---------- */
+  .dish {
+    display: flex;
+    gap: 6mm;
+    align-items: center;
+    margin-bottom: 7.5mm;
+  }
+  .dish img {
+    width: 33mm; height: 41mm;
+    object-fit: cover;
+    border-radius: 2mm;
+    border: 1.2pt solid #CDAA6D;
+    flex-shrink: 0;
+    box-shadow: 0 1mm 3mm rgba(0,0,0,0.4);
+  }
+  .dish-info { flex: 1; min-width: 0; }
+  .dish-top {
+    display: flex;
+    align-items: baseline;
+    gap: 2mm;
+  }
+  .dish-name {
+    font-family: "Playfair Display", serif;
+    font-size: 13pt;
+    font-weight: 600;
+    color: #F6EFDD;
+    white-space: nowrap;
+  }
+  .dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(205,170,109,0.6);
+    transform: translateY(-3px);
+  }
+  .dish-price {
+    font-family: "Playfair Display", serif;
+    font-size: 13pt;
+    font-weight: 600;
+    color: #CDAA6D;
+    white-space: nowrap;
+  }
+  .dish-uz {
+    font-size: 11pt;
+    font-style: italic;
+    color: #CDAA6D;
+    margin-top: 0.5mm;
+  }
+  .dish-desc {
+    font-size: 10pt;
+    color: #D6CDB8;
+    line-height: 1.35;
+    margin-top: 1.5mm;
+  }
+  /* ---------- footer ---------- */
+  .footer {
+    position: absolute;
+    left: 20%;
+    bottom: 8.6%;
+    width: 42%;
+    font-size: 8.5pt;
+    letter-spacing: 0.14em;
+    color: #D6CDB8;
+  }
+  .footer .frule {
+    width: 46mm; height: 1px;
+    background: linear-gradient(to right, #CDAA6D, transparent);
+    margin-bottom: 2mm;
+  }
+  .footer .num {
+    color: #CDAA6D;
+    font-family: "Playfair Display", serif;
+    font-size: 9.5pt;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="content">
+      <img class="top-band" src="suzani-band-hd.png" alt="" />
+      <div class="cat-header">
+        <div class="cat-titles">
+          <div class="cat-ru">Вторые блюда</div>
+          <div class="cat-uz">Иккинчи таомлар</div>
+        </div>
+      </div>
+      <div class="cat-rule">
+        <div class="line"></div>
+        <div class="dot"></div>
+        <div class="line r"></div>
+      </div>
+
+      <div class="dish">
+        <img src="food/test-osh.png" alt="osh" />
+        <div class="dish-info">
+          <div class="dish-top">
+            <span class="dish-name">Плов (на заказ)</span>
+            <span class="dots"></span>
+            <span class="dish-price">250 000</span>
+          </div>
+          <div class="dish-uz">Ош (заказга)</div>
+          <div class="dish-desc">Золотистый плов с бараниной, жёлтой морковью, нохатом и изюмом</div>
+        </div>
+      </div>
+
+      <div class="dish">
+        <img src="food/test-qozon.png" alt="qozon" />
+        <div class="dish-info">
+          <div class="dish-top">
+            <span class="dish-name">Казан-кебаб (баранина)</span>
+            <span class="dots"></span>
+            <span class="dish-price">260 000</span>
+          </div>
+          <div class="dish-uz">Қозон кабоб (қўй гўшти)</div>
+          <div class="dish-desc">Томлёная баранина на кости с золотистым жареным картофелем, луком и зеленью</div>
+        </div>
+      </div>
+
+      <div class="dish">
+        <img src="food/test-jiz.png" alt="jiz" />
+        <div class="dish-info">
+          <div class="dish-top">
+            <span class="dish-name">Жиз по-афгански</span>
+            <span class="dots"></span>
+            <span class="dish-price">250 000</span>
+          </div>
+          <div class="dish-uz">Авғон жиз</div>
+          <div class="dish-desc">Кусочки баранины, обжаренные на сливочном масле, с карамелизированным луком</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="frule"></div>
+      БОГИШАМОЛ КЎЧАСИ, 109 &nbsp;•&nbsp; 09:00 – 23:00 &nbsp;•&nbsp; <span class="num">2</span>
+    </div>
+  </div>
+</body>
+</html>

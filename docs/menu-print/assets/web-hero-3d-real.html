@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La Limonariya — реал 3D hero</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:Georgia,'Times New Roman',serif}
+  body{height:100vh;overflow:hidden;background:radial-gradient(120% 100% at 70% 40%,#123c2c,#0d2b20 46%,#06140C);color:#F3EEE2}
+  #cv{position:fixed;inset:0;z-index:1}
+  .glow{position:fixed;top:-6%;right:4%;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(205,170,109,.16),transparent 62%);z-index:0;animation:pulse 6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+  nav{position:relative;z-index:5;height:82px;display:flex;align-items:center;justify-content:space-between;padding:0 5vw}
+  .logo{font-size:26px;font-style:italic;font-weight:bold;color:#E7C87E}.logo b{color:#8FBF9E;font-style:normal;font-weight:normal;font-size:15px;margin-left:6px}
+  .nl{display:flex;gap:30px;align-items:center}.nl a{color:#CFE0D4;font-size:15px;text-decoration:none;opacity:.85;cursor:pointer}
+  .ncta{border:1px solid #CDAA6D;color:#E7C87E;padding:9px 22px;border-radius:30px;font-size:14px;cursor:pointer}
+  .hero{position:relative;z-index:4;display:flex;align-items:center;height:calc(100vh - 82px);padding:0 5vw;pointer-events:none}
+  .left{width:46%}.eb{display:inline-block;color:#CDAA6D;font-size:13px;letter-spacing:.34em;text-transform:uppercase;margin-bottom:24px;border-left:2px solid #CDAA6D;padding-left:12px}
+  h1{font-size:clamp(42px,5.2vw,76px);line-height:1.04;font-weight:bold;color:#F6EFDD}h1 .g{color:#E7C87E;font-style:italic}
+  .sub{margin-top:24px;font-size:19px;line-height:1.55;color:#B9CCBE;max-width:430px}
+  .btns{margin-top:36px;display:flex;gap:18px;align-items:center;pointer-events:auto}
+  .b1{background:linear-gradient(92deg,#E7C87E,#C79A4F);color:#0C231B;padding:16px 38px;border-radius:34px;font-size:17px;font-weight:bold;box-shadow:0 10px 30px rgba(205,170,109,.3);cursor:pointer;border:none}
+  .b2{color:#EAE3D2;font-size:16px;border-bottom:1px solid rgba(233,227,210,.4);padding-bottom:3px;cursor:pointer}
+  .hstats{margin-top:50px;display:flex;gap:44px}.hstats .n{font-size:30px;color:#E7C87E;font-weight:bold}.hstats .l{font-size:12px;color:#9DB5A3;letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+  .hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:6;color:#8FB79B;font-size:13px;letter-spacing:.1em;opacity:.75}
+  .load{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:#06140C;color:#8FB79B;font-size:16px;letter-spacing:.1em;transition:opacity .6s}
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <canvas id="cv"></canvas>
+  <div class="load" id="load">3D лимон юкланмоқда…</div>
+  <nav>
+    <div class="logo">La Limonariya<b>🍋 Наводий</b></div>
+    <div class="nl"><a>Меню</a><a>Таомлар</a><a>Галерея</a><a>Алоқа</a><span class="ncta">Стол банд қилиш</span></div>
+  </nav>
+  <div class="hero">
+    <div class="left">
+      <span class="eb">Ўзбек миллий ошхонаси</span>
+      <h1>Ҳар луқмада —<br><span class="g">анъана</span> ва таъм</h1>
+      <div class="sub">Наводийнинг қоқ марказида — қозонда пиширилган ош, тандир кабоб ва ота-боболар таоми.</div>
+      <div class="btns"><button class="b1">Буюртма қилиш</button><span class="b2">Менюни кўриш →</span></div>
+      <div class="hstats"><div><div class="n">150+</div><div class="l">Таом</div></div><div><div class="n">12 йил</div><div class="l">Тажриба</div></div><div><div class="n">4.9★</div><div class="l">Рейтинг</div></div></div>
+    </div>
+  </div>
+  <div class="hint">◐ Лимонни сичқонча билан айлантиринг · ҳар томондан кўринг</div>
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three@0.160.0';
+    import { GLTFLoader } from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
+    const GLB = 'https://d3u0tzju9qaucj.cloudfront.net/7d051b5a-7bfe-49fe-a484-24e7b3a9458a/dce7d871-c1ad-4e26-a786-a81b3765cbfb.glb';
+    const cv = document.getElementById('cv');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, innerWidth/innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 6);
+    const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.02;
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.02).texture;
+    scene.add(new THREE.AmbientLight(0xbfe0cf, 0.35));
+    const key = new THREE.DirectionalLight(0xffe6a8, 2.9); key.position.set(4,6,5); scene.add(key);
+    const rim = new THREE.DirectionalLight(0xe7c87e, 1.6); rim.position.set(-5,2,-4); scene.add(rim);
+    const fill = new THREE.PointLight(0x8fbf9e, 1.1, 40); fill.position.set(-3,-2,4); scene.add(fill);
+    const group = new THREE.Group(); scene.add(group);
+    let model=null;
+    const holder = new THREE.Group(); group.add(holder);
+    new GLTFLoader().load(GLB, (g)=>{
+      model = g.scene;
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      model.position.sub(center);
+      const scale = 3.2 / Math.max(size.x,size.y,size.z);
+      model.scale.setScalar(scale);
+      model.traverse(o=>{ if(o.isMesh && o.material){ o.material.roughness = Math.min(o.material.roughness ?? 0.5, 0.44); o.material.metalness = 0.0; o.material.envMapIntensity = 0.8; o.material.needsUpdate = true; }});
+      holder.add(model);
+      document.getElementById('load').style.opacity='0';
+      setTimeout(()=>document.getElementById('load').remove(),600);
+    }, undefined, (e)=>{ document.getElementById('load').textContent='3D юклашда хато'; });
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor=0.08;
+    controls.enablePan=false; controls.minDistance=4; controls.maxDistance=9;
+    controls.autoRotate=true; controls.autoRotateSpeed=1.6;
+    addEventListener('resize', ()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+    const clock = new THREE.Clock();
+    (function loop(){
+      requestAnimationFrame(loop);
+      const t = clock.getElapsedTime();
+      holder.position.y = Math.sin(t*1.1)*0.18;
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+  </script>
+</body>
+</html>

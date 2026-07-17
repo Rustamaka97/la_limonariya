@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<title>Banner V3 — сторис (вертикал)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:ital,wght@0,600;0,700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  .banner {
+    position: relative;
+    width: 1080px; height: 1920px;
+    overflow: hidden;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    color: #F3EEE2;
+    background-image: url("bg-filigran.png");
+    background-size: cover; background-position: center;
+  }
+  .tint { position: absolute; inset: 0; background: rgba(9,32,23,0.28); }
+  .frame {
+    position: absolute; inset: 34px;
+    border: 2px solid rgba(205,170,109,0.8);
+    box-shadow: inset 0 0 0 5px rgba(205,170,109,0.15);
+    pointer-events: none; z-index: 6;
+  }
+  .inner { position: absolute; inset: 0; z-index: 3; }
+  .top { text-align: center; padding-top: 110px; }
+  .shamsa {
+    position: relative; width: 150px; height: 150px; margin: 0 auto 26px;
+  }
+  .shamsa .ring { position: absolute; inset: 0; border: 2px dashed rgba(205,170,109,0.8); border-radius: 50%; }
+  .shamsa img { position: absolute; inset: 26px; width: calc(100% - 52px); height: calc(100% - 52px); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5)); }
+  .wordmark {
+    font-family: "Playfair Display", serif; font-style: italic; font-weight: 600;
+    font-size: 56px; color: #F6EFDD;
+  }
+  .wordmark-sub {
+    font-size: 20px; letter-spacing: 0.6em; text-indent: 0.6em; color: #CDAA6D; margin-top: 8px;
+  }
+  .headline {
+    font-family: "Playfair Display", serif; font-weight: 700;
+    font-size: 92px; letter-spacing: 0.06em; color: #CDAA6D; margin-top: 40px;
+    text-shadow: 0 3px 10px rgba(0,0,0,0.5);
+  }
+  .headline-uz {
+    font-size: 30px; font-style: italic; letter-spacing: 0.28em; text-indent: 0.28em;
+    color: #EFE7D2; opacity: 0.92; margin-top: 10px;
+  }
+  .hero {
+    position: absolute; left: 70px; right: 70px; top: 720px;
+    height: 520px; border-radius: 10px; overflow: hidden;
+    border: 2px solid rgba(205,170,109,0.75);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .hero img { width: 100%; height: 100%; object-fit: cover; }
+  .names {
+    position: absolute; left: 90px; right: 90px; top: 1300px;
+  }
+  .name {
+    display: flex; align-items: baseline; gap: 14px;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(205,170,109,0.35);
+  }
+  .name:last-child { border-bottom: none; }
+  .name .dot {
+    width: 12px; height: 12px; border-radius: 50%; background: #B8934F; flex-shrink: 0;
+    align-self: center;
+  }
+  .name .uz {
+    font-family: "Playfair Display", serif; font-weight: 600;
+    font-size: 42px; color: #F6EFDD; white-space: nowrap;
+  }
+  .name .ru {
+    font-size: 24px; font-style: italic; color: #CDAA6D;
+  }
+  .footer {
+    position: absolute; left: 0; right: 0; bottom: 70px; text-align: center;
+    font-size: 22px; letter-spacing: 0.2em; color: #D9CFB6;
+  }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="tint"></div>
+    <div class="frame"></div>
+    <div class="inner">
+      <div class="top">
+        <div class="shamsa"><div class="ring"></div><img src="medallion-single.png" alt="" /></div>
+        <div class="wordmark">Limonariya</div>
+        <div class="wordmark-sub">RESTAURANT</div>
+        <div class="headline">ЯНГИ ТАОМЛАР</div>
+        <div class="headline-uz">НОВЫЕ БЛЮДА</div>
+      </div>
+      <div class="hero"><img src="food/banner-flatlay.png" alt="" /></div>
+      <div class="names">
+        <div class="name"><div class="dot"></div><span class="uz">Уйғурча лағмон</span><span class="ru">— Уйгурский лагман</span></div>
+        <div class="name"><div class="dot"></div><span class="uz">Уйғур манти</span><span class="ru">— Уйгурские манты</span></div>
+        <div class="name"><div class="dot"></div><span class="uz">Пельмен шўрво</span><span class="ru">— Пельменный суп</span></div>
+        <div class="name"><div class="dot"></div><span class="uz">Қовурма лағмон</span><span class="ru">— Жареный лагман</span></div>
+      </div>
+      <div class="footer">БОГИШАМОЛ КЎЧАСИ, 109 &nbsp;•&nbsp; 09:00 – 23:00</div>
+    </div>
+  </div>
+</body>
+</html>

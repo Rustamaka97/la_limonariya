@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<title>La Limonariya — 3D hero</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:Georgia,'Times New Roman',serif}
+  body{width:100vw;height:100vh;overflow:hidden;background:radial-gradient(120% 100% at 72% 42%,#123c2c 0%,#0d2b20 46%,#08190F 100%);color:#F3EEE2}
+  .glow{position:fixed;top:-8%;right:6%;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(205,170,109,0.18),transparent 62%);filter:blur(10px);animation:pulse 6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+  nav{position:relative;z-index:5;height:82px;display:flex;align-items:center;justify-content:space-between;padding:0 5vw}
+  .logo{font-size:26px;font-style:italic;font-weight:bold;color:#E7C87E;letter-spacing:.03em}
+  .logo b{color:#8FBF9E;font-style:normal;font-weight:normal;font-size:15px;margin-left:6px}
+  .nav-links{display:flex;gap:32px;align-items:center}
+  .nav-links a{color:#CFE0D4;font-size:15px;letter-spacing:.06em;text-decoration:none;opacity:.85;cursor:pointer}
+  .nav-links a:hover{color:#E7C87E;opacity:1}
+  .nav-cta{border:1px solid #CDAA6D;color:#E7C87E;padding:9px 22px;border-radius:30px;font-size:14px;letter-spacing:.08em;cursor:pointer;transition:.3s}
+  .nav-cta:hover{background:#CDAA6D;color:#0C231B}
+  .hero{position:relative;z-index:4;display:flex;align-items:center;height:calc(100vh - 82px);padding:0 5vw}
+  .left{width:50%;padding-right:20px}
+  .eyebrow{display:inline-block;color:#CDAA6D;font-size:13px;letter-spacing:.34em;text-transform:uppercase;margin-bottom:26px;border-left:2px solid #CDAA6D;padding-left:12px}
+  h1{font-size:clamp(44px,5.4vw,80px);line-height:1.04;font-weight:bold;color:#F6EFDD;letter-spacing:-.01em}
+  h1 .g{color:#E7C87E;font-style:italic}
+  .sub{margin-top:26px;font-size:clamp(16px,1.4vw,20px);line-height:1.55;color:#B9CCBE;max-width:460px}
+  .btns{margin-top:38px;display:flex;gap:18px;align-items:center}
+  .b1{background:linear-gradient(92deg,#E7C87E,#C79A4F);color:#0C231B;padding:17px 40px;border-radius:34px;font-size:17px;font-weight:bold;letter-spacing:.04em;box-shadow:0 10px 30px rgba(205,170,109,.3);cursor:pointer;transition:.3s}
+  .b1:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(205,170,109,.45)}
+  .b2{color:#EAE3D2;font-size:16px;letter-spacing:.05em;border-bottom:1px solid rgba(233,227,210,.4);padding-bottom:3px;cursor:pointer}
+  .stats{margin-top:56px;display:flex;gap:44px}
+  .stat .n{font-size:30px;color:#E7C87E;font-weight:bold}
+  .stat .l{font-size:12px;color:#9DB5A3;letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
+  .right{width:50%;position:relative;height:100%;display:flex;align-items:center;justify-content:center;perspective:1400px}
+  .stage{position:relative;width:520px;height:520px;display:flex;align-items:center;justify-content:center}
+  .ring{position:absolute;width:560px;height:560px;border-radius:50%;border:1px solid rgba(205,170,109,.25);animation:spin 40s linear infinite}
+  .ring2{position:absolute;width:600px;height:600px;border-radius:50%;border:1px dashed rgba(205,170,109,.12);animation:spin 60s linear infinite reverse}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .plate-wrap{position:relative;width:500px;height:500px;animation:float 5.5s ease-in-out infinite;transition:transform .25s ease-out}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+  .plate{width:500px;height:500px;border-radius:50%;object-fit:cover;border:3px solid rgba(205,170,109,.55);box-shadow:0 44px 90px rgba(0,0,0,.6),0 0 0 14px rgba(205,170,109,.06);animation:turn 26s linear infinite;cursor:grab}
+  @keyframes turn{to{transform:rotate(360deg)}}
+  .chip{position:absolute;z-index:6;background:rgba(10,25,18,.82);border:1px solid rgba(205,170,109,.42);border-radius:14px;padding:11px 16px;backdrop-filter:blur(4px)}
+  .chip .nm{font-size:15px;color:#F3EEE2}.chip .pr{font-size:13px;color:#E7C87E;margin-top:2px}
+  .c1{top:30px;right:-10px}.c2{bottom:50px;left:-20px}
+  .hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:9;color:#8FB79B;font-size:13px;letter-spacing:.1em;opacity:.8}
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <nav>
+    <div class="logo">La Limonariya<b>🍋 Наводий</b></div>
+    <div class="nav-links"><a>Меню</a><a>Таомлар</a><a>Галерея</a><a>Алоқа</a><span class="nav-cta">Стол банд қилиш</span></div>
+  </nav>
+  <div class="hero">
+    <div class="left">
+      <span class="eyebrow">Ўзбек миллий ошхонаси</span>
+      <h1>Ҳар луқмада —<br><span class="g">анъана</span> ва таъм</h1>
+      <div class="sub">Наводийнинг қоқ марказида — қозонда пиширилган ош, тандир кабоб ва ота-боболар таоми. Ҳар таом — санъат асари.</div>
+      <div class="btns"><span class="b1">Буюртма қилиш</span><span class="b2">Менюни кўриш →</span></div>
+      <div class="stats">
+        <div class="stat"><div class="n">150+</div><div class="l">Таом</div></div>
+        <div class="stat"><div class="n">12 йил</div><div class="l">Тажриба</div></div>
+        <div class="stat"><div class="n">4.9★</div><div class="l">Рейтинг</div></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="stage" id="stage">
+        <div class="ring"></div>
+        <div class="ring2"></div>
+        <div class="plate-wrap" id="pw">
+          <img class="plate" id="plate" src="https://d2ol7oe51mr4n9.cloudfront.net/user_3FwtchFX4LWwIsPsgKc3OrHKvyL/501edfe7-4b50-4f8f-a579-d1244d714bad.png" alt="Ош">
+        </div>
+        <div class="chip c1"><div class="nm">Тошкент ош</div><div class="pr">250 000 сўм</div></div>
+        <div class="chip c2"><div class="nm">Заказга тайёр</div><div class="pr">40–60 дақиқа</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="hint">◐ Ошни сичқонча билан ушлаб буринг · ҳаракатлантиринг</div>
+  <script>
+    const stage=document.getElementById('stage'), pw=document.getElementById('pw'), plate=document.getElementById('plate');
+    let dragging=false, startX=0, angle=0, base=0;
+    stage.addEventListener('mousemove',e=>{
+      if(dragging)return;
+      const r=stage.getBoundingClientRect();
+      const dx=(e.clientX-(r.left+r.width/2))/r.width;
+      const dy=(e.clientY-(r.top+r.height/2))/r.height;
+      pw.style.transform=`translateY(0) rotateY(${dx*18}deg) rotateX(${-dy*18}deg)`;
+    });
+    stage.addEventListener('mouseleave',()=>{pw.style.transform='';});
+    plate.addEventListener('mousedown',e=>{dragging=true;startX=e.clientX;plate.style.animationPlayState='paused';plate.style.cursor='grabbing';e.preventDefault();});
+    window.addEventListener('mousemove',e=>{if(!dragging)return;angle=base+(e.clientX-startX)*0.5;plate.style.transform=`rotate(${angle}deg)`;});
+    window.addEventListener('mouseup',()=>{if(dragging){dragging=false;base=angle;plate.style.cursor='grab';}});
+  </script>
+</body>
+</html>
