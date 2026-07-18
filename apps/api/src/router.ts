@@ -3777,6 +3777,110 @@ export const appRouter = router({
         });
       }),
 
+    // 👨‍🍳 Официант алмаштириш (CloPOS «Изменить Сотрудник»): очиқ заказ
+    // официантини бошқа фаол ходимга бириктиради. Роль: manager+ — официант
+    // ўзиникини бошқага бера олмайди (тешик: официант жавобгарликдан қочмасин).
+    reassignWaiter: managerProcedure
+      .input(z.object({ orderId: z.string().uuid(), waiterId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        const head = (
+          await db
+            .select({ status: orders.status, locked: orders.locked, waiterId: orders.waiterId })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
+        if (head.waiterId === input.waiterId) return { ok: true };
+        const waiter = (
+          await db
+            .select({ name: users.name, active: users.active })
+            .from(users)
+            .where(eq(users.id, input.waiterId))
+            .limit(1)
+        )[0];
+        if (!waiter || !waiter.active)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Ходим топилмади ёки фаол эмас" });
+        await db
+          .update(orders)
+          .set({ waiterId: input.waiterId })
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "order.reassign_waiter",
+          entity: "order",
+          entityId: input.orderId,
+          summary: `Официант → ${waiter.name}`,
+        });
+        return { ok: true };
+      }),
+
+    // 🧹 Чекни тозалаш (CloPOS «Очистить чек»): ЮБОРИЛМАГАН позицияларни олиб
+    // ташлайди — кухняга кетган (пиширилаётган) таомга тегмайди. Юборилган
+    // миқдор = SUM(kitchen_ticket_items.qty). Блокланган/ёпилган заказда рад.
+    clearOrder: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        return db.transaction(async (tx) => {
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.orderId}))`);
+          const head = (
+            await tx
+              .select({ status: orders.status, locked: orders.locked })
+              .from(orders)
+              .where(eq(orders.id, input.orderId))
+              .for("update")
+          )[0];
+          if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+          if (head.status !== "open")
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+          if (head.locked)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
+
+          // Маҳсулот бўйича кухняга юборилган умумий миқдор.
+          const sentRows = await tx
+            .select({
+              productId: kitchenTicketItems.productId,
+              sent: sql<number>`sum(${kitchenTicketItems.qty})::int`,
+            })
+            .from(kitchenTicketItems)
+            .innerJoin(kitchenTickets, eq(kitchenTicketItems.ticketId, kitchenTickets.id))
+            .where(eq(kitchenTickets.orderId, input.orderId))
+            .groupBy(kitchenTicketItems.productId);
+          const sentMap = new Map(sentRows.map((r) => [r.productId, r.sent]));
+
+          const items = await tx
+            .select()
+            .from(orderItems)
+            .where(eq(orderItems.orderId, input.orderId));
+          let removed = 0;
+          for (const it of items) {
+            const sent = it.productId ? sentMap.get(it.productId) ?? 0 : 0;
+            if (it.qty <= sent) continue; // ҳаммаси юборилган — тегмаймиз
+            if (sent === 0) {
+              await tx.delete(orderItems).where(eq(orderItems.id, it.id));
+              removed += it.qty;
+            } else {
+              await tx.update(orderItems).set({ qty: sent }).where(eq(orderItems.id, it.id));
+              removed += it.qty - sent;
+            }
+          }
+          if (removed > 0)
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "order.clear",
+              entity: "order",
+              entityId: input.orderId,
+              summary: `Чек тозаланди (${removed} та юборилмаган позиция)`,
+            });
+          return { ok: true, removed };
+        });
+      }),
+
     addItem: protectedProcedure
       .input(
         z.object({
