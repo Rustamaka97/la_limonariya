@@ -2275,14 +2275,6 @@ function OrderView({
     vibrate([10]);
   }
 
-  async function setGuests(n: number) {
-    await enqueueMeta(id, { guests: Math.max(0, n) });
-    const local = await deriveOrder(id);
-    if (local) setOrder(local as unknown as Order);
-    await flush().catch(() => {});
-    refresh();
-  }
-
   async function saveNote() {
     await enqueueMeta(id, { note });
     await flush().catch(() => {});
@@ -2941,36 +2933,8 @@ function OrderView({
         </div>
       )}
 
-      {/* meta: guests + note */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-brand-cream-soft bg-white px-1.5 py-1 shadow-sm">
-          <IUsers className="mx-1 h-4 w-4 text-brand" />
-          <button
-            onClick={() => setGuests((order.guests ?? 0) - 1)}
-            className="grid h-10 w-10 place-items-center rounded-lg text-brand transition hover:bg-brand-cream active:scale-90 motion-reduce:active:scale-100"
-          >
-            <IMinus className="h-3.5 w-3.5" />
-          </button>
-          <span className="w-6 text-center text-sm font-bold tabular-nums text-brand-ink">
-            {order.guests ?? "—"}
-          </span>
-          <button
-            onClick={() => setGuests((order.guests ?? 0) + 1)}
-            className="grid h-10 w-10 place-items-center rounded-lg text-brand transition hover:bg-brand-cream active:scale-90 motion-reduce:active:scale-100"
-          >
-            <IPlus className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <button
-          onClick={() => setNoteOpen((v) => !v)}
-          className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm shadow-sm transition ${
-            note ? "border-brand-gold/50 bg-brand-gold/10 text-brand-gold-deep" : "border-brand-cream-soft bg-white text-zinc-500 hover:text-brand"
-          }`}
-        >
-          <IPencil className="h-4 w-4" />
-          <span className="max-w-[9rem] truncate">{note || "Изоҳ"}</span>
-        </button>
-      </div>
+      {/* Меҳмон+Изоҳ header олиб ташланди (эга: уртадаги бўш банд). Изоҳ рельс
+          чат-иконкасида (setNoteOpen), меҳмон сони заказ очишда/флоор амалларида. */}
       {noteOpen && (
         <input
           autoFocus
