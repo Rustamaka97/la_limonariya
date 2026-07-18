@@ -2107,6 +2107,7 @@ function OrderView({
   onSwitch: (id: string) => void;
 }) {
   const canComp = ["director", "manager", "cashier"].includes(user.role);
+  const isManager = ["director", "manager"].includes(user.role); // reassignWaiter (manager+)
   const canDiscount = ["director", "manager"].includes(user.role);
   // Чек ёпиш = кассир иши (сервер ҳам cashierProcedure билан ҳимоялайди).
   const canClose = canComp;
@@ -2148,6 +2149,12 @@ function OrderView({
   const [events, setEvents] = useState<
     { action: string; summary: string | null; actorName: string | null; createdAt: string }[]
   >([]);
+  // 👨‍🍳 Официант алмаштириш + 🧹 чек тозалаш (CloPOS toolbar).
+  const [showReassign, setShowReassign] = useState(false);
+  const [staff, setStaff] = useState<{ id: string; name: string; role: string; active: boolean }[]>([]);
+  const [reassignBusy, setReassignBusy] = useState(false);
+  const [showClear, setShowClear] = useState(false);
+  const [clearBusy, setClearBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelErr, setCancelErr] = useState<string | null>(null);
@@ -2676,6 +2683,34 @@ function OrderView({
         >
           <IClock className="h-5 w-5" />
         </button>
+        {/* Официант алмаштириш (CloPOS «Изменить Сотрудник») — фақат manager+ */}
+        {isManager && (
+          <button
+            onClick={() => {
+              setShowReassign(true);
+              trpc.users.list
+                .query()
+                .then((r) => setStaff(r.filter((u) => u.active)))
+                .catch(() => {});
+            }}
+            disabled={!online || order.locked}
+            title="Официантни алмаштириш"
+            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
+          >
+            <IUser className="h-5 w-5" />
+          </button>
+        )}
+        {/* Чекни тозалаш (CloPOS «Очистить чек») — юборилмаган позициялар */}
+        {order.items.length > 0 && !order.locked && (
+          <button
+            onClick={() => setShowClear(true)}
+            disabled={!online}
+            title="Чекни тозалаш — юборилмаган таомлар"
+            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-500/25 hover:text-red-200 disabled:opacity-30"
+          >
+            <span className="text-lg leading-none" aria-hidden>🧹</span>
+          </button>
+        )}
         {/* Хизмат ҳақи */}
         {canComp && (order.servicePct > 0 || order.serviceWaived) && (
           <button
@@ -3453,6 +3488,104 @@ function OrderView({
                 {!online ? <><IWifiOff className="h-4 w-4" /> Тўлов уланганда</> : <><ICard className="h-4 w-4" /> Кассир ёпади</>}
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ОФИЦИАНТ АЛМАШТИРИШ MODAL (CloPOS «Изменить Сотрудник») — ходим пикери */}
+      {showReassign && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowReassign(false)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
+              <h3 className="text-[15px] font-bold text-brand-ink">Официантни алмаштириш</h3>
+              <button
+                onClick={() => setShowReassign(false)}
+                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {staff.length === 0 ? (
+                <p className="py-8 text-center text-[13px] text-zinc-400">Ходим топилмади</p>
+              ) : (
+                <ul className="space-y-1">
+                  {staff.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        disabled={reassignBusy}
+                        onClick={async () => {
+                          setReassignBusy(true);
+                          try {
+                            await trpc.pos.reassignWaiter.mutate({ orderId: id, waiterId: s.id });
+                            setShowReassign(false);
+                            await refresh();
+                          } catch (e) {
+                            setSyncErr(e instanceof Error ? e.message : "Официант алмашмади");
+                          } finally {
+                            setReassignBusy(false);
+                          }
+                        }}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition hover:bg-clopos-bg disabled:opacity-50"
+                      >
+                        <span className="text-[14px] text-brand-ink">{s.name}</span>
+                        <span className="text-[11px] uppercase text-zinc-400">{s.role}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ЧЕК ТОЗАЛАШ ТАСДИҒИ (CloPOS «Очистить чек») */}
+      {showClear && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowClear(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-4 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-[15px] font-bold text-brand-ink">Чекни тозалаш</h3>
+            <p className="text-[13px] text-zinc-500">
+              Юборилмаган позициялар олиб ташланади. Кухняга кетган таомга тегилмайди.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowClear(false)}
+                className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
+              >
+                Бекор
+              </button>
+              <button
+                disabled={clearBusy}
+                onClick={async () => {
+                  setClearBusy(true);
+                  try {
+                    await trpc.pos.clearOrder.mutate({ orderId: id });
+                    setShowClear(false);
+                    await refresh();
+                  } catch (e) {
+                    setSyncErr(e instanceof Error ? e.message : "Тозаланмади");
+                  } finally {
+                    setClearBusy(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-red-500 py-2.5 text-[14px] font-semibold text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                {clearBusy ? "Тозаланмоқда…" : "Тозалаш"}
+              </button>
+            </div>
           </div>
         </div>
       )}
