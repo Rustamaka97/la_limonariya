@@ -458,7 +458,11 @@ export const auditLog = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("al_created_idx").on(t.createdAt)],
+  (t) => [
+    index("al_created_idx").on(t.createdAt),
+    // Чек тарихи (per-order timeline) тез бўлиши учун: entity='order' + entityId.
+    index("al_entity_idx").on(t.entity, t.entityId, t.createdAt),
+  ],
 );
 
 export const paymentMethod = pgEnum("payment_method", [

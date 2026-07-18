@@ -3881,6 +3881,28 @@ export const appRouter = router({
         });
       }),
 
+    // 📜 Чек тарихи (CloPOS «История чека»): заказ бўйича ҳамма амал timeline'и —
+    // ким, қачон, нима қилди. audit_log'дан (entity='order') ўқийди — алоҳида
+    // жадвал шарт эмас. Официант фақат ўзиникини (assertOrderAccess).
+    orderEvents: protectedProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .query(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const actor = alias(users, "ev_actor");
+        return db
+          .select({
+            action: auditLog.action,
+            summary: auditLog.summary,
+            meta: auditLog.meta,
+            createdAt: auditLog.createdAt,
+            actorName: actor.name,
+          })
+          .from(auditLog)
+          .leftJoin(actor, eq(auditLog.actorId, actor.id))
+          .where(and(eq(auditLog.entity, "order"), eq(auditLog.entityId, input.orderId)))
+          .orderBy(desc(auditLog.createdAt));
+      }),
+
     addItem: protectedProcedure
       .input(
         z.object({
@@ -4469,7 +4491,18 @@ export const appRouter = router({
               code: "BAD_REQUEST",
               message: "Заказ ёпилган — кухняга юбориб бўлмайди",
             });
-          return flushKitchenTicket(tx, input.orderId, ctx.user.id, input.ticketId);
+          const t = await flushKitchenTicket(tx, input.orderId, ctx.user.id, input.ticketId);
+          // Чек тарихи (CloPOS «Отправлен в отдел») — фақат ҳақиқатан юборилса.
+          if (t && t.items.length)
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "order.send_kitchen",
+              entity: "order",
+              entityId: input.orderId,
+              summary: `Кухняга ${t.items.length} хил таом юборилди`,
+              meta: { ticketId: t.id },
+            });
+          return t;
         });
         // тx COMMIT'дан кейин — принтерга (net I/O тx ушламасин, блокламасин)
         if (ticket) void firePrintKitchen(input.orderId, ticket.items);
