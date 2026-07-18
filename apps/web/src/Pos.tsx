@@ -611,52 +611,47 @@ function FloorView({
           { emoji: "🍳", label: "KDS", sub: "Кухня", tab: "kds", show: dm },
         ].filter((x) => x.show);
         return (
-          <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
-            onClick={() => setShowPanel(false)}
-          >
-            <div
-              className="flex max-h-[85dvh] w-full max-w-3xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-brand-ink">Бошқарув панели</h3>
-                <button
-                  onClick={() => setShowPanel(false)}
-                  className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
-                >
-                  Ёпиш
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto sm:grid-cols-3">
+          // CloPOS «Панель управления» — ТЎЛИҚ ЭКРАН (яшил header · кулранг грид · паст утилита-бар)
+          <div className="fixed inset-0 z-50 flex flex-col bg-clopos-bg" style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif" }}>
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white shadow-md">
+              <h3 className="text-lg font-bold">Бошқарув панели</h3>
+              <button
+                onClick={() => setShowPanel(false)}
+                className="rounded-lg bg-white/15 px-4 py-1.5 text-sm font-medium transition hover:bg-white/25"
+              >
+                ✕ Ёпиш
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {items.map((it) => (
                   <button
                     key={it.tab}
                     onClick={() => { setShowPanel(false); onNavigate(it.tab); }}
-                    className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-3.5 py-3 text-left transition hover:border-brand hover:bg-brand-cream/30"
+                    className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
                   >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-cream text-xl">{it.emoji}</span>
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">{it.emoji}</span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-brand-ink">{it.label}</span>
-                      {it.sub && <span className="block truncate text-[11px] text-zinc-400">{it.sub}</span>}
+                      <span className="block truncate text-[15px] font-semibold text-brand-ink">{it.label}</span>
+                      {it.sub && <span className="block truncate text-xs text-zinc-400">{it.sub}</span>}
                     </span>
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2 border-t border-brand-cream-soft pt-3">
-                <button
-                  onClick={() => window.location.reload()}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 transition hover:border-brand hover:bg-brand-cream/30"
-                >
-                  🔄 Янгилаш
-                </button>
-                <button
-                  onClick={() => { setShowPanel(false); onLogout(); }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                >
-                  ⎋ Чиқиш
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-2 border-t border-brand-cream-soft bg-white p-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-sm font-medium text-zinc-600 transition hover:border-brand hover:bg-brand-cream/30"
+              >
+                🔄 Янгилаш
+              </button>
+              <button
+                onClick={() => { setShowPanel(false); onLogout(); }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+              >
+                ⎋ Чиқиш
+              </button>
             </div>
           </div>
         );
