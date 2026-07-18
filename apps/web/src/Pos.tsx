@@ -655,8 +655,8 @@ function FloorView({
                             !resView
                               ? "bg-clopos-free text-white"
                               : late
-                                ? "bg-red-600 text-white ring-2 ring-inset ring-red-300"
-                                : "bg-clopos-reserved text-clopos-reserved-text ring-2 ring-inset ring-clopos-gold"
+                                ? "bg-red-600 text-white"
+                                : "bg-clopos-reserved text-clopos-reserved-text"
                           }`}
                         >
                           <span className="line-clamp-2 text-[13px] font-bold">{t.name}</span>
