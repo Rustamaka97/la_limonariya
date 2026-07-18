@@ -2143,6 +2143,11 @@ function OrderView({
   const [sending, setSending] = useState(false);
   const [tickets, setTickets] = useState<{ id: string; createdAt: string; itemCount: number }[]>([]);
   const [showTickets, setShowTickets] = useState(false);
+  // 📜 История чека (CloPOS) — заказ амаллари timeline (audit_log'дан).
+  const [showHistory, setShowHistory] = useState(false);
+  const [events, setEvents] = useState<
+    { action: string; summary: string | null; actorName: string | null; createdAt: string }[]
+  >([]);
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelErr, setCancelErr] = useState<string | null>(null);
@@ -2660,6 +2665,17 @@ function OrderView({
         >
           <IReceipt className="h-5 w-5" />
         </button>
+        {/* История чека — амаллар тарихи (CloPOS «История чека») */}
+        <button
+          onClick={() => {
+            setShowHistory(true);
+            trpc.pos.orderEvents.query({ orderId: id }).then(setEvents).catch(() => {});
+          }}
+          title="История чека — амаллар тарихи"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
+        >
+          <IClock className="h-5 w-5" />
+        </button>
         {/* Хизмат ҳақи */}
         {canComp && (order.servicePct > 0 || order.serviceWaived) && (
           <button
@@ -2758,9 +2774,10 @@ function OrderView({
 
       {/* ── Асосий устун (header + меню + cart + модаллар) ──────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0">
-        {/* ── CloPOS сплит-бар 34px (handoff-макет): чапда тўқ панел (стол · таймер
-            · #чек · ⌄), ўнгда Новый заказ · Чеки · тур · исм · соат · wifi ──── */}
-        <div className="flex h-[34px] items-stretch overflow-hidden">
+        {/* ── CloPOS сплит-бар (эга: каттароқ — олинган header ўрнини эгаллади):
+            чапда тўқ панел (стол · таймер · #чек · ⌄), ўнгда Новый заказ · Чеки
+            · тур · исм · соат · wifi ──── */}
+        <div className="flex h-12 items-stretch overflow-hidden">
           <div className="flex w-full min-w-0 items-center gap-2.5 bg-clopos-dark px-2.5 lg:w-[490px] lg:shrink-0">
             <button
               onClick={onBack}
@@ -3436,6 +3453,50 @@ function OrderView({
                 {!online ? <><IWifiOff className="h-4 w-4" /> Тўлов уланганда</> : <><ICard className="h-4 w-4" /> Кассир ёпади</>}
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ИСТОРИЯ ЧЕКА MODAL (CloPOS «История чека») — амаллар timeline */}
+      {showHistory && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowHistory(false)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
+              <h3 className="text-[15px] font-bold text-brand-ink">История чека</h3>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {events.length === 0 ? (
+                <p className="py-8 text-center text-[13px] text-zinc-400">Ҳали амал йўқ</p>
+              ) : (
+                <ol className="space-y-2.5">
+                  {events.map((ev, i) => {
+                    const d = new Date(ev.createdAt);
+                    const p = (n: number) => String(n).padStart(2, "0");
+                    return (
+                      <li key={i} className="border-l-2 border-brand-gold/50 pl-3">
+                        <div className="text-[13px] text-brand-ink">{ev.summary ?? ev.action}</div>
+                        <div className="mt-0.5 text-[11px] text-zinc-400">
+                          {ev.actorName ?? "—"} · {p(d.getHours())}:{p(d.getMinutes())} {p(d.getDate())}.
+                          {p(d.getMonth() + 1)}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
           </div>
         </div>
       )}
