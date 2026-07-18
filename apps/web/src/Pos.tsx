@@ -239,7 +239,7 @@ function EmptyLemon({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-export function Pos({ user, onLogout }: { user: SessionUser; onLogout: () => void }) {
+export function Pos({ user, onLogout, onOpenMenu }: { user: SessionUser; onLogout: () => void; onOpenMenu: () => void }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
     return (
@@ -250,7 +250,7 @@ export function Pos({ user, onLogout }: { user: SessionUser; onLogout: () => voi
         onSwitch={setOrderId}
       />
     );
-  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} />;
+  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} onOpenMenu={onOpenMenu} />;
 }
 
 // ── FLOOR: visual hall/table map (Clopos only has a flat list) ──────────────
@@ -259,11 +259,13 @@ function FloorView({
   onOpen,
   onNew,
   onLogout,
+  onOpenMenu,
 }: {
   user: SessionUser;
   onOpen: (id: string) => void;
   onNew: (id: string) => void;
   onLogout: () => void;
+  onOpenMenu: () => void;
 }) {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [tbls, setTbls] = useState<Table[]>([]);
@@ -460,6 +462,17 @@ function FloorView({
             <span className="grid h-[17px] w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-badge text-[10px] font-bold text-clopos-gold-text">
               {busy}
             </span>
+          </button>
+          <button
+            onClick={onOpenMenu}
+            title="Меню — бошқарув панели"
+            className="grid h-6 w-6 place-items-center rounded-[3px] text-white/80 transition hover:bg-white/15 hover:text-white"
+          >
+            <svg width="18" height="14" viewBox="0 0 18 14" aria-hidden="true">
+              <rect x="0" y="0" width="18" height="2" rx="1" fill="currentColor" />
+              <rect x="0" y="6" width="18" height="2" rx="1" fill="currentColor" />
+              <rect x="0" y="12" width="18" height="2" rx="1" fill="currentColor" />
+            </svg>
           </button>
           <button
             onClick={onLogout}
