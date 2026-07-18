@@ -653,7 +653,7 @@ function FloorView({
                           }
                           className={`flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-[2px] px-2 py-2 text-center leading-tight shadow-[2px_3px_0_0_rgba(0,0,0,.24)] transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100 ${
                             !resView
-                              ? "bg-clopos-free text-white"
+                              ? "floor-free text-white"
                               : late
                                 ? "bg-red-600 text-white"
                                 : "bg-clopos-reserved text-clopos-reserved-text"

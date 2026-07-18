@@ -67,3 +67,12 @@ button:disabled,
   background-position: center;
   background-repeat: no-repeat;
 }
+
+/* Бўш стол — шаффоф glass: зал бўшаса орқадаги лимон фон кўриниб туради,
+   ном оқ + соя билан ўқилади. Банд/бронь тўлиқ ранг қолади (маълумот аниқ).
+   Расм юкланмаса ҳам рамка + соя стол чегарасини кўрсатади. */
+.floor-free {
+  background: rgba(10, 27, 19, 0.16);
+  border: 1px solid rgba(150, 190, 170, 0.45);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.9);
+}
