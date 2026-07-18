@@ -26,8 +26,8 @@
   --color-clopos-busy: #16553f;        /* dc.html v2 — БАНД стол = ТЎҚ ЯШИЛ (олтин фақат аксент) */
   --color-clopos-busy-text: #cfe0d8;   /* тўқ яшил устида оч-яшил суб-матн */
   --color-clopos-free: #7d8e9b;        /* ЎЗГАРМАЙДИ — бўш стол кулранг */
-  --color-clopos-reserved: #ffffff;    /* БРОНЬ стол = тоза оқ (эга танлови, рамкасиз — соя ажратади) */
-  --color-clopos-reserved-text: #0e4037;/* оқ устида тўқ яшил матн (WCAG) */
+  --color-clopos-reserved: #e8c547;    /* БРОНЬ стол = гол-сариқ (эга танлови, рамкасиз) */
+  --color-clopos-reserved-text: #0e4037;/* гол-сариқ устида тўқ яшил матн (WCAG ~9:1) */
   --color-clopos-cat: #0e4037;         /* категория плитка = изумруд (Non choy кулранг) */
   --color-clopos-cat-alt: #6e8695;     /* ЎЗГАРМАЙДИ — Non choy кулранг */
   --color-clopos-bg: #f0f1f3;          /* ЎЗГАРМАЙДИ — флоор фони кулранг */
