@@ -610,7 +610,7 @@ function FloorView({
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 bg-clopos-bg p-3">
+      <div className="flex-1 space-y-4 bg-clopos-bg floor-cinematic p-3">
       {!online && (
         <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
           <IWifiOff className="h-4 w-4 shrink-0" /> Оффлайн — заказлар шу қурилмада сақланиб, уланганда синхронланади. Тўлов уланганда мумкин.
