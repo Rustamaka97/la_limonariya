@@ -133,6 +133,26 @@ function FloorClock() {
     </span>
   );
 }
+// Тўлиқ-экран катта соат (☰ панел → Соат).
+function BigClock() {
+  const [t, setT] = useState(() => new Date());
+  useEffect(() => {
+    const iv = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return (
+    <div className="flex flex-col items-center">
+      <div className="text-[16vw] font-bold leading-none tabular-nums text-white">
+        {p(t.getHours())}:{p(t.getMinutes())}
+        <span className="text-[8vw] text-brand-gold">:{p(t.getSeconds())}</span>
+      </div>
+      <div className="mt-4 text-[3vw] text-white/60">
+        {t.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}
+      </div>
+    </div>
+  );
+}
 
 function vibrate(pattern: number | number[]) {
   if ("vibrate" in navigator) navigator.vibrate(pattern);
@@ -280,6 +300,8 @@ function FloorView({
   const [showChecks, setShowChecks] = useState(false); // Чеки → очиқ-чеклар рўйхати
   const [checksQ, setChecksQ] = useState(""); // рўйхат қидируви (стол/официант)
   const [showPanel, setShowPanel] = useState(false); // ☰ → бошқарув панели (CloPOS)
+  const [showClock, setShowClock] = useState(false); // 🕐 тўлиқ-экран соат
+  const [soundOff, setSoundOff] = useState(() => localStorage.getItem("pos-sound-off") === "1");
   const [hallFilter, setHallFilter] = useState<string>("all");
   // Стол вақт-ҳалқаси жонли ўтсин — рефетчсиз (openOrders фақат mount/drain'да
   // янгиланади). Дақиқа гранулярлиги учун 60с кифоя.
@@ -613,14 +635,17 @@ function FloorView({
         return (
           // CloPOS «Панель управления» — ТЎЛИҚ ЭКРАН (яшил header · кулранг грид · паст утилита-бар)
           <div className="fixed inset-0 z-50 flex flex-col bg-clopos-bg" style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif" }}>
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white shadow-md">
-              <h3 className="text-lg font-bold">Бошқарув панели</h3>
+            <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white shadow-md">
               <button
                 onClick={() => setShowPanel(false)}
-                className="rounded-lg bg-white/15 px-4 py-1.5 text-sm font-medium transition hover:bg-white/25"
+                title="Орқага"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition hover:bg-white/15"
               >
-                ✕ Ёпиш
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M12 4l-6 6 6 6" />
+                </svg>
               </button>
+              <h3 className="text-lg font-bold">Бошқарув панели</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-4 sm:p-5">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -639,23 +664,65 @@ function FloorView({
                 ))}
               </div>
             </div>
-            <div className="flex gap-2 border-t border-brand-cream-soft bg-white p-4">
+            <div className="grid grid-cols-3 gap-2 border-t border-brand-cream-soft bg-white p-3 sm:grid-cols-6">
               <button
                 onClick={() => window.location.reload()}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-sm font-medium text-zinc-600 transition hover:border-brand hover:bg-brand-cream/30"
+                className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
-                🔄 Янгилаш
+                <span className="text-lg">🔄</span> Янгилаш
+              </button>
+              <button
+                onClick={() => {
+                  const v = !soundOff;
+                  setSoundOff(v);
+                  localStorage.setItem("pos-sound-off", v ? "1" : "0");
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
+              >
+                <span className="text-lg">{soundOff ? "🔇" : "🔊"}</span> {soundOff ? "Овоз ўчиқ" : "Овоз"}
+              </button>
+              <button
+                onClick={() => { setShowPanel(false); setShowClock(true); }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
+              >
+                <span className="text-lg">🕐</span> Соат
+              </button>
+              <button
+                onClick={() => {
+                  if (document.fullscreenElement) void document.exitFullscreen?.();
+                  else void document.documentElement.requestFullscreen?.();
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
+              >
+                <span className="text-lg">⤢</span> Экран
+              </button>
+              <button
+                onClick={() => { setShowPanel(false); onNavigate("moliya"); }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
+              >
+                <span className="text-lg">🧾</span> Касса
               </button>
               <button
                 onClick={() => { setShowPanel(false); onLogout(); }}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                className="flex items-center justify-center gap-2 rounded-xl border border-red-200 py-3 text-[13px] font-medium text-red-600 transition hover:bg-red-50"
               >
-                ⎋ Чиқиш
+                <span className="text-lg">⎋</span> Чиқиш
               </button>
             </div>
           </div>
         );
       })()}
+
+      {/* 🕐 Тўлиқ-экран соат (☰ панел → Соат) — экранга бос ёпилади */}
+      {showClock && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-brand-deep"
+          onClick={() => setShowClock(false)}
+        >
+          <BigClock />
+          <p className="absolute bottom-8 text-sm text-white/40">Экранга бос — ёпиш</p>
+        </div>
+      )}
 
       {/* Открытые чеки — барча очиқ чеклар рўйхати (CloPOS «Чеки»), босса → очилади */}
       {showChecks && (
