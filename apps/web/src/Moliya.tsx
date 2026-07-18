@@ -22,6 +22,7 @@ const METHOD: Record<string, string> = {
   payme: "Payme",
   humo: "Ҳумо",
   debt: "Қарз",
+  avans: "Аванс (бронь)",
 };
 
 // Operational day in Asia/Tashkent (UTC+5, no DST), 06:00 cut — matches server time.ts
@@ -257,6 +258,8 @@ type TillData = {
   cashDebtRepaid: number;
   cashExpenses: number;
   cashCollected: number;
+  cashDeposits: number;
+  cashDepositRefunds: number;
   expectedCash: number;
   openedAt: string | null;
   openedByName: string | null;
@@ -370,6 +373,9 @@ function TillCount({ day }: { day: string }) {
         <span>Қарз қайтган: <b className="text-zinc-700">{fmt(t.cashDebtRepaid)}</b></span>
         <span>Нақд харажат: <b className="text-zinc-700">{fmt(t.cashExpenses)}</b></span>
         <span>Инкассация: <b className="text-zinc-700">{fmt(t.cashCollected)}</b></span>
+        {(t.cashDeposits > 0 || t.cashDepositRefunds > 0) && (
+          <span>Бронь аванси: <b className="text-zinc-700">+{fmt(t.cashDeposits)}{t.cashDepositRefunds > 0 ? ` / −${fmt(t.cashDepositRefunds)} қайтди` : ""}</b></span>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-zinc-500">Кутилган: <b className="tabular-nums">{fmt(t.expectedCash)}</b></span>

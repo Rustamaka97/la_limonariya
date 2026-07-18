@@ -25,6 +25,7 @@ const PAY_LABEL: Record<string, string> = {
   payme: "Payme",
   humo: "Ҳумо",
   debt: "Қарз",
+  avans: "Аванс (бронь)",
 };
 
 type FoundOrder = {

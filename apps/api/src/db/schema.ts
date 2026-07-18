@@ -468,6 +468,9 @@ export const paymentMethod = pgEnum("payment_method", [
   "payme",
   "humo", // Ҳумо — банк картаси (electronic, card tax'га киради, нақд эмас)
   "debt",
+  // Бронь аванси: кассир танламайди — заказ ёпилишида сервер ўзи ёзади
+  // (пул броньда олдин олинган; нақд тортма ҳисобига КИРМАЙДИ, тушумга киради).
+  "avans",
 ]);
 
 export const orderPayments = pgTable("order_payments", {
@@ -478,6 +481,49 @@ export const orderPayments = pgTable("order_payments", {
   method: paymentMethod("method").notNull(),
   amount: integer("amount").notNull(),
 });
+
+export const reservationStatus = pgEnum("reservation_status", [
+  "active", // кутиляпти (флоорда бейдж)
+  "seated", // меҳмон келди — заказга уланди (orderId)
+  "cancelled", // бекор (авансли бўлса resolution мажбурий)
+]);
+
+// Бронь (олдиндан жой банд қилиш, CloPOS-паритет). Аванс — пул мутацияси:
+// олинган куни кассага киради (expectedCash'да +), заказ ёпилишида 'avans'
+// тўлов қатори бўлиб тушумга айланади (depositAppliedAt = идемпотент-гард),
+// бекорда директор ҳал қилади: refund (кассадан нақд чиқади) ёки forfeit
+// (куяди — касса ўзгармайди). Ҳамма қадам audit_log'да.
+export const reservations = pgTable(
+  "reservations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tableId: uuid("table_id")
+      .notNull()
+      .references(() => tables.id),
+    name: text("name").notNull(), // мижоз исми (мажбурий)
+    phone: text("phone"),
+    guests: integer("guests"),
+    reservedFor: timestamp("reserved_for", { withTimezone: true }).notNull(),
+    note: text("note"),
+    status: reservationStatus("status").notNull().default("active"),
+    depositAmount: integer("deposit_amount").notNull().default(0), // 0 = авансиз
+    depositMethod: paymentMethod("deposit_method"), // аванс қандай олинди (cash/card/...)
+    depositAppliedAt: timestamp("deposit_applied_at", { withTimezone: true }),
+    // Бекорда аванс тақдири: "refund" | "forfeit" (авансли броньда мажбурий).
+    depositResolution: text("deposit_resolution"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedById: uuid("resolved_by_id").references(() => users.id),
+    orderId: uuid("order_id").references(() => orders.id),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("res_table_time_idx").on(t.tableId, t.reservedFor),
+    index("res_status_idx").on(t.status, t.reservedFor),
+  ],
+);
 
 export const purchases = pgTable("purchases", {
   id: uuid("id").primaryKey().defaultRandom(),

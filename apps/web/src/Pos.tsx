@@ -86,6 +86,10 @@ type Order = {
   subtotal: number;
   service: number;
   total: number;
+  // Бронь аванси (ишлатилмаган) — тўловда −N бўлиб ҳисобга киради.
+  // Оффлайн-overlay заказларда йўқ → optional.
+  deposit?: number;
+  reservationName?: string | null;
 };
 
 // Изоҳ учун тез чиплар — залда энг кўп айтиладиган талаблар
@@ -98,7 +102,40 @@ const PAY_LABEL: Record<string, string> = {
   payme: "Payme",
   humo: "Ҳумо",
   debt: "Қарз",
+  avans: "Аванс (бронь)",
 };
+
+// ── Бронь (олдиндан жой банд қилиш) ──────────────────────────────────────────
+type Reservation = {
+  id: string;
+  tableId: string;
+  tableName: string;
+  hallId: string;
+  name: string;
+  phone: string | null;
+  guests: number | null;
+  reservedFor: string;
+  note: string | null;
+  status: string;
+  depositAmount: number;
+  depositMethod: string | null;
+  createdBy: string | null;
+};
+const WEEKDAY = ["Якшанба", "Душанба", "Сешанба", "Чоршанба", "Пайшанба", "Жума", "Шанба"];
+const MONTH_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+const RES_LATE_MS = 30 * 60 * 1000; // 30 дақиқа кутамиз — кейин «келмади»
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+// «Бугун — Жума» / «Эртага — Шанба» / «Жума, 24-июл» — эга ҳафта кунини кўрсин деди.
+function resDayLabel(d: Date) {
+  const now = new Date();
+  if (sameDay(d, now)) return `Бугун — ${WEEKDAY[d.getDay()]}`;
+  if (sameDay(d, new Date(now.getTime() + 86_400_000))) return `Эртага — ${WEEKDAY[d.getDay()]}`;
+  return `${WEEKDAY[d.getDay()]}, ${d.getDate()}-${MONTH_SHORT[d.getMonth()]}`;
+}
+const hhmm = (d: Date) =>
+  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const resLate = (r: Reservation) => Date.now() > new Date(r.reservedFor).getTime() + RES_LATE_MS;
 
 // Сотув тури — ёрлиқ + иконка (CloPOS «На месте / Доставка / С собой»).
 const SALE_TYPES = ["dine_in", "delivery", "takeaway"] as const;
@@ -303,6 +340,9 @@ function FloorView({
   const [showClock, setShowClock] = useState(false); // 🕐 тўлиқ-экран соат
   const [soundOff, setSoundOff] = useState(() => localStorage.getItem("pos-sound-off") === "1");
   const [hallFilter, setHallFilter] = useState<string>("all");
+  const [resList, setResList] = useState<Reservation[]>([]); // фаол бронлар
+  const [showRes, setShowRes] = useState(false); // Бронь рўйхати/яратиш модали
+  const [seatFor, setSeatFor] = useState<{ table: Table; res: Reservation } | null>(null); // ўтирғизиш тасдиғи
   // Стол вақт-ҳалқаси жонли ўтсин — рефетчсиз (openOrders фақат mount/drain'да
   // янгиланади). Дақиқа гранулярлиги учун 60с кифоя.
   const [, setTick] = useState(0);
@@ -319,6 +359,12 @@ function FloorView({
       setOrders(mergeOpenOrders(server, local));
     } catch {
       setOrders(local); // оффлайн — фақат локал overlay
+    }
+    // Бронлар — оффлайнда эскиси кўринаверади (фақат кўрсатиш учун, хавфсиз).
+    try {
+      setResList(await trpc.pos.reservations.query());
+    } catch {
+      /* оффлайн */
     }
   }, []);
   useEffect(() => {
@@ -428,6 +474,40 @@ function FloorView({
   const stray = (orders ?? []).filter((o) => !tableKeys.has(key(o.hallId, o.tableNo)));
   const busy = orders?.length ?? 0;
 
+  // Бугунги (+ ҳал қилинмаган кечаги) бронлар — флоор бейджи; ҳар столга энг
+  // яқини. Эртанги/кейингилар фақат «Бронь» рўйхатида кўринади.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  const resToday = resList.filter((r) => new Date(r.reservedFor) <= endOfToday);
+  const resByTable = new Map<string, Reservation>();
+  for (const r of resToday) {
+    const prev = resByTable.get(r.tableId);
+    if (!prev || new Date(r.reservedFor) < new Date(prev.reservedFor)) resByTable.set(r.tableId, r);
+  }
+
+  // Бронь ўтирғизиш: заказ броньга уланади (аванс ёпилишда −N бўлиб киради).
+  // Онлайн шарт — аванс пул ҳисоби оффлайн-навбатга ишонилмайди.
+  async function seatReservation(table: Table, res: Reservation) {
+    if (createBusyRef.current) return;
+    createBusyRef.current = true;
+    try {
+      const id = uuid();
+      await trpc.pos.create.mutate({
+        id,
+        hallId: table.hallId,
+        tableNo: table.name,
+        guests: res.guests ?? 2,
+        reservationId: res.id,
+      });
+      setSeatFor(null);
+      onNew(id);
+    } catch {
+      alert("Ўтирғизиш учун алоқа керак — аванс ҳисоби онлайн ёзилади.");
+    } finally {
+      createBusyRef.current = false;
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col" style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif" }}>
       {/* ── CloPOS индиго-бар 34px (handoff-макет, точь-в-точь): зал-таблар чап,
@@ -475,6 +555,18 @@ function FloorView({
           >
             <span className="text-[15px] font-bold leading-none text-clopos-gold-text">+</span>
             <span className="whitespace-nowrap text-[13px] font-semibold text-clopos-gold-text">Новый заказ</span>
+          </button>
+          <button
+            onClick={() => setShowRes(true)}
+            title="Бронь — олдиндан жой банд қилиш"
+            className="flex items-center gap-1.5 rounded-[3px] px-2 py-0.5 transition hover:bg-white/15"
+          >
+            <span className="whitespace-nowrap text-[13px] text-white">Бронь</span>
+            {resList.length > 0 && (
+              <span className="grid h-[17px] min-w-[17px] place-items-center rounded-full border-[1.5px] border-white bg-clopos-gold px-1 text-[10px] font-bold text-clopos-gold-text">
+                {resList.length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setShowChecks(true)}
@@ -543,6 +635,7 @@ function FloorView({
                   renderTile={(t) => {
                     const os = byKey.get(key(h.id, t.name)) ?? [];
                     const rev = heatByKey.get(key(h.id, t.name)) ?? 0;
+                    const rsv = resByTable.get(t.id); // бугунги энг яқин бронь
                     if (os.length === 0)
                       return (
                         <button
@@ -550,11 +643,24 @@ function FloorView({
                           onClick={() =>
                             heatOn
                               ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
-                              : void create(h.id, t.name, 2, "dine_in")
+                              : rsv
+                                ? setSeatFor({ table: t, res: rsv })
+                                : void create(h.id, t.name, 2, "dine_in")
                           }
-                          className="grid h-full w-full place-items-center rounded-[2px] bg-clopos-free px-2 py-2 text-center text-[13px] font-bold leading-tight text-white shadow-[2px_3px_0_0_rgba(0,0,0,.24)] transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100"
+                          className={`relative grid h-full w-full place-items-center rounded-[2px] bg-clopos-free px-2 py-2 text-center text-[13px] font-bold leading-tight text-white shadow-[2px_3px_0_0_rgba(0,0,0,.24)] transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100 ${
+                            rsv && !heatOn ? "ring-2 ring-inset ring-clopos-gold" : ""
+                          }`}
                         >
                           <span className="line-clamp-2">{t.name}</span>
+                          {rsv && !heatOn && (
+                            <span
+                              className={`pointer-events-none absolute inset-x-0.5 bottom-0.5 truncate rounded-[3px] px-1 py-0.5 text-[10px] font-bold ${
+                                resLate(rsv) ? "bg-red-600 text-white" : "bg-clopos-gold text-clopos-gold-text"
+                              }`}
+                            >
+                              🕐 {hhmm(new Date(rsv.reservedFor))} {rsv.name}
+                            </span>
+                          )}
                         </button>
                       );
                     const first = os[0] as OpenOrder;
@@ -565,6 +671,11 @@ function FloorView({
                         conflict={os.length > 1}
                         heatColor={heatOn ? heatColor(rev) : undefined}
                         fill
+                        resChip={
+                          rsv && !heatOn
+                            ? { time: hhmm(new Date(rsv.reservedFor)), late: resLate(rsv) }
+                            : undefined
+                        }
                         onClick={() =>
                           heatOn
                             ? alert(`${t.name}: ${fmt(rev)} so'm за 30 кун`)
@@ -786,6 +897,74 @@ function FloorView({
                 <p className="py-8 text-center text-sm text-zinc-400">Очиқ чек йўқ</p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Бронь рўйхати + янги бронь (менежер/директор) */}
+      {showRes && (
+        <ReservationsSheet
+          user={user}
+          halls={halls}
+          tables={tbls}
+          list={resList}
+          onClose={() => setShowRes(false)}
+          onChanged={refresh}
+        />
+      )}
+
+      {/* Бронли столга тап — ўтирғизиш тасдиғи */}
+      {seatFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+          onClick={() => setSeatFor(null)}
+        >
+          <div
+            className="w-full max-w-sm space-y-2.5 rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-brand-ink">🕐 Бронь — {seatFor.table.name}</h3>
+            <div className="rounded-xl bg-brand-cream/40 p-3 text-sm">
+              <div className="font-semibold text-brand-ink">
+                {seatFor.res.name}
+                {seatFor.res.guests ? ` · ${seatFor.res.guests} киши` : ""}
+              </div>
+              <div className="text-zinc-600">
+                {resDayLabel(new Date(seatFor.res.reservedFor))} · {hhmm(new Date(seatFor.res.reservedFor))}
+                {resLate(seatFor.res) && <span className="ml-1 font-semibold text-red-600">· кечикди</span>}
+              </div>
+              {seatFor.res.phone && <div className="text-zinc-600">📞 {seatFor.res.phone}</div>}
+              {seatFor.res.depositAmount > 0 && (
+                <div className="mt-1 font-semibold text-emerald-700">
+                  Аванс: {fmt(seatFor.res.depositAmount)} so'm ({PAY_LABEL[seatFor.res.depositMethod ?? ""] ?? "—"}) — чекда −ҳисобга киради
+                </div>
+              )}
+              {seatFor.res.note && <div className="mt-0.5 text-zinc-500">{seatFor.res.note}</div>}
+            </div>
+            <button
+              onClick={() => void seatReservation(seatFor.table, seatFor.res)}
+              disabled={!online}
+              title={online ? undefined : "Аванс ҳисоби учун алоқа керак"}
+              className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-40"
+            >
+              Ўтирғизиш — заказ очиш
+            </button>
+            <button
+              onClick={() => {
+                const t = seatFor.table;
+                setSeatFor(null);
+                void create(t.hallId, t.name, 2, "dine_in");
+              }}
+              className="w-full rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
+            >
+              Бошқа меҳмон — бронсиз заказ
+            </button>
+            <button
+              onClick={() => setSeatFor(null)}
+              className="w-full rounded-xl py-2 text-sm text-zinc-400 transition hover:bg-zinc-50"
+            >
+              Орқага
+            </button>
           </div>
         </div>
       )}
@@ -1293,6 +1472,7 @@ function TableTile({
   conflict,
   heatColor,
   fill,
+  resChip,
 }: {
   table: string;
   order: OpenOrder;
@@ -1301,6 +1481,8 @@ function TableTile({
   conflict?: boolean;
   heatColor?: string;
   fill?: boolean;
+  // Банд стол устида кейинги бронь: официант «21:00 га банд» деб билсин.
+  resChip?: { time: string; late: boolean };
 }) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStart = useRef<{ x: number; y: number } | null>(null);
@@ -1397,8 +1579,359 @@ function TableTile({
             </div>
           );
         })()}
+        {resChip && !heatColor && (
+          <div
+            className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+              resChip.late ? "bg-red-600 text-white" : "bg-clopos-gold text-clopos-gold-text"
+            }`}
+            title="Бу столга бронь бор"
+          >
+            🕐 {resChip.time} бронь
+          </div>
+        )}
       </div>
     </button>
+  );
+}
+
+// ── Бронь рўйхати + яратиш (CloPOS «Бронирование» паритети) ──────────────────
+// Кўриш — ҳамма; яратиш/бекор — менежер/директор. Аванс тақдири бекорда
+// мажбурий танланади: қайтариш (касса чиқим) ёки куйдириш.
+function ReservationsSheet({
+  user,
+  halls,
+  tables,
+  list,
+  onClose,
+  onChanged,
+}: {
+  user: SessionUser;
+  halls: Hall[];
+  tables: Table[];
+  list: Reservation[];
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const canManage = ["director", "manager"].includes(user.role);
+  const [view, setView] = useState<"list" | "new">("list");
+  const [cancelFor, setCancelFor] = useState<Reservation | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const isoDay = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const todayIso = isoDay(new Date());
+  const [hallId, setHallId] = useState(halls[0]?.id ?? "");
+  const [tableId, setTableId] = useState("");
+  const [date, setDate] = useState(todayIso);
+  const [time, setTime] = useState("19:00");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [guests, setGuests] = useState("");
+  const [note, setNote] = useState("");
+  const [depAmount, setDepAmount] = useState("");
+  const [depMethod, setDepMethod] = useState<PayMethod>("cash");
+
+  const hallTables = tables.filter((t) => t.hallId === hallId);
+  const when = new Date(`${date}T${time || "00:00"}`);
+  const dep = Math.round(Number(depAmount) || 0);
+
+  async function save() {
+    if (!tableId || !name.trim() || Number.isNaN(when.getTime())) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await trpc.pos.reservationCreate.mutate({
+        tableId,
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        guests: Math.round(Number(guests)) > 0 ? Math.round(Number(guests)) : undefined,
+        reservedFor: when.toISOString(),
+        note: note.trim() || undefined,
+        depositAmount: dep,
+        depositMethod: dep > 0 ? (depMethod as "cash" | "card" | "click" | "payme" | "humo") : undefined,
+      });
+      onChanged();
+      setView("list");
+      setName("");
+      setPhone("");
+      setGuests("");
+      setNote("");
+      setDepAmount("");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Хато");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancel(r: Reservation, resolution?: "refund" | "forfeit") {
+    setBusy(true);
+    setErr(null);
+    try {
+      await trpc.pos.reservationCancel.mutate({ id: r.id, resolution });
+      setCancelFor(null);
+      onChanged();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Хато");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Кун бўйича гуруҳлаш: «Бугун — Жума» / «Эртага — Шанба» / «Жума, 24-июл».
+  const groups: [string, Reservation[]][] = [];
+  for (const r of [...list].sort((a, b) => a.reservedFor.localeCompare(b.reservedFor))) {
+    const lbl = resDayLabel(new Date(r.reservedFor));
+    const g = groups.find((x) => x[0] === lbl);
+    if (g) g[1].push(r);
+    else groups.push([lbl, [r]]);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[88dvh] w-full max-w-2xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-brand-ink">
+            {view === "new" ? "🕐 Янги бронь" : `🕐 Бронлар — ${list.length}`}
+          </h3>
+          <div className="flex items-center gap-2">
+            {view === "list" && canManage && (
+              <button
+                onClick={() => setView("new")}
+                className="rounded-lg bg-clopos-gold px-3 py-1.5 text-sm font-semibold text-clopos-gold-text transition hover:brightness-105"
+              >
+                + Янги бронь
+              </button>
+            )}
+            <button
+              onClick={() => (view === "new" ? setView("list") : onClose())}
+              className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+            >
+              {view === "new" ? "Орқага" : "Ёпиш"}
+            </button>
+          </div>
+        </div>
+        {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
+
+        {view === "new" ? (
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pb-1">
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={hallId}
+                onChange={(e) => {
+                  setHallId(e.target.value);
+                  setTableId("");
+                }}
+                className="rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                {halls.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={tableId}
+                onChange={(e) => setTableId(e.target.value)}
+                className="rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                <option value="">Стол танланг…</option>
+                {hallTables.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={date}
+                min={todayIso}
+                onChange={(e) => setDate(e.target.value)}
+                className="rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-28 rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              {!Number.isNaN(when.getTime()) && (
+                <span className="text-sm font-bold text-brand">{WEEKDAY[when.getDay()]}</span>
+              )}
+            </div>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Мижоз исми *"
+              className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Телефон"
+                inputMode="tel"
+                className="rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              <input
+                value={guests}
+                onChange={(e) => setGuests(e.target.value.replace(/\D/g, ""))}
+                placeholder="Меҳмон сони"
+                inputMode="numeric"
+                className="rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+            </div>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Изоҳ (туғилган кун, торт…)"
+              className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            <div className="space-y-2 rounded-xl border border-brand-cream-soft p-3">
+              <p className="text-xs font-semibold text-brand-ink">Аванс (банкет олди тўлов) — ихтиёрий</p>
+              <input
+                value={depAmount}
+                onChange={(e) => setDepAmount(e.target.value.replace(/\D/g, ""))}
+                placeholder="Сумма (so'm)"
+                inputMode="numeric"
+                className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm tabular-nums outline-none focus:border-brand"
+              />
+              {dep > 0 && (
+                <>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["cash", "card", "click", "payme", "humo"] as PayMethod[]).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setDepMethod(m)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                          depMethod === m
+                            ? "bg-brand text-white"
+                            : "border border-brand-cream-soft text-zinc-600 hover:bg-zinc-50"
+                        }`}
+                      >
+                        {PAY_LABEL[m]}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] leading-snug text-zinc-500">
+                    Аванс кассага киради ва чек ёпилишида −{fmt(dep)} бўлиб ҳисобга киради. Бекорда:
+                    қайтариш (касса чиқим) ёки куйдириш.
+                  </p>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => void save()}
+              disabled={busy || !tableId || !name.trim()}
+              className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-40"
+            >
+              {busy ? "…" : `Бронь қилиш${dep > 0 ? ` · аванс ${fmt(dep)}` : ""}`}
+            </button>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+            {groups.map(([lbl, rs]) => (
+              <div key={lbl} className="space-y-1.5">
+                <div className="px-1 text-[11px] font-bold uppercase tracking-wide text-zinc-400">{lbl}</div>
+                {rs.map((r) => {
+                  const late = resLate(r);
+                  return (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-3 rounded-xl border border-brand-cream-soft px-3 py-2.5"
+                    >
+                      <div
+                        className={`grid h-10 w-14 shrink-0 place-items-center rounded-lg text-sm font-bold tabular-nums ${
+                          late ? "bg-red-100 text-red-700" : "bg-brand-cream/60 text-brand-ink"
+                        }`}
+                      >
+                        {hhmm(new Date(r.reservedFor))}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-brand-ink">
+                          {r.tableName}{" "}
+                          <span className="font-normal text-zinc-400">
+                            · {r.name}
+                            {r.guests ? ` · ${r.guests} киши` : ""}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500">
+                          {r.phone && <span>📞 {r.phone}</span>}
+                          {r.depositAmount > 0 && (
+                            <span className="font-semibold text-emerald-700">
+                              аванс {fmt(r.depositAmount)} · {PAY_LABEL[r.depositMethod ?? ""] ?? ""}
+                            </span>
+                          )}
+                          {late && <span className="font-semibold text-red-600">келмади (30+ дақ)</span>}
+                          {r.note && <span className="truncate">{r.note}</span>}
+                        </div>
+                      </div>
+                      {canManage && (
+                        <button
+                          onClick={() => (r.depositAmount > 0 ? setCancelFor(r) : void cancel(r))}
+                          disabled={busy}
+                          className="shrink-0 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+                        >
+                          Бекор
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            {list.length === 0 && <p className="py-10 text-center text-sm text-zinc-400">Фаол бронь йўқ</p>}
+          </div>
+        )}
+
+        {/* Авансли бронь бекори — пул тақдири мажбурий (Шерхон қоидаси: аудитли) */}
+        {cancelFor && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setCancelFor(null)}
+          >
+            <div
+              className="w-full max-w-sm space-y-2.5 rounded-2xl bg-white p-5 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h4 className="text-base font-bold text-brand-ink">Бекор — аванс тақдири?</h4>
+              <p className="text-sm text-zinc-600">
+                {cancelFor.name} · аванс <b className="tabular-nums">{fmt(cancelFor.depositAmount)} so'm</b>
+              </p>
+              <button
+                onClick={() => void cancel(cancelFor, "refund")}
+                disabled={busy}
+                className="w-full rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-40"
+              >
+                💵 Қайтарилди — кассадан нақд чиқим
+              </button>
+              <button
+                onClick={() => void cancel(cancelFor, "forfeit")}
+                disabled={busy}
+                className="w-full rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-40"
+              >
+                🔥 Куйди — келмади, пул ресторанда қолади
+              </button>
+              <button
+                onClick={() => setCancelFor(null)}
+                className="w-full rounded-xl py-2 text-sm text-zinc-400 transition hover:bg-zinc-50"
+              >
+                Орқага
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -2070,7 +2603,10 @@ function OrderView({
     setCloseErr(null);
   }
 
-  const payTotal = order.total - (discount?.amount ?? 0);
+  // Аванс (бронь) чекнинг бир қисмини қоплайди — кассир фақат қолганини олади.
+  // Сервер ёпишда 'avans' қаторини ўзи ёзади ва тенгликни қайта текширади.
+  const deposit = order.deposit ?? 0;
+  const payTotal = order.total - (discount?.amount ?? 0) - deposit;
   const cashGotNum = Math.round(Number(cashGot) || 0);
   const cashChange = cashGotNum - payTotal;
   const cashQuick = [
@@ -2795,6 +3331,14 @@ function OrderView({
               <span className="text-[#95959f]">Сервис:</span>
               <span className="tabular-nums text-[#3a3a44]">{fmt(order.service)}so'm ({order.servicePct}%)</span>
             </div>
+            {deposit > 0 && (
+              <div className="flex justify-between text-[12px]">
+                <span className="text-emerald-700">
+                  Аванс (бронь{order.reservationName ? ` — ${order.reservationName}` : ""}):
+                </span>
+                <span className="font-semibold tabular-nums text-emerald-700">−{fmt(deposit)}so'm</span>
+              </div>
+            )}
             <div className="flex justify-between text-[14px]">
               <span className="font-bold text-[#1d1d24]">Итого:</span>
               <span className="font-bold tabular-nums text-[#1d1d24]">{fmt(order.total)}so'm</span>
@@ -2923,7 +3467,7 @@ function OrderView({
             <div className="flex items-baseline justify-between">
               <h3 className="font-semibold text-brand-ink">Тўлов усули</h3>
               <span className="text-lg font-bold tabular-nums text-brand-ink">
-                {discount ? (
+                {discount || deposit > 0 ? (
                   <>
                     <span className="mr-1 text-xs font-normal text-zinc-400 line-through">{fmt(order.total)}</span>
                     {fmt(payTotal)}
@@ -2938,6 +3482,12 @@ function OrderView({
               <div className="flex items-center justify-between rounded-lg bg-brand-gold/10 px-3 py-1.5 text-xs text-brand-gold-deep">
                 <span>Чегирма: −{fmt(discount.amount)} · {discount.reason}</span>
                 <button onClick={() => setDiscount(null)} className="font-medium underline">олиб ташлаш</button>
+              </div>
+            )}
+            {deposit > 0 && (
+              <div className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">
+                Бронь аванси{order.reservationName ? ` (${order.reservationName})` : ""}: −{fmt(deposit)} —
+                олдин олинган, кассага қайта кирмайди
               </div>
             )}
 

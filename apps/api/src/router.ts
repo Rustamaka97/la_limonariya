@@ -50,6 +50,7 @@ import {
   recipes,
   refunds,
   reprintLog,
+  reservations,
   sessions,
   skewerBatches,
   stations,
@@ -394,19 +395,56 @@ async function expectedCashForWindow(start: Date, end: Date) {
         .where(and(gte(refunds.createdAt, start), lt(refunds.createdAt, end)))
     )[0]?.s ?? 0,
   );
+  // Бронь аванслари: НАҚД олингани ўша куни тортмага киради (тушум эмас —
+  // тушум заказ ёпилишида 'avans' қатори бўлади, у нақд саналмайди → иккиланмайди).
+  const cashDeposits = Number(
+    (
+      await db
+        .select({ s: sql<number>`coalesce(sum(${reservations.depositAmount}), 0)` })
+        .from(reservations)
+        .where(
+          and(
+            eq(reservations.depositMethod, "cash"),
+            gt(reservations.depositAmount, 0),
+            gte(reservations.createdAt, start),
+            lt(reservations.createdAt, end),
+          ),
+        )
+    )[0]?.s ?? 0,
+  );
+  // Аванс қайтарилди (бронь бекор, resolution=refund): нақд чиқим — усулидан
+  // қатъи назар мижозга нақд қайтарилади (refunds жадвали фалсафаси билан бир хил).
+  const cashDepositRefunds = Number(
+    (
+      await db
+        .select({ s: sql<number>`coalesce(sum(${reservations.depositAmount}), 0)` })
+        .from(reservations)
+        .where(
+          and(
+            sql`${reservations.depositResolution} = 'refund'`,
+            gte(reservations.resolvedAt, start),
+            lt(reservations.resolvedAt, end),
+          ),
+        )
+    )[0]?.s ?? 0,
+  );
   const expectedCash =
     TILL_FLOAT +
     cashRevenue +
-    cashDebtRepaid -
+    cashDebtRepaid +
+    cashDeposits -
     cashExpenses -
     cashCollected -
-    cashRefunds;
+    cashRefunds -
+    cashDepositRefunds;
   return {
     cashRevenue,
     cashDebtRepaid,
     cashExpenses,
     cashCollected,
     cashRefunds,
+    cashDeposits,
+    cashDepositRefunds,
     expectedCash,
   };
 }
@@ -3252,6 +3290,180 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    // ── Бронь (олдиндан жой банд қилиш, CloPOS-паритет) ──────────────────────
+    // Рўйхат: кечагидан (ҳал қилинмаган no-show кўринсин) 60 кун олдинга.
+    // Ҳамма кўради (флоор бейджи); яратиш/бекор — менежер/директор.
+    reservations: protectedProcedure.query(async () => {
+      const from = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const to = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+      return db
+        .select({
+          id: reservations.id,
+          tableId: reservations.tableId,
+          tableName: tables.name,
+          hallId: tables.hallId,
+          name: reservations.name,
+          phone: reservations.phone,
+          guests: reservations.guests,
+          reservedFor: reservations.reservedFor,
+          note: reservations.note,
+          status: reservations.status,
+          depositAmount: reservations.depositAmount,
+          depositMethod: reservations.depositMethod,
+          createdBy: users.name,
+        })
+        .from(reservations)
+        .innerJoin(tables, eq(reservations.tableId, tables.id))
+        .leftJoin(users, eq(reservations.createdById, users.id))
+        .where(
+          and(
+            eq(reservations.status, "active"),
+            gte(reservations.reservedFor, from),
+            lt(reservations.reservedFor, to),
+          ),
+        )
+        .orderBy(reservations.reservedFor);
+    }),
+
+    reservationCreate: managerProcedure
+      .input(
+        z.object({
+          tableId: z.string().uuid(),
+          name: z.string().trim().min(1).max(100),
+          phone: z.string().trim().max(30).optional(),
+          guests: z.number().int().positive().max(999).optional(),
+          reservedFor: z.string().datetime({ offset: true }),
+          note: z.string().trim().max(500).optional(),
+          // Аванс: банкет олди тўлов. >0 бўлса усул мажбурий (пул кассага киради).
+          depositAmount: z.number().int().nonnegative().max(100_000_000).default(0),
+          depositMethod: z.enum(["cash", "card", "click", "payme", "humo"]).optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const when = new Date(input.reservedFor);
+        if (Number.isNaN(when.getTime()))
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Вақт нотўғри" });
+        if (when.getTime() < Date.now() - 5 * 60 * 1000)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Ўтган вақтга бронь бўлмайди" });
+        if (input.depositAmount > 0 && !input.depositMethod)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Аванс усулини танланг (нақд/карта…)" });
+        const tbl = (
+          await db.select({ id: tables.id, name: tables.name }).from(tables).where(eq(tables.id, input.tableId)).limit(1)
+        )[0];
+        if (!tbl) throw new TRPCError({ code: "NOT_FOUND", message: "Стол топилмади" });
+        // Тўқнашув: шу столда ±90 дақиқа ичида бошқа фаол бронь бўлса — рад
+        // (директор бошқа вақт/стол танласин; жимгина устма-уст ёзилмасин).
+        const clashFrom = new Date(when.getTime() - 90 * 60 * 1000);
+        const clashTo = new Date(when.getTime() + 90 * 60 * 1000);
+        const clash = (
+          await db
+            .select({ id: reservations.id, at: reservations.reservedFor, name: reservations.name })
+            .from(reservations)
+            .where(
+              and(
+                eq(reservations.tableId, input.tableId),
+                eq(reservations.status, "active"),
+                gte(reservations.reservedFor, clashFrom),
+                lt(reservations.reservedFor, clashTo),
+              ),
+            )
+            .limit(1)
+        )[0];
+        if (clash)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Бу столда яқин вақтга бронь бор (${clash.name})`,
+          });
+        return db.transaction(async (tx) => {
+          const row = (
+            await tx
+              .insert(reservations)
+              .values({
+                tableId: input.tableId,
+                name: input.name,
+                phone: input.phone?.trim() || null,
+                guests: input.guests ?? null,
+                reservedFor: when,
+                note: input.note?.trim() || null,
+                depositAmount: input.depositAmount,
+                depositMethod: input.depositAmount > 0 ? input.depositMethod : null,
+                createdById: ctx.user.id,
+              })
+              .returning({ id: reservations.id })
+          )[0]!;
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "reservation.create",
+            entity: "reservation",
+            entityId: row.id,
+            summary: `Бронь: ${input.name} · ${tbl.name} · ${when.toISOString()}${
+              input.depositAmount > 0 ? ` · аванс ${input.depositAmount} (${input.depositMethod})` : ""
+            }`,
+            meta: { tableId: input.tableId, depositAmount: input.depositAmount, depositMethod: input.depositMethod },
+          });
+          return { id: row.id };
+        });
+      }),
+
+    reservationCancel: managerProcedure
+      .input(
+        z.object({
+          id: z.string().uuid(),
+          // Авансли броньда мажбурий: refund = нақд қайтарилди (кассадан чиқим),
+          // forfeit = куйди (келмади — пул ресторанда қолади).
+          resolution: z.enum(["refund", "forfeit"]).optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+          const res = (
+            await tx
+              .select({
+                id: reservations.id,
+                status: reservations.status,
+                name: reservations.name,
+                depositAmount: reservations.depositAmount,
+                depositAppliedAt: reservations.depositAppliedAt,
+              })
+              .from(reservations)
+              .where(eq(reservations.id, input.id))
+              .limit(1)
+              .for("update")
+          )[0];
+          if (!res) throw new TRPCError({ code: "NOT_FOUND" });
+          if (res.status !== "active")
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Бронь аллақачон ҳал қилинган" });
+          const pendingDeposit = res.depositAmount > 0 && !res.depositAppliedAt;
+          if (pendingDeposit && !input.resolution)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Авансли бронь: Қайтариш ёки Куйдиришни танланг",
+            });
+          await tx
+            .update(reservations)
+            .set({
+              status: "cancelled",
+              depositResolution: pendingDeposit ? input.resolution : null,
+              resolvedAt: new Date(),
+              resolvedById: ctx.user.id,
+            })
+            .where(and(eq(reservations.id, input.id), eq(reservations.status, "active")));
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "reservation.cancel",
+            entity: "reservation",
+            entityId: res.id,
+            summary: `Бронь бекор: ${res.name}${
+              pendingDeposit
+                ? ` · аванс ${res.depositAmount} ${input.resolution === "refund" ? "ҚАЙТАРИЛДИ (касса чиқим)" : "куйди"}`
+                : ""
+            }`,
+            meta: { resolution: pendingDeposit ? input.resolution : null, depositAmount: res.depositAmount },
+          });
+          return { ok: true };
+        });
+      }),
+
     menu: protectedProcedure.query(async () => {
       return db
         .select({
@@ -3356,6 +3568,20 @@ export const appRouter = router({
           .select({ method: orderPayments.method, amount: orderPayments.amount })
           .from(orderPayments)
           .where(eq(orderPayments.orderId, input.id));
+        // Бронь аванси: заказ броньдан очилган ва аванс ҳали ишлатилмаган бўлса —
+        // тўлов экранида "Аванс: −N" бўлиб чиқади (ёпишда сервер avans қаторини ёзади).
+        const res = (
+          await db
+            .select({
+              name: reservations.name,
+              depositAmount: reservations.depositAmount,
+              depositAppliedAt: reservations.depositAppliedAt,
+            })
+            .from(reservations)
+            .where(and(eq(reservations.orderId, input.id), eq(reservations.status, "seated")))
+            .limit(1)
+        )[0];
+        const deposit = res && !res.depositAppliedAt ? res.depositAmount : 0;
         const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
         const service = Math.round((subtotal * head.servicePct) / 100);
         // Чекда чоп этилган жамдек: чегирма айирилади, текин (comp) = 0.
@@ -3370,6 +3596,8 @@ export const appRouter = router({
           subtotal,
           service,
           total,
+          deposit,
+          reservationName: res?.name ?? null,
         };
       }),
 
@@ -3384,6 +3612,8 @@ export const appRouter = router({
           guests: z.number().int().positive().max(999).optional(),
           note: z.string().max(500).optional(),
           saleType: z.enum(["dine_in", "delivery", "takeaway"]).optional(),
+          // Бронь ўтирғизиш: заказ шу броньга уланади (аванс ёпилишда ҳисобга киради).
+          reservationId: z.string().uuid().optional(),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -3412,7 +3642,19 @@ export const appRouter = router({
             .onConflictDoNothing()
             .returning()
         )[0];
-        if (row) return { id: row.id };
+        if (row) {
+          // Бронь ўтирғизиш: фақат фаол броньни улаймиз (гонка/такрорда jim ўтамиз —
+          // заказ барибир очилган бўлиши керак, бронсиз қолгани хавфсизроқ хато).
+          if (input.reservationId) {
+            await db
+              .update(reservations)
+              .set({ status: "seated", orderId: row.id })
+              .where(
+                and(eq(reservations.id, input.reservationId), eq(reservations.status, "active")),
+              );
+          }
+          return { id: row.id };
+        }
         // Конфликт = ўша client id билан такрорий сўров → мавжудини қайтарамиз.
         if (input.id) {
           const existing = (
@@ -4321,6 +4563,34 @@ export const appRouter = router({
           if (head.status === "closed")
             return { ok: true, alreadyClosed: true, deducted: 0, skipped: 0 };
 
+          // Бронь аванси (FOR UPDATE — параллел close/cancel сериаллашсин):
+          // ишлатилмаган аванс чекнинг бир қисмини қоплайди → 'avans' тўлов
+          // қатори бўлиб ёзилади (нақд тортмага КИРМАЙДИ — пул бронь куни олинган).
+          const resRow = (
+            await tx
+              .select({
+                id: reservations.id,
+                depositAmount: reservations.depositAmount,
+              })
+              .from(reservations)
+              .where(
+                and(
+                  eq(reservations.orderId, input.id),
+                  eq(reservations.status, "seated"),
+                  isNull(reservations.depositAppliedAt),
+                  gt(reservations.depositAmount, 0),
+                ),
+              )
+              .limit(1)
+              .for("update")
+          )[0];
+          const deposit = resRow?.depositAmount ?? 0;
+          if (input.comp && deposit > 0)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Авансли заказни текин ёпиб бўлмайди — аввал броньдаги авансни ҳал қилинг",
+            });
+
           // МАЖБУРИЙ: чек тўлов турисиз/нотўғри сумма билан ёпилмайди — тушум
           // яширилмаслиги учун (comp'дан ташқари, унда pays.length=0 юқорида
           // текширилган). Total клиентдан эмас, шу ерда, жойида ҳисобланади.
@@ -4337,11 +4607,16 @@ export const appRouter = router({
                 code: "BAD_REQUEST",
                 message: `Чегирма (${discount}) чек жамидан (${total}) катта`,
               });
-            const paid = pays.reduce((s, p) => s + p.amount, 0);
-            if (paid !== total - discount)
+            if (deposit > total - discount)
               throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `Тўлов суммаси (${paid}) чек жамига (${total - discount}) тенг эмас.`,
+                message: `Аванс (${deposit}) чек жамидан (${total - discount}) катта — директор броньни бекор қилиб фарқни нақд қайтарсин`,
+              });
+            const paid = pays.reduce((s, p) => s + p.amount, 0);
+            if (paid + deposit !== total - discount)
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Тўлов суммаси (${paid}${deposit ? ` + аванс ${deposit}` : ""}) чек жамига (${total - discount}) тенг эмас.`,
               });
           }
 
@@ -4373,6 +4648,18 @@ export const appRouter = router({
             await tx
               .insert(orderPayments)
               .values(pays.map((p) => ({ orderId: input.id, ...p })));
+
+          // Аванс тушумга айланади: 'avans' қатори + идемпотент-белги (flip
+          // ютган транзакциягина ёзади — иккиланиш йўқ).
+          if (deposit > 0 && resRow) {
+            await tx
+              .insert(orderPayments)
+              .values({ orderId: input.id, method: "avans", amount: deposit });
+            await tx
+              .update(reservations)
+              .set({ depositAppliedAt: new Date() })
+              .where(eq(reservations.id, resRow.id));
+          }
 
           // Carcass meat balances (meat is tracked at carcass, not cut, level).
           const { moves, skippedNames } = await computeOrderStockMoves(
@@ -5551,8 +5838,15 @@ export const appRouter = router({
         )
         .query(async ({ input }) => {
           const { startUTC, endUTC, dayKey } = businessDayBounds(input?.day);
-          const { cashRevenue, cashDebtRepaid, cashExpenses, cashCollected, expectedCash } =
-            await expectedCashForWindow(startUTC, endUTC);
+          const {
+            cashRevenue,
+            cashDebtRepaid,
+            cashExpenses,
+            cashCollected,
+            cashDeposits,
+            cashDepositRefunds,
+            expectedCash,
+          } = await expectedCashForWindow(startUTC, endUTC);
           const row = (
             await db
               .select({
@@ -5574,6 +5868,8 @@ export const appRouter = router({
             cashDebtRepaid,
             cashExpenses,
             cashCollected,
+            cashDeposits,
+            cashDepositRefunds,
             expectedCash,
             openedAt: row?.openedAt ?? null,
             openedByName: row?.openedByName ?? null,
