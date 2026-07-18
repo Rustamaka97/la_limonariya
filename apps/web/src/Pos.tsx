@@ -2155,6 +2155,7 @@ function OrderView({
   const [reassignBusy, setReassignBusy] = useState(false);
   const [showClear, setShowClear] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
+  const [showMore, setShowMore] = useState(false); // ⋯ қўшимча амаллар менюси (CloPOS)
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelErr, setCancelErr] = useState<string | null>(null);
@@ -2655,63 +2656,8 @@ function OrderView({
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) — десктопда заказ
           панелига туташади (gap-0, бурчак тўғри) ────────────────────────────── */}
       <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start rounded-r-lg border-r border-brand-deep bg-clopos-rail py-2.5 lg:h-auto lg:self-stretch lg:rounded-r-none lg:border-r-0">
-        {/* Чекка изоҳ */}
-        <button
-          onClick={() => setNoteOpen((v) => !v)}
-          title="Чекка изоҳ"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
-        >
-          <IChat className="h-5 w-5" />
-        </button>
-        {/* Заказ тарихи (кухня тикетлари) — тикет йўғида silent no-op бўлмасин */}
-        <button
-          onClick={() => setShowTickets(true)}
-          disabled={tickets.length === 0}
-          title={tickets.length === 0 ? "Ҳали кухня тикети йўқ" : "Заказ тарихи — кухня тикетлари"}
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
-        >
-          <IReceipt className="h-5 w-5" />
-        </button>
-        {/* История чека — амаллар тарихи (CloPOS «История чека») */}
-        <button
-          onClick={() => {
-            setShowHistory(true);
-            trpc.pos.orderEvents.query({ orderId: id }).then(setEvents).catch(() => {});
-          }}
-          title="История чека — амаллар тарихи"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
-        >
-          <IClock className="h-5 w-5" />
-        </button>
-        {/* Официант алмаштириш (CloPOS «Изменить Сотрудник») — фақат manager+ */}
-        {isManager && (
-          <button
-            onClick={() => {
-              setShowReassign(true);
-              trpc.users.list
-                .query()
-                .then((r) => setStaff(r.filter((u) => u.active)))
-                .catch(() => {});
-            }}
-            disabled={!online || order.locked}
-            title="Официантни алмаштириш"
-            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
-          >
-            <IUser className="h-5 w-5" />
-          </button>
-        )}
-        {/* Чекни тозалаш (CloPOS «Очистить чек») — юборилмаган позициялар */}
-        {order.items.length > 0 && !order.locked && (
-          <button
-            onClick={() => setShowClear(true)}
-            disabled={!online}
-            title="Чекни тозалаш — юборилмаган таомлар"
-            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-500/25 hover:text-red-200 disabled:opacity-30"
-          >
-            <span className="text-lg leading-none" aria-hidden>🧹</span>
-          </button>
-        )}
-        {/* Хизмат ҳақи */}
+        {/* ══ CloPOS тартиби: клиент · скидка · хизмат · изоҳ · история · split ══ */}
+        {/* 🍽 Хизмат ҳақи */}
         {canComp && (order.servicePct > 0 || order.serviceWaived) && (
           <button
             onClick={toggleService}
@@ -2724,7 +2670,26 @@ function OrderView({
             <IPercent className="h-5 w-5" />
           </button>
         )}
-        {/* Счётни бўлиш */}
+        {/* 💬 Чекка изоҳ (комментарий) */}
+        <button
+          onClick={() => setNoteOpen((v) => !v)}
+          title="Чекка изоҳ"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
+        >
+          <IChat className="h-5 w-5" />
+        </button>
+        {/* 🕐 История чека — амаллар тарихи (CloPOS «История чека») */}
+        <button
+          onClick={() => {
+            setShowHistory(true);
+            trpc.pos.orderEvents.query({ orderId: id }).then(setEvents).catch(() => {});
+          }}
+          title="История чека — амаллар тарихи"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
+        >
+          <IClock className="h-5 w-5" />
+        </button>
+        {/* ⤴ Счётни бўлиш (разделить) */}
         {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
           <button
             onClick={() => setShowSplitBill(true)}
@@ -2735,7 +2700,20 @@ function OrderView({
             <ISplit className="h-5 w-5" />
           </button>
         )}
-        {/* Блок */}
+        <div className="my-1 h-px w-6 bg-clopos-line" />
+        {/* ══ Паст гуруҳ: тўлов · блок · пречек · ⋯ ══ */}
+        {/* 💳 Тўлов */}
+        {canClose && (
+          <button
+            onClick={() => order.items.length > 0 && setPaying(true)}
+            disabled={order.items.length === 0 || !online}
+            title="Тўлов — чекни ёпиш"
+            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
+          >
+            <ICard className="h-5 w-5" />
+          </button>
+        )}
+        {/* 🔒 Блок */}
         {canComp && (
           <button
             onClick={toggleLock}
@@ -2748,7 +2726,7 @@ function OrderView({
             {order.locked ? <ILockOpen className="h-5 w-5" /> : <ILock className="h-5 w-5" />}
           </button>
         )}
-        {/* Пречек */}
+        {/* 🖨 Пречек */}
         <button
           onClick={doPrecheck}
           disabled={precheckBusy}
@@ -2759,51 +2737,13 @@ function OrderView({
         >
           {precheckOk ? <ICheck className="h-5 w-5" /> : <IPrinter className="h-5 w-5" />}
         </button>
-        {/* Тўлов */}
-        {canClose && (
-          <button
-            onClick={() => order.items.length > 0 && setPaying(true)}
-            disabled={order.items.length === 0 || !online}
-            title="Тўлов — чекни ёпиш"
-            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
-          >
-            <ICard className="h-5 w-5" />
-          </button>
-        )}
-        <div className="my-1 h-px w-6 bg-clopos-line" />
-        {/* Стол кўчириш */}
+        {/* ⋯ Қўшимча амаллар (CloPOS — официант · тозалаш · стол · тикет · стоп · бекор) */}
         <button
-          onClick={() => setMoving(true)}
-          disabled={!online}
-          title="Бошқа столга кўчириш"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
+          onClick={() => setShowMore(true)}
+          title="Қўшимча амаллар"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
         >
-          <ISwap className="h-5 w-5" />
-        </button>
-        {/* Стоп-лист */}
-        {canComp && (
-          <button
-            onClick={() => setShowStop(true)}
-            disabled={!online}
-            title="Стоп-лист — тугаган таомлар"
-            className="relative grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-500/25 hover:text-red-200 disabled:opacity-30"
-          >
-            <IStop className="h-5 w-5" />
-            {stoppedCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                {stoppedCount}
-              </span>
-            )}
-          </button>
-        )}
-        {/* Бекор */}
-        <button
-          onClick={() => setCancelling((v) => !v)}
-          disabled={!online}
-          title="Заказни бекор қилиш"
-          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-red-500/25 hover:text-red-200 disabled:opacity-30"
-        >
-          <ITrash className="h-5 w-5" />
+          <span className="text-xl leading-none" aria-hidden>⋯</span>
         </button>
       </nav>
 
@@ -3488,6 +3428,102 @@ function OrderView({
                 {!online ? <><IWifiOff className="h-4 w-4" /> Тўлов уланганда</> : <><ICard className="h-4 w-4" /> Кассир ёпади</>}
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ⋯ ҚЎШИМЧА АМАЛЛАР MODAL (CloPOS) — официант · тозалаш · стол · тикет · стоп · бекор */}
+      {showMore && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowMore(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-3xl bg-white p-3 shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-[15px] font-bold text-brand-ink">Қўшимча амаллар</h3>
+              <button
+                onClick={() => setShowMore(false)}
+                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="grid gap-1">
+              {isManager && (
+                <button
+                  onClick={() => {
+                    setShowMore(false);
+                    setShowReassign(true);
+                    trpc.users.list
+                      .query()
+                      .then((r) => setStaff(r.filter((u) => u.active)))
+                      .catch(() => {});
+                  }}
+                  disabled={!online || order.locked}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+                >
+                  <IUser className="h-5 w-5 text-clopos-icon" /> Официантни алмаштириш
+                </button>
+              )}
+              {order.items.length > 0 && !order.locked && (
+                <button
+                  onClick={() => {
+                    setShowMore(false);
+                    setShowClear(true);
+                  }}
+                  disabled={!online}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+                >
+                  <span className="w-5 text-center" aria-hidden>🧹</span> Чекни тозалаш
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  setMoving(true);
+                }}
+                disabled={!online}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+              >
+                <ISwap className="h-5 w-5 text-clopos-icon" /> Бошқа столга кўчириш
+              </button>
+              {tickets.length > 0 && (
+                <button
+                  onClick={() => {
+                    setShowMore(false);
+                    setShowTickets(true);
+                  }}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg"
+                >
+                  <IReceipt className="h-5 w-5 text-clopos-icon" /> Заказ тарихи (тикетлар)
+                </button>
+              )}
+              {canComp && (
+                <button
+                  onClick={() => {
+                    setShowMore(false);
+                    setShowStop(true);
+                  }}
+                  disabled={!online}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+                >
+                  <IStop className="h-5 w-5 text-clopos-icon" /> Стоп-лист{stoppedCount > 0 ? ` (${stoppedCount})` : ""}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  setCancelling(true);
+                }}
+                disabled={!online}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+              >
+                <ITrash className="h-5 w-5" /> Заказни бекор қилиш
+              </button>
+            </div>
           </div>
         </div>
       )}
