@@ -636,7 +636,11 @@ function FloorView({
                     const os = byKey.get(key(h.id, t.name)) ?? [];
                     const rev = heatByKey.get(key(h.id, t.name)) ?? 0;
                     const rsv = resByTable.get(t.id); // бугунги энг яқин бронь
-                    if (os.length === 0)
+                    if (os.length === 0) {
+                      // Бронли бўш стол = ТЎЛИҚ оч яшил (олтин ҳошия), кечикса қизил
+                      // — банд(тўқ яшил)/бўш(кулранг)дан ажралиб турсин.
+                      const resView = rsv && !heatOn;
+                      const late = resView && resLate(rsv);
                       return (
                         <button
                           style={heatOn ? { backgroundColor: heatColor(rev) } : undefined}
@@ -647,22 +651,36 @@ function FloorView({
                                 ? setSeatFor({ table: t, res: rsv })
                                 : void create(h.id, t.name, 2, "dine_in")
                           }
-                          className={`relative grid h-full w-full place-items-center rounded-[2px] bg-clopos-free px-2 py-2 text-center text-[13px] font-bold leading-tight text-white shadow-[2px_3px_0_0_rgba(0,0,0,.24)] transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100 ${
-                            rsv && !heatOn ? "ring-2 ring-inset ring-clopos-gold" : ""
+                          className={`flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-[2px] px-2 py-2 text-center leading-tight shadow-[2px_3px_0_0_rgba(0,0,0,.24)] transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100 ${
+                            !resView
+                              ? "bg-clopos-free text-white"
+                              : late
+                                ? "bg-red-600 text-white ring-2 ring-inset ring-red-300"
+                                : "bg-clopos-reserved text-clopos-reserved-text ring-2 ring-inset ring-clopos-gold"
                           }`}
                         >
-                          <span className="line-clamp-2">{t.name}</span>
+                          <span className="line-clamp-2 text-[13px] font-bold">{t.name}</span>
                           {rsv && !heatOn && (
-                            <span
-                              className={`pointer-events-none absolute inset-x-0.5 bottom-0.5 truncate rounded-[3px] px-1 py-0.5 text-[10px] font-bold ${
-                                resLate(rsv) ? "bg-red-600 text-white" : "bg-clopos-gold text-clopos-gold-text"
-                              }`}
-                            >
-                              🕐 {hhmm(new Date(rsv.reservedFor))} {rsv.name}
-                            </span>
+                            <>
+                              <span className="text-[11px] font-bold">
+                                🕐 {hhmm(new Date(rsv.reservedFor))} · {rsv.name}
+                                {rsv.guests ? ` · ${rsv.guests}` : ""}
+                              </span>
+                              {rsv.createdBy && (
+                                <span className={`text-[9px] ${late ? "text-white/80" : "opacity-70"}`}>
+                                  админ: {rsv.createdBy}
+                                </span>
+                              )}
+                              {late && (
+                                <span className="mt-0.5 rounded-full bg-white px-1.5 py-0.5 text-[9px] font-bold text-red-700">
+                                  келмади
+                                </span>
+                              )}
+                            </>
                           )}
                         </button>
                       );
+                    }
                     const first = os[0] as OpenOrder;
                     return (
                       <TableTile
@@ -934,6 +952,9 @@ function FloorView({
                 {resLate(seatFor.res) && <span className="ml-1 font-semibold text-red-600">· кечикди</span>}
               </div>
               {seatFor.res.phone && <div className="text-zinc-600">📞 {seatFor.res.phone}</div>}
+              {seatFor.res.createdBy && (
+                <div className="text-zinc-500">Брон қилган: {seatFor.res.createdBy}</div>
+              )}
               {seatFor.res.depositAmount > 0 && (
                 <div className="mt-1 font-semibold text-emerald-700">
                   Аванс: {fmt(seatFor.res.depositAmount)} so'm ({PAY_LABEL[seatFor.res.depositMethod ?? ""] ?? "—"}) — чекда −ҳисобга киради
@@ -1872,6 +1893,7 @@ function ReservationsSheet({
                             </span>
                           )}
                           {late && <span className="font-semibold text-red-600">келмади (30+ дақ)</span>}
+                          {r.createdBy && <span>админ: {r.createdBy}</span>}
                           {r.note && <span className="truncate">{r.note}</span>}
                         </div>
                       </div>
