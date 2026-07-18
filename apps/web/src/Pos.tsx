@@ -2791,7 +2791,7 @@ function OrderView({
               <IChevron className="h-3 w-3 text-white" />
             </button>
           </div>
-          <div className="hidden flex-1 items-center justify-end gap-4 bg-clopos-bar pr-3.5 lg:flex">
+          <div className="hidden flex-1 items-center justify-end gap-4 bg-clopos-dark pr-3.5 lg:flex">
             {order.tableNo && (
               <button
                 onClick={createSibling}
