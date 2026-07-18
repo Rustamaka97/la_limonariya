@@ -61,7 +61,7 @@ button:disabled,
    bg-clopos-bg кулранг фолбек сифатида остида қолади (расм юкланмаса). */
 .floor-cinematic {
   background-image:
-    linear-gradient(rgba(9, 24, 17, 0.20), rgba(9, 24, 17, 0.20)),
+    linear-gradient(rgba(9, 24, 17, 0.28), rgba(9, 24, 17, 0.28)),
     url("/brand/floor-hero.webp");
   background-size: cover;
   background-position: center;
