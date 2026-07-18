@@ -2967,7 +2967,7 @@ function OrderView({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[449px_minmax(0,1fr)] lg:gap-0 lg:items-stretch">
+      <div className="grid grid-cols-1 gap-4 lg:-mt-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[449px_minmax(0,1fr)] lg:gap-0 lg:items-stretch">
         {/* MENU (CloPOS: ЎНГДА, фон #F0F1F4, handoff-макет) */}
         <section className="order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-menu p-2.5 lg:order-2 lg:overflow-y-auto lg:border-l">
           {/* CloPOS тулбар: уй-плитка чапда, ўнгда қидирув · порция · ⚙ · ☆ · стоп · сетка */}
