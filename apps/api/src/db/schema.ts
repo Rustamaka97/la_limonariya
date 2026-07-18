@@ -529,6 +529,25 @@ export const reservations = pgTable(
   ],
 );
 
+// Официант чақириш (CloPOS-паритет): меҳмон стол QR'ини сканерлаб сигнал беради.
+// Auth йўқ (public) — фақат сигнал, маълумот очилмайди. kind = нима сўралди.
+export const callKind = pgEnum("call_kind", ["waiter", "bill", "water"]);
+export const waiterCalls = pgTable(
+  "waiter_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tableId: uuid("table_id")
+      .notNull()
+      .references(() => tables.id),
+    kind: callKind("kind").notNull().default("waiter"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedById: uuid("resolved_by_id").references(() => users.id),
+  },
+  // Фаол чақириқлар (resolved_at IS NULL) тез сўралади — полл ҳар 15с.
+  (t) => [index("wc_active_idx").on(t.resolvedAt, t.createdAt)],
+);
+
 export const purchases = pgTable("purchases", {
   id: uuid("id").primaryKey().defaultRandom(),
   supplier: text("supplier"),

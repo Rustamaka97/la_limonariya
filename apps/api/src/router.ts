@@ -60,6 +60,7 @@ import {
   users,
   vitrinaCounts,
   voidedItems,
+  waiterCalls,
 } from "./db/schema";
 import { computeObvalka } from "./obvalka-calc";
 import {
@@ -3462,6 +3463,67 @@ export const appRouter = router({
           });
           return { ok: true };
         });
+      }),
+
+    // ── Официант чақириш (CloPOS-паритет) ────────────────────────────────────
+    // Меҳмон стол QR'ини сканерлайди → public саҳифа → callWaiter. Ходим POS'да
+    // (App overlay) фаол чақириқларни кўради ва «Бордим» билан ёпади.
+    callWaiter: publicProcedure
+      .input(
+        z.object({
+          tableId: z.string().uuid(),
+          kind: z.enum(["waiter", "bill", "water"]).optional(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const kind = input.kind ?? "waiter";
+        const tbl = (
+          await db.select({ id: tables.id }).from(tables).where(eq(tables.id, input.tableId)).limit(1)
+        )[0];
+        if (!tbl) throw new TRPCError({ code: "NOT_FOUND", message: "Стол топилмади" });
+        // Дедупе: шу стол+тур учун фаол чақириқ бўлса такрорламаймиз (спам ҳимояси).
+        const active = (
+          await db
+            .select({ id: waiterCalls.id })
+            .from(waiterCalls)
+            .where(
+              and(
+                eq(waiterCalls.tableId, input.tableId),
+                eq(waiterCalls.kind, kind),
+                isNull(waiterCalls.resolvedAt),
+              ),
+            )
+            .limit(1)
+        )[0];
+        if (active) return { ok: true, deduped: true };
+        await db.insert(waiterCalls).values({ tableId: input.tableId, kind });
+        return { ok: true, deduped: false };
+      }),
+
+    activeCalls: protectedProcedure.query(async () => {
+      return db
+        .select({
+          id: waiterCalls.id,
+          kind: waiterCalls.kind,
+          createdAt: waiterCalls.createdAt,
+          tableName: tables.name,
+          hall: halls.name,
+        })
+        .from(waiterCalls)
+        .innerJoin(tables, eq(waiterCalls.tableId, tables.id))
+        .leftJoin(halls, eq(tables.hallId, halls.id))
+        .where(isNull(waiterCalls.resolvedAt))
+        .orderBy(waiterCalls.createdAt);
+    }),
+
+    resolveCall: protectedProcedure
+      .input(z.object({ id: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        await db
+          .update(waiterCalls)
+          .set({ resolvedAt: new Date(), resolvedById: ctx.user.id })
+          .where(and(eq(waiterCalls.id, input.id), isNull(waiterCalls.resolvedAt)));
+        return { ok: true };
       }),
 
     menu: protectedProcedure.query(async () => {

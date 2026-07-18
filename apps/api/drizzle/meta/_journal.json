@@ -351,6 +351,13 @@
       "when": 1784372512266,
       "tag": "0049_handy_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1784413501690,
+      "tag": "0050_blue_shotgun",
+      "breakpoints": true
     }
   ]
 }

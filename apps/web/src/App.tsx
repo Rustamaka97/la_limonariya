@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Login } from "./Login";
 import { Shell } from "./Shell";
+import { CallPage } from "./CallPage";
+import { CallAlerts } from "./CallAlerts";
 import { idbGet, idbSet } from "./lib/idb";
 import { startOutbox } from "./lib/outbox";
 import { trpc } from "./trpc";
@@ -8,6 +10,17 @@ import { trpc } from "./trpc";
 export type SessionUser = { id: string; name: string; role: string };
 
 export function App() {
+  // Меҳмон стол QR'и: ?call=<tableId> → public официант-чақириш саҳифаси (auth йўқ).
+  // Hooks'дан ОЛДИН, шартсиз бир марта — rules-of-hooks бузилмайди (MainApp алоҳida).
+  const callTable =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("call")
+      : null;
+  if (callTable) return <CallPage tableId={callTable} />;
+  return <MainApp />;
+}
+
+function MainApp() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,5 +61,11 @@ export function App() {
     );
   }
   if (!user) return <Login onSuccess={setUser} />;
-  return <Shell user={user} onLogout={() => setUser(null)} />;
+  return (
+    <>
+      <Shell user={user} onLogout={() => setUser(null)} />
+      {/* Официант чақириқ огоҳлантириши — POS устида, ҳамма экранда кўринади */}
+      <CallAlerts />
+    </>
+  );
 }
