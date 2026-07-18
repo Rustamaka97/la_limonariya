@@ -3653,6 +3653,14 @@ export const appRouter = router({
                 and(eq(reservations.id, input.reservationId), eq(reservations.status, "active")),
               );
           }
+          await logAudit(db, {
+            actorId: ctx.user.id,
+            action: "order.create",
+            entity: "order",
+            entityId: row.id,
+            summary: `Заказ очилди${input.tableNo ? ` (стол ${input.tableNo})` : ""}`,
+            meta: { saleType: st, tableNo: input.tableNo ?? null },
+          });
           return { id: row.id };
         }
         // Конфликт = ўша client id билан такрорий сўров → мавжудини қайтарамиз.
@@ -3689,6 +3697,15 @@ export const appRouter = router({
           .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
           .returning({ id: orders.id });
         if (!done.length) throw new TRPCError({ code: "NOT_FOUND" });
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "order.update_meta",
+          entity: "order",
+          entityId: input.id,
+          summary:
+            input.guests !== undefined ? `Меҳмонлар сони: ${input.guests}` : "Изоҳ ўзгартирилди",
+          meta: patch,
+        });
         return { ok: true };
       }),
 
@@ -3726,6 +3743,14 @@ export const appRouter = router({
           .where(and(eq(orders.id, input.id), eq(orders.status, "open")))
           .returning({ id: orders.id });
         if (!done.length) throw new TRPCError({ code: "NOT_FOUND", message: "Очиқ заказ топилмади" });
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "order.move_table",
+          entity: "order",
+          entityId: input.id,
+          summary: `Стол кўчирилди${input.tableNo ? ` → ${input.tableNo}` : ""}`,
+          meta: { hallId: hall.id, tableNo: input.tableNo ?? null },
+        });
         return { ok: true };
       }),
 
@@ -3734,7 +3759,7 @@ export const appRouter = router({
     // cascade хавфи йўқ). Иккиси ҳам очиқ бўлиши шарт. Менежер/директор.
     mergeOrders: managerProcedure
       .input(z.object({ fromId: z.string().uuid(), toId: z.string().uuid() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         if (input.fromId === input.toId)
           throw new TRPCError({ code: "BAD_REQUEST", message: "Бир хил заказ" });
         return db.transaction(async (tx) => {
@@ -3773,6 +3798,15 @@ export const appRouter = router({
             .update(orders)
             .set({ status: "cancelled", closedAt: new Date(), note: `Бирлаштирилди → ${input.toId.slice(0, 5).toUpperCase()}` })
             .where(eq(orders.id, input.fromId));
+          // Асосий (to) чек тарихига — қайси чек унга қўшилди.
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "order.merge",
+            entity: "order",
+            entityId: input.toId,
+            summary: `Чек бирлаштирилди ← ${input.fromId.slice(0, 5).toUpperCase()}`,
+            meta: { fromId: input.fromId },
+          });
           return { ok: true };
         });
       }),
@@ -4026,6 +4060,19 @@ export const appRouter = router({
                 .update(orderItems)
                 .set({ qty })
                 .where(eq(orderItems.id, existing.id));
+            // Чек тарихи (CloPOS «добавлено/удалено N x таом»).
+            if (input.delta !== 0)
+              await logAudit(tx, {
+                actorId: ctx.user.id,
+                action: input.delta > 0 ? "order.add_item" : "order.remove_item",
+                entity: "order",
+                entityId: input.orderId,
+                summary:
+                  input.delta > 0
+                    ? `Қўшилди: ${input.delta} x ${existing.name}`
+                    : `Олинди: ${-input.delta} x ${existing.name}`,
+                meta: { productId: input.productId, delta: input.delta, name: existing.name },
+              });
           } else if (input.delta > 0) {
             const p = (
               await tx
@@ -4041,6 +4088,14 @@ export const appRouter = router({
               name: p.name,
               price: p.price,
               qty: input.delta,
+            });
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "order.add_item",
+              entity: "order",
+              entityId: input.orderId,
+              summary: `Қўшилди: ${input.delta} x ${p.name}`,
+              meta: { productId: p.id, delta: input.delta, name: p.name },
             });
           }
           return { ok: true };
@@ -4807,6 +4862,21 @@ export const appRouter = router({
           );
 
           if (moves.length) await tx.insert(stockMovements).values(moves);
+          // Чек тарихи (CloPOS «закрыл чек Наличными N») — тўлов усули + сумма.
+          const methodUz: Record<string, string> = {
+            cash: "Нақд", card: "Карта", click: "Click", payme: "PayMe", humo: "Humo", debt: "Қарз",
+          };
+          const closeSummary = input.comp
+            ? `Текин ёпилди (${input.comp.reason})`
+            : `Ёпилди: ${pays.map((p) => `${methodUz[p.method] ?? p.method} ${p.amount}`).join(", ") || "—"}${deposit > 0 ? ` + аванс ${deposit}` : ""}`;
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "order.close",
+            entity: "order",
+            entityId: input.id,
+            summary: closeSummary,
+            meta: { payments: pays, deposit, discount: input.discount?.amount ?? 0, comp: !!input.comp },
+          });
           return {
             ok: true,
             alreadyClosed: false,
