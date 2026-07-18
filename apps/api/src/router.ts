@@ -6896,6 +6896,77 @@ export const appRouter = router({
         return { medQty, medMargin, rows, unknown: unknown.slice(0, 15) };
       }),
 
+    // Официант KPI/рейтинг: ким кўп сотди — реал тўлов (пул) бўйича. Официант =
+    // заказни ОЧГАН ходим (orders.waiterId). Ёпилган заказлар, давр оралиғида.
+    waiterKpi: directorProcedure
+      .input(
+        z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      )
+      .query(async ({ input }) => {
+        const { startUTC, endUTC } = businessRangeBounds(input.from, input.to);
+        const ords = await db
+          .select({
+            id: orders.id,
+            waiterId: orders.waiterId,
+            waiter: users.name,
+            guests: orders.guests,
+          })
+          .from(orders)
+          .leftJoin(users, eq(orders.waiterId, users.id))
+          .where(
+            and(
+              eq(orders.status, "closed"),
+              gte(orders.closedAt, startUTC),
+              lt(orders.closedAt, endUTC),
+            ),
+          );
+        if (ords.length === 0) return { rows: [] };
+        const ids = ords.map((o) => o.id);
+        // Реал пул = order_payments (аванс ҳам киради). Per-order йиғинди.
+        const pays = await db
+          .select({ orderId: orderPayments.orderId, amount: orderPayments.amount })
+          .from(orderPayments)
+          .where(inArray(orderPayments.orderId, ids));
+        const payByOrder = new Map<string, number>();
+        for (const p of pays)
+          payByOrder.set(p.orderId, (payByOrder.get(p.orderId) ?? 0) + p.amount);
+        const items = await db
+          .select({ orderId: orderItems.orderId, qty: orderItems.qty })
+          .from(orderItems)
+          .where(inArray(orderItems.orderId, ids));
+        const qtyByOrder = new Map<string, number>();
+        for (const it of items)
+          qtyByOrder.set(it.orderId, (qtyByOrder.get(it.orderId) ?? 0) + it.qty);
+
+        const byWaiter = new Map<
+          string,
+          { waiter: string; revenue: number; orders: number; guests: number; items: number }
+        >();
+        for (const o of ords) {
+          const key = o.waiterId ?? "—";
+          const e =
+            byWaiter.get(key) ??
+            { waiter: o.waiter ?? "—", revenue: 0, orders: 0, guests: 0, items: 0 };
+          e.revenue += payByOrder.get(o.id) ?? 0;
+          e.orders += 1;
+          e.guests += o.guests ?? 0;
+          e.items += qtyByOrder.get(o.id) ?? 0;
+          byWaiter.set(key, e);
+        }
+        const rows = [...byWaiter.values()]
+          .map((w) => ({
+            ...w,
+            avgCheck: w.orders > 0 ? Math.round(w.revenue / w.orders) : 0,
+            avgPerGuest: w.guests > 0 ? Math.round(w.revenue / w.guests) : 0,
+            itemsPerOrder: w.orders > 0 ? Math.round((w.items / w.orders) * 10) / 10 : 0,
+          }))
+          .sort((a, b) => b.revenue - a.revenue);
+        return { rows };
+      }),
+
     digest: directorProcedure.query(async () => {
       const { startUTC, endUTC, dayKey } = businessDayBounds();
       const todayFin = await financeForWindow(startUTC, endUTC);

@@ -41,7 +41,7 @@ type Signals = {
 };
 
 export function Analitika() {
-  const [sub, setSub] = useState<"signals" | "menu">("signals");
+  const [sub, setSub] = useState<"signals" | "menu" | "waiters">("signals");
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
@@ -49,6 +49,7 @@ export function Analitika() {
           [
             { k: "signals", label: "Сигналлар" },
             { k: "menu", label: "Таом таҳлили" },
+            { k: "waiters", label: "Официант KPI" },
           ] as const
         ).map((t) => (
           <button
@@ -62,7 +63,7 @@ export function Analitika() {
           </button>
         ))}
       </div>
-      {sub === "signals" ? <SignalsView /> : <MenuTahlil />}
+      {sub === "signals" ? <SignalsView /> : sub === "menu" ? <MenuTahlil /> : <WaiterKpi />}
     </div>
   );
 }
@@ -452,6 +453,107 @@ function MenuTahlil() {
             </Section>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function WaiterKpi() {
+  const today = () => {
+    const t = new Date(Date.now() + 5 * 3600 * 1000);
+    if (t.getUTCHours() < 6) t.setUTCDate(t.getUTCDate() - 1);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())}`;
+  };
+  const back = (n: number) => {
+    const [y = 0, m = 1, d = 1] = today().split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d - n));
+    const p = (x: number) => String(x).padStart(2, "0");
+    return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
+  };
+  const [days, setDays] = useState(14);
+  const [reload, setReload] = useState(0);
+  const [data, setData] = useState<{
+    rows: {
+      waiter: string;
+      revenue: number;
+      orders: number;
+      guests: number;
+      items: number;
+      avgCheck: number;
+      avgPerGuest: number;
+      itemsPerOrder: number;
+    }[];
+  } | null>(null);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    setErr(false);
+    setData(null);
+    trpc.analytics.waiterKpi
+      .query({ from: back(days - 1), to: today() })
+      .then(setData)
+      .catch(() => setErr(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days, reload]);
+
+  if (err) return <ErrBox onRetry={() => setReload((n) => n + 1)} />;
+  const medal = ["🥇", "🥈", "🥉"];
+  const maxRev = data?.rows[0]?.revenue ?? 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1.5">
+        {[7, 14, 30].map((n) => (
+          <button
+            key={n}
+            onClick={() => setDays(n)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              days === n ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-100"
+            }`}
+          >
+            {n} кун
+          </button>
+        ))}
+      </div>
+
+      {!data ? (
+        <div className="p-6 text-center text-zinc-400">⏳</div>
+      ) : data.rows.length === 0 ? (
+        <div className="rounded-xl border bg-white px-4 py-8 text-center text-sm text-zinc-400">
+          бу даврда ёпилган заказ йўқ
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-zinc-400">
+            Официант = заказни очган ходим. Тушум = реал тўлов (аванс ҳам). Кўп сотган — юқорида.
+          </p>
+          {data.rows.map((r, i) => (
+            <div key={`${r.waiter}-${i}`} className="rounded-xl border bg-white p-3">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 font-semibold text-brand-ink">
+                  <span className="w-6 text-center text-base">{medal[i] ?? i + 1}</span> {r.waiter}
+                </span>
+                <span className="text-lg font-bold tabular-nums text-brand">
+                  {fmt(r.revenue)} <span className="text-xs font-normal text-zinc-400">so'm</span>
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-brand-gold"
+                  style={{ width: `${maxRev > 0 ? Math.round((r.revenue / maxRev) * 100) : 0}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums text-zinc-500">
+                <span>Заказ: <b className="text-zinc-700">{r.orders}</b></span>
+                <span>Ўрт. чек: <b className="text-zinc-700">{fmt(r.avgCheck)}</b></span>
+                <span>Меҳмон: <b className="text-zinc-700">{r.guests}</b></span>
+                <span>Меҳмонига: <b className="text-zinc-700">{fmt(r.avgPerGuest)}</b></span>
+                <span>Таом/заказ: <b className="text-zinc-700">{r.itemsPerOrder}</b></span>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
