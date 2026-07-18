@@ -239,7 +239,7 @@ function EmptyLemon({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-export function Pos({ user, onLogout, onOpenMenu }: { user: SessionUser; onLogout: () => void; onOpenMenu: () => void }) {
+export function Pos({ user, onLogout, onNavigate }: { user: SessionUser; onLogout: () => void; onNavigate: (tab: string) => void }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
     return (
@@ -250,7 +250,7 @@ export function Pos({ user, onLogout, onOpenMenu }: { user: SessionUser; onLogou
         onSwitch={setOrderId}
       />
     );
-  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} onOpenMenu={onOpenMenu} />;
+  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} onNavigate={onNavigate} />;
 }
 
 // ── FLOOR: visual hall/table map (Clopos only has a flat list) ──────────────
@@ -259,13 +259,13 @@ function FloorView({
   onOpen,
   onNew,
   onLogout,
-  onOpenMenu,
+  onNavigate,
 }: {
   user: SessionUser;
   onOpen: (id: string) => void;
   onNew: (id: string) => void;
   onLogout: () => void;
-  onOpenMenu: () => void;
+  onNavigate: (tab: string) => void;
 }) {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [tbls, setTbls] = useState<Table[]>([]);
@@ -279,6 +279,7 @@ function FloorView({
   const [arrange, setArrange] = useState(false);
   const [showChecks, setShowChecks] = useState(false); // Чеки → очиқ-чеклар рўйхати
   const [checksQ, setChecksQ] = useState(""); // рўйхат қидируви (стол/официант)
+  const [showPanel, setShowPanel] = useState(false); // ☰ → бошқарув панели (CloPOS)
   const [hallFilter, setHallFilter] = useState<string>("all");
   // Стол вақт-ҳалқаси жонли ўтсин — рефетчсиз (openOrders фақат mount/drain'да
   // янгиланади). Дақиқа гранулярлиги учун 60с кифоя.
@@ -464,7 +465,7 @@ function FloorView({
             </span>
           </button>
           <button
-            onClick={onOpenMenu}
+            onClick={() => setShowPanel(true)}
             title="Меню — бошқарув панели"
             className="grid h-6 w-6 place-items-center rounded-[3px] text-white/80 transition hover:bg-white/15 hover:text-white"
           >
@@ -591,6 +592,75 @@ function FloorView({
           onCreate={create}
         />
       )}
+
+      {/* ☰ Бошқарув панели (CloPOS «Панель управления») — бўлимларга ўтиш */}
+      {showPanel && (() => {
+        const isDir = user.role === "director";
+        const dm = isDir || user.role === "manager";
+        const cashierUp = ["director", "manager", "cashier"].includes(user.role);
+        const items = [
+          { emoji: "📊", label: "Ҳисобот", sub: "Отчёты", tab: "hisobot", show: dm },
+          { emoji: "💰", label: "Молия / касса", sub: "Операции · Открыть кассу", tab: "moliya", show: isDir },
+          { emoji: "🗂", label: "Чек архиви", sub: "Архив чеков", tab: "chekQidirish", show: cashierUp },
+          { emoji: "📦", label: "Харид", sub: "Поставка", tab: "harid", show: dm },
+          { emoji: "🗑", label: "Омбор", sub: "Списания", tab: "ombor", show: dm },
+          { emoji: "👥", label: "Мижозлар", sub: "Клиенты", tab: "mijozlar", show: dm },
+          { emoji: "🪪", label: "Ходимлар", sub: "Сотрудник", tab: "staff", show: isDir },
+          { emoji: "🍽", label: "Каталог", sub: "Стоп-лист · меню", tab: "catalog", show: true },
+          { emoji: "📈", label: "Аналитика", sub: "", tab: "analitika", show: isDir },
+          { emoji: "🍳", label: "KDS", sub: "Кухня", tab: "kds", show: dm },
+        ].filter((x) => x.show);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+            onClick={() => setShowPanel(false)}
+          >
+            <div
+              className="flex max-h-[85dvh] w-full max-w-3xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-brand-ink">Бошқарув панели</h3>
+                <button
+                  onClick={() => setShowPanel(false)}
+                  className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+                >
+                  Ёпиш
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto sm:grid-cols-3">
+                {items.map((it) => (
+                  <button
+                    key={it.tab}
+                    onClick={() => { setShowPanel(false); onNavigate(it.tab); }}
+                    className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-3.5 py-3 text-left transition hover:border-brand hover:bg-brand-cream/30"
+                  >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-cream text-xl">{it.emoji}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-brand-ink">{it.label}</span>
+                      {it.sub && <span className="block truncate text-[11px] text-zinc-400">{it.sub}</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 border-t border-brand-cream-soft pt-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-600 transition hover:border-brand hover:bg-brand-cream/30"
+                >
+                  🔄 Янгилаш
+                </button>
+                <button
+                  onClick={() => { setShowPanel(false); onLogout(); }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                >
+                  ⎋ Чиқиш
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Открытые чеки — барча очиқ чеклар рўйхати (CloPOS «Чеки»), босса → очилади */}
       {showChecks && (

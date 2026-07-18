@@ -257,7 +257,7 @@ export function Shell({
         {tab === "mijozlar" && <Mijozlar canAdjust={isDirector} />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
-        {tab === "pos" && <Pos user={user} onLogout={logout} onOpenMenu={() => setMenuOpen(true)} />}
+        {tab === "pos" && <Pos user={user} onLogout={logout} onNavigate={(t) => setTab(t as Tab)} />}
         {tab === "chekQidirish" && <ChekQidirish />}
         {tab === "harid" && <Purchases />}
         {tab === "obvalka" && <Obvalka user={user} />}
