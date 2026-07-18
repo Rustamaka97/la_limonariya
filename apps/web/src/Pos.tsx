@@ -2649,7 +2649,7 @@ function OrderView({
   return (
     <div className="flex gap-2 pb-24 lg:min-h-0 lg:flex-1 lg:pb-0">
       {/* ── CloPOS-услуб чап амал-рельси (тўқ, оқ иконкалар) ─────────────────── */}
-      <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start rounded-r-lg border-r border-brand-deep bg-clopos-rail py-2.5">
+      <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start rounded-r-lg border-r border-brand-deep bg-clopos-rail py-2.5 lg:h-auto lg:self-stretch">
         {/* Чекка изоҳ */}
         <button
           onClick={() => setNoteOpen((v) => !v)}
