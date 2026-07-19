@@ -2190,6 +2190,7 @@ function OrderView({
   const [discAmount, setDiscAmount] = useState("");
   const [discReason, setDiscReason] = useState("");
   const [discBusy, setDiscBusy] = useState(false);
+  const [discMode, setDiscMode] = useState<"sum" | "pct">("sum"); // чегирма: сумма ёки %
   // 👥 Гости сони + 🚚 тип продажи (CloPOS ⋯ меню).
   const [showGuests, setShowGuests] = useState(false);
   const [guestsInput, setGuestsInput] = useState("");
@@ -3869,13 +3870,36 @@ function OrderView({
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-[15px] font-bold text-brand-ink">Чегирма</h3>
+            {/* Сумма / % тоггл (CloPOS каби) */}
+            <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
+              {(["sum", "pct"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setDiscMode(m)}
+                  className={`flex-1 rounded-lg py-1.5 font-medium transition ${
+                    discMode === m ? "bg-brand-deep text-white" : "text-brand-ink hover:bg-clopos-bg"
+                  }`}
+                >
+                  {m === "sum" ? "Сумма (so'm)" : "Фоиз (%)"}
+                </button>
+              ))}
+            </div>
             <input
               value={discAmount}
               onChange={(e) => setDiscAmount(e.target.value.replace(/[^0-9]/g, ""))}
               inputMode="numeric"
-              placeholder="Сумма (so'm)"
+              placeholder={discMode === "pct" ? "Фоиз (масалан 10)" : "Сумма (so'm)"}
               className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
             />
+            {discMode === "pct" && !!discAmount && (
+              <p className="px-1 text-[12px] text-zinc-500">
+                ={" "}
+                {Math.round(
+                  (order.items.reduce((s, i) => s + i.price * i.qty, 0) * Number(discAmount)) / 100,
+                ).toLocaleString()}{" "}
+                so'm чегирма
+              </p>
+            )}
             <input
               value={discReason}
               onChange={(e) => setDiscReason(e.target.value)}
@@ -3893,10 +3917,15 @@ function OrderView({
                 disabled={discBusy || !discAmount || !discReason.trim()}
                 onClick={async () => {
                   setDiscBusy(true);
+                  const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+                  const amount =
+                    discMode === "pct"
+                      ? Math.round((subtotal * Number(discAmount)) / 100)
+                      : Number(discAmount);
                   try {
                     await trpc.pos.setDiscount.mutate({
                       orderId: id,
-                      amount: Number(discAmount),
+                      amount,
                       reason: discReason.trim(),
                     });
                     setShowDiscMenu(false);
