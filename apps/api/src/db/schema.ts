@@ -339,6 +339,9 @@ export const orderItems = pgTable("order_items", {
   // Официант изоҳи («пиёзсиз», «соус алоҳида»...). Кухняга юборилганда
   // kitchen_ticket_items.note'га snapshot бўлиб кўчади ва тикетда босилади.
   note: text("note"),
+  // Курс/подача (CloPOS-паритет): таом қайси тўлқинга тегишли (1=биринчи, 2=…).
+  // Кухня тикетида «N-курс» бўлиб чиқади → ошпаз кетма-кетликни билади (банкет).
+  course: integer("course").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -379,6 +382,7 @@ export const kitchenTicketItems = pgTable(
     qty: integer("qty").notNull(),
     station: text("station"), // snapshot of products.station at send-time
     note: text("note"), // изоҳ snapshot'и юбориш пайтида («пиёзсиз»...)
+    course: integer("course").notNull().default(1), // курс snapshot (KDS/тикет «N-курс»)
   },
   (t) => [index("kti_ticket_idx").on(t.ticketId)],
 );

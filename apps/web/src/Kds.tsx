@@ -6,7 +6,7 @@ import { ICheck, ISpin, IFullscreen } from "./icons";
 // «✓ Тайёр» босади → экрандан кетади. Вақт ошса ранг эскалация (кухня SLA).
 // Юқори контраст + катта матн (иссиқ ошхона, узоқдан ўқилсин).
 
-type KItem = { name: string; qty: number; note: string | null; station: string | null };
+type KItem = { name: string; qty: number; note: string | null; station: string | null; course?: number | null };
 type Ticket = {
   id: string;
   createdAt: string;
@@ -153,7 +153,14 @@ export function Kds() {
                       {items.map((it, i) => (
                         <div key={i} className="leading-tight">
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="text-[15px] font-semibold">{it.name}</span>
+                            <span className="text-[15px] font-semibold">
+                              {(it.course ?? 1) > 1 && (
+                                <span className="mr-1.5 rounded bg-brand-gold px-1.5 py-0.5 text-[12px] font-extrabold text-brand-ink">
+                                  {it.course}-курс
+                                </span>
+                              )}
+                              {it.name}
+                            </span>
                             <span className="text-[15px] font-extrabold tabular-nums text-brand-gold">×{it.qty}</span>
                           </div>
                           {it.note && (

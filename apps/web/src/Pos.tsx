@@ -81,6 +81,7 @@ type Order = {
     qty: number;
     weightG?: number | null;
     note?: string | null;
+    course?: number | null; // курс/подача (1=биринчи тўлқин); оффлайн-overlay'да йўқ
   }[];
   payments: { method: string; amount: number }[];
   subtotal: number;
@@ -2217,6 +2218,19 @@ function OrderView({
     }
   }, [id]);
 
+  // Курс/подача: cart'да курс-чипини тап → 1→2→3→1 айланади (оптимистик).
+  async function cycleCourse(itemId: string, cur: number) {
+    const next = ((cur || 1) % 3) + 1;
+    setOrder((o) =>
+      o ? { ...o, items: o.items.map((it) => (it.id === itemId ? { ...it, course: next } : it)) } : o,
+    );
+    try {
+      await trpc.pos.setItemCourse.mutate({ orderItemId: itemId, course: next });
+    } catch {
+      refresh();
+    }
+  }
+
   useEffect(() => {
     refresh();
     // Меню — ўзгармас; оффлайнда кэшдан кўринади (фаза 3 refCache).
@@ -3282,6 +3296,20 @@ function OrderView({
                         )
                       )}
                     </button>
+                    {it.productId && online && (
+                      <button
+                        type="button"
+                        onClick={() => cycleCourse(it.id, it.course ?? 1)}
+                        title="Курс/подача — тап билан ўзгартиринг (1→2→3)"
+                        className={`shrink-0 rounded-md px-1.5 py-1 text-[11px] font-bold tabular-nums transition ${
+                          (it.course ?? 1) > 1
+                            ? "bg-brand-gold text-brand-ink"
+                            : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200"
+                        }`}
+                      >
+                        {it.course ?? 1}к
+                      </button>
+                    )}
                     {it.weightG ? (
                       <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums text-brand">
                         <IScale className="h-3.5 w-3.5" /> {(it.weightG / 1000).toFixed(2)}кг

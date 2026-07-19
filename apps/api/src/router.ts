@@ -1125,6 +1125,7 @@ async function computeUnsentItems(
       name: orderItems.name,
       qty: orderItems.qty,
       note: orderItems.note,
+      course: orderItems.course,
       createdAt: orderItems.createdAt,
       station: stations.name,
     })
@@ -1138,7 +1139,7 @@ async function computeUnsentItems(
   // Keep the EARLIEST createdAt per product — conservative, avoids masking.
   const grouped = new Map<
     string,
-    { name: string; qty: number; note: string | null; createdAt: Date; station: string | null }
+    { name: string; qty: number; note: string | null; course: number; createdAt: Date; station: string | null }
   >();
   for (const it of items) {
     if (!it.productId) continue;
@@ -1152,13 +1153,14 @@ async function computeUnsentItems(
         name: it.name,
         qty: it.qty,
         note: it.note,
+        course: it.course ?? 1,
         createdAt: it.createdAt,
         station: it.station,
       });
     }
   }
 
-  const toSend: { productId: string; name: string; unsent: number; note: string | null; station: string | null }[] = [];
+  const toSend: { productId: string; name: string; unsent: number; note: string | null; course: number; station: string | null }[] = [];
   for (const [productId, g] of grouped) {
     const sentRow = (
       await exec
@@ -1175,8 +1177,10 @@ async function computeUnsentItems(
     )[0];
     const unsent = g.qty - Number(sentRow?.s ?? 0);
     if (unsent > 0)
-      toSend.push({ productId, name: g.name, unsent, note: g.note, station: g.station });
+      toSend.push({ productId, name: g.name, unsent, note: g.note, course: g.course, station: g.station });
   }
+  // Курс бўйича тартиб — тикетда 1-курс, 2-курс кетма-кет чиқсин.
+  toSend.sort((a, b) => a.course - b.course);
   return toSend;
 }
 
@@ -1233,13 +1237,14 @@ async function flushKitchenTicket(
       qty: it.unsent,
       station: it.station ?? "Бошқа",
       note: it.note,
+      course: it.course,
     })),
   );
 
   return {
     id: ticket.id,
     createdAt: ticket.createdAt,
-    items: toSend.map((it) => ({ name: it.name, qty: it.unsent, note: it.note, station: it.station ?? "Бошқа" })),
+    items: toSend.map((it) => ({ name: it.name, qty: it.unsent, note: it.note, course: it.course, station: it.station ?? "Бошқа" })),
   };
 }
 
@@ -3687,6 +3692,7 @@ export const appRouter = router({
             qty: orderItems.qty,
             weightG: orderItems.weightG,
             note: orderItems.note,
+            course: orderItems.course,
           })
           .from(orderItems)
           .where(eq(orderItems.orderId, input.id));
@@ -4646,6 +4652,39 @@ export const appRouter = router({
           });
           return { id: newId };
         });
+      }),
+
+    // Курс/подача: таомга курс белгилаш (официант cart'да тап билан 1→2→3).
+    // Фақат очиқ, блокланмаган заказда. Юборилган таом ҳам қайта белгиланиши
+    // мумкин — фақат кейинги тикет snapshot'ига таъсир қилади (аввалгиси ўзгармас).
+    setItemCourse: protectedProcedure
+      .input(z.object({ orderItemId: z.string().uuid(), course: z.number().int().min(1).max(9) }))
+      .mutation(async ({ input, ctx }) => {
+        const row = (
+          await db
+            .select({ orderId: orderItems.orderId })
+            .from(orderItems)
+            .where(eq(orderItems.id, input.orderItemId))
+            .limit(1)
+        )[0];
+        if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+        await assertOrderAccess(db, ctx.user, row.orderId);
+        const oHead = (
+          await db
+            .select({ status: orders.status, locked: orders.locked })
+            .from(orders)
+            .where(eq(orders.id, row.orderId))
+            .limit(1)
+        )[0];
+        if (!oHead || oHead.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (oHead.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Чек блокланган" });
+        await db
+          .update(orderItems)
+          .set({ course: input.course })
+          .where(eq(orderItems.id, input.orderItemId));
+        return { ok: true };
       }),
 
     sendToKitchen: protectedProcedure
@@ -7603,6 +7642,7 @@ export const appRouter = router({
           qty: kitchenTicketItems.qty,
           note: kitchenTicketItems.note,
           station: kitchenTicketItems.station,
+          course: kitchenTicketItems.course,
         })
         .from(kitchenTicketItems)
         .where(inArray(kitchenTicketItems.ticketId, tix.map((t) => t.id)));

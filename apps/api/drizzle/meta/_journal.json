@@ -358,6 +358,13 @@
       "when": 1784413501690,
       "tag": "0050_blue_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1784443532054,
+      "tag": "0051_smooth_wraith",
+      "breakpoints": true
     }
   ]
 }
