@@ -26,10 +26,12 @@ import { IMenu, IBell, ILogout, IPencil, IWarn } from "./icons";
 const ICON_SHEET: Record<string, { img: string; size: string }> = {
   clay: { img: "/brand/icons-clay.webp", size: "300% 300%" },
   material: { img: "/brand/icons-material.webp", size: "400% 400%" },
+  gold: { img: "/brand/icons-nav-gold.webp", size: "400% 300%" },
 };
 const ICON_POS: Record<string, Record<string, string>> = {
   clay: { dashboard: "0% 0%", cash: "50% 0%", chef: "100% 0%", chart: "100% 50%", gift: "0% 50%", receipt: "50% 50%", staff: "100% 100%" },
   material: { dashboard: "0% 0%", cash: "33.33% 0%", chef: "66.67% 0%", chart: "100% 0%", gift: "0% 33.33%", receipt: "33.33% 33.33%", staff: "100% 100%" },
+  gold: { dashboard: "0% 0%", tv: "33.33% 0%", chart: "66.67% 0%", wallet: "100% 0%", cash: "0% 50%", receipt: "33.33% 50%", bag: "66.67% 50%", chef: "100% 50%", boxes: "0% 100%", gift: "33.33% 100%", book: "66.67% 100%", staff: "100% 100%" },
 };
 function NavIcon({ k, sheet }: { k?: string; sheet: string | null }) {
   if (!k || !sheet || !ICON_SHEET[sheet] || !ICON_POS[sheet]?.[k]) return null;
@@ -129,17 +131,17 @@ export function Shell({
     onLogout();
   }
 
-  const iconStyle = new URLSearchParams(window.location.search).get("icons");
+  const iconStyle = new URLSearchParams(window.location.search).get("icons") || "gold";
   const tabs: { key: Tab; label: string; icon?: string }[] = [
     ...(isDirector ? [{ key: "dashboard" as Tab, label: "Бошқарув", icon: "dashboard" }] : []),
-    ...(isDirector ? [{ key: "tv" as Tab, label: "ТВ" }] : []),
+    ...(isDirector ? [{ key: "tv" as Tab, label: "ТВ", icon: "tv" }] : []),
     ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика", icon: "chart" }] : []),
-    ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия" }] : []),
+    ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия", icon: "wallet" }] : []),
     ...(canPos ? [{ key: "pos" as Tab, label: "Касса", icon: "cash" }] : []),
     ...(["director", "manager", "cashier"].includes(user.role)
       ? [{ key: "chekQidirish" as Tab, label: "Чек қидириш", icon: "receipt" }]
       : []),
-    ...(canObvalka ? [{ key: "harid" as Tab, label: "Харид" }] : []),
+    ...(canObvalka ? [{ key: "harid" as Tab, label: "Харид", icon: "bag" }] : []),
     ...(canObvalka ? [{ key: "obvalka" as Tab, label: "Обвалка" }] : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "inventarizatsiya" as Tab, label: "Инвентаризация" }]
@@ -151,7 +153,7 @@ export function Shell({
       ? [{ key: "vitrina" as Tab, label: "Витрина" }, { key: "kds" as Tab, label: "KDS", icon: "chef" }]
       : []),
     ...(["director", "manager"].includes(user.role)
-      ? [{ key: "ombor" as Tab, label: "Омбор" }]
+      ? [{ key: "ombor" as Tab, label: "Омбор", icon: "boxes" }]
       : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "hisobot" as Tab, label: "Ҳисобот" }]
@@ -160,7 +162,7 @@ export function Shell({
       ? [{ key: "mijozlar" as Tab, label: "Мижозлар", icon: "gift" }]
       : []),
     ...(isDirector ? [{ key: "taannarx" as Tab, label: "Таннарх" }] : []),
-    { key: "catalog", label: "Каталог" },
+    { key: "catalog", label: "Каталог", icon: "book" },
     { key: "recipes", label: "Рецептлар" },
     ...(isDirector ? [{ key: "staff" as Tab, label: "Ходимлар", icon: "staff" }] : []),
   ];
