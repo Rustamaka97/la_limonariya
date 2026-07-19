@@ -362,6 +362,13 @@ function FloorView({
   const [showChecks, setShowChecks] = useState(false); // Чеки → очиқ-чеклар рўйхати
   const [checksQ, setChecksQ] = useState(""); // рўйхат қидируви (стол/официант)
   const [showPanel, setShowPanel] = useState(false); // ☰ → бошқарув панели (CloPOS)
+  // 💵 Касса операция (CloPOS «Добавить операцию») — расход/доход/инкассация.
+  const [showCashOp, setShowCashOp] = useState(false);
+  const [cashOpType, setCashOpType] = useState<"expense" | "income" | "collection">("expense");
+  const [cashOpAmount, setCashOpAmount] = useState("");
+  const [cashOpCat, setCashOpCat] = useState("boshqa");
+  const [cashOpNote, setCashOpNote] = useState("");
+  const [cashOpBusy, setCashOpBusy] = useState(false);
   const [showClock, setShowClock] = useState(false); // 🕐 тўлиқ-экран соат
   const [soundOff, setSoundOff] = useState(() => localStorage.getItem("pos-sound-off") === "1");
   const [hallFilter, setHallFilter] = useState<string>("all");
@@ -804,6 +811,24 @@ function FloorView({
             </div>
             <div className="flex-1 overflow-y-auto p-4 sm:p-5">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {cashierUp && (
+                  <button
+                    onClick={() => {
+                      setShowPanel(false);
+                      setCashOpType("expense");
+                      setCashOpAmount("");
+                      setCashOpNote("");
+                      setShowCashOp(true);
+                    }}
+                    className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
+                  >
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">💵</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px] font-semibold text-brand-ink">Касса операция</span>
+                      <span className="block truncate text-xs text-zinc-400">Расход · Доход · Инкассация</span>
+                    </span>
+                  </button>
+                )}
                 {items.map((it) => (
                   <button
                     key={it.tab}
@@ -867,6 +892,115 @@ function FloorView({
           </div>
         );
       })()}
+
+      {/* 💵 КАССА ОПЕРАЦИЯ MODAL (CloPOS «Добавить операцию») — расход/доход/инкассация */}
+      {showCashOp && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowCashOp(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-3 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-[15px] font-bold text-brand-ink">Касса операция</h3>
+            <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
+              {(
+                [
+                  ["expense", "Расход"],
+                  ["income", "Доход"],
+                  ["collection", "Инкассация"],
+                ] as const
+              ).map(([t, label]) => (
+                <button
+                  key={t}
+                  onClick={() => setCashOpType(t)}
+                  className={`flex-1 rounded-lg py-1.5 font-medium transition ${
+                    cashOpType === t ? "bg-brand-deep text-white" : "text-brand-ink hover:bg-clopos-bg"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <input
+              value={cashOpAmount}
+              onChange={(e) => setCashOpAmount(e.target.value.replace(/[^0-9]/g, ""))}
+              inputMode="numeric"
+              autoFocus
+              placeholder="Сумма (so'm)"
+              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+            />
+            {cashOpType === "expense" && (
+              <select
+                value={cashOpCat}
+                onChange={(e) => setCashOpCat(e.target.value)}
+                className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+              >
+                {[
+                  ["ijara", "Ижара"],
+                  ["gaz", "Газ"],
+                  ["elektr", "Электр"],
+                  ["ish_haqi", "Иш ҳақи"],
+                  ["jihoz", "Жиҳоз"],
+                  ["boshqa", "Бошқа"],
+                  ["ega_oldi", "Эга олди"],
+                ].map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            )}
+            <input
+              value={cashOpNote}
+              onChange={(e) => setCashOpNote(e.target.value)}
+              placeholder={cashOpType === "expense" ? "Изоҳ" : "Изоҳ (мажбурий)"}
+              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+            />
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowCashOp(false)}
+                className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
+              >
+                Бекор
+              </button>
+              <button
+                disabled={cashOpBusy || !cashOpAmount || (cashOpType !== "expense" && !cashOpNote.trim())}
+                onClick={async () => {
+                  setCashOpBusy(true);
+                  try {
+                    await trpc.pos.cashOp.mutate({
+                      type: cashOpType,
+                      amount: Number(cashOpAmount),
+                      category:
+                        cashOpType === "expense"
+                          ? (cashOpCat as
+                              | "ijara"
+                              | "gaz"
+                              | "elektr"
+                              | "ish_haqi"
+                              | "jihoz"
+                              | "boshqa"
+                              | "ega_oldi")
+                          : undefined,
+                      note: cashOpNote.trim() || undefined,
+                    });
+                    setShowCashOp(false);
+                  } catch (e) {
+                    alert(e instanceof Error ? e.message : "Операция қўшилмади");
+                  } finally {
+                    setCashOpBusy(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-brand-deep py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+              >
+                {cashOpBusy ? "…" : "+ Қўшиш"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🕐 Тўлиқ-экран соат (☰ панел → Соат) — экранга бос ёпилади */}
       {showClock && (

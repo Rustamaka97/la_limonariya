@@ -714,6 +714,19 @@ export const cashCollections = pgTable("cash_collections", {
     .defaultNow(),
 });
 
+// Касса кирими (CloPOS «Доход»): кассага нақд кирим (қайтган аванс, топилган
+// пул, эга қўшди...) — директор кунлик санашида expectedCash'га + қўшилади,
+// акс ҳолда сохта ортиқча кўринади. Изоҳ мажбурий. Кассир терминалдан киритади.
+export const cashIncome = pgTable("cash_income", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  amount: integer("amount").notNull(),
+  note: text("note").notNull(),
+  performedById: uuid("performed_by_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // One physical cash count per operational day (директор санайди, камомад кўради).
 // Смена = business day (битта кассир, битта смена/кун). "Очиш" — кассир
 // PIN билан кириб куннинг бошланганини қайд этади (размен ҳар доим TILL_FLOAT,

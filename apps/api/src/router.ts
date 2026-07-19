@@ -25,6 +25,7 @@ import {
   assets,
   auditLog,
   cashCollections,
+  cashIncome,
   customerWalletMovements,
   categories,
   clientOps,
@@ -4328,6 +4329,51 @@ export const appRouter = router({
           entityId: input.orderId,
           summary:
             input.amount > 0 ? `Чегирма: ${input.amount} (${input.reason})` : "Чегирма олиб ташланди",
+        });
+        return { ok: true };
+      }),
+
+    // 💰 Касса операция (CloPOS «Добавить операцию») — кассир терминалдан:
+    // расход/доход/инкассация. Ҳар бири касса нақд балансига таъсир → audit_log.
+    cashOp: cashierProcedure
+      .input(
+        z.object({
+          type: z.enum(["expense", "income", "collection"]),
+          amount: z.number().int().positive(),
+          category: z
+            .enum(["ijara", "gaz", "elektr", "ish_haqi", "jihoz", "boshqa", "ega_oldi"])
+            .optional(),
+          note: z.string().trim().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { type, amount } = input;
+        const note = input.note?.trim() || null;
+        if (type === "expense") {
+          await db.insert(expenses).values({
+            category: input.category ?? "boshqa",
+            amount,
+            method: "cash",
+            note,
+            createdById: ctx.user.id,
+          });
+        } else if (type === "collection") {
+          if (!note)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Инкассацияга изоҳ мажбурий" });
+          await db.insert(cashCollections).values({ amount, note, performedById: ctx.user.id });
+        } else {
+          if (!note)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Даромадга изоҳ мажбурий" });
+          await db.insert(cashIncome).values({ amount, note, performedById: ctx.user.id });
+        }
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: `cash.${type}`,
+          entity: "cash",
+          summary: `${
+            type === "expense" ? "Расход" : type === "income" ? "Доход" : "Инкассация"
+          }: ${amount.toLocaleString()} so'm`,
+          meta: { type, amount, category: input.category, note },
         });
         return { ok: true };
       }),
