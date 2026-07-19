@@ -3,6 +3,7 @@ import { Login } from "./Login";
 import { Shell } from "./Shell";
 import { CallPage } from "./CallPage";
 import { CallAlerts } from "./CallAlerts";
+import { TableQrPage } from "./TableQrPage";
 import { BillPage } from "./BillPage";
 import { GuestMenuPage } from "./GuestMenuPage";
 import { idbGet, idbSet } from "./lib/idb";
@@ -66,6 +67,9 @@ function MainApp() {
     );
   }
   if (!user) return <Login onSuccess={setUser} />;
+  // Директор стол QR принт-саҳифаси (?tableqr) — логин керак, фақат директор.
+  if (user.role === "director" && new URLSearchParams(window.location.search).has("tableqr"))
+    return <TableQrPage />;
   return (
     <>
       <Shell user={user} onLogout={() => setUser(null)} />
