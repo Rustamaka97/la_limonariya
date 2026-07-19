@@ -35,11 +35,16 @@ const TOOL_POS: Record<string, string> = {
   split: "0% 50%", card: "50% 50%", lock: "100% 50%",
   printer: "0% 100%", user: "50% 100%", more: "100% 100%",
 };
+// ?toolbar=gold|glass|enamel|clay URL параметр билан вариант танланади (дефолт = металл-олтин).
+const TOOL_VARIANT = (() => {
+  const v = new URLSearchParams(window.location.search).get("toolbar");
+  return v && ["gold", "glass", "enamel", "clay"].includes(v) ? v : "gold";
+})();
 function ToolIcon({ k, className = "h-7 w-7" }: { k: string; className?: string }) {
   return (
     <span
       className={`inline-block shrink-0 bg-no-repeat ${className}`}
-      style={{ backgroundImage: "url(/brand/icons-toolbar-clay.webp)", backgroundSize: "300% 300%", backgroundPosition: TOOL_POS[k] }}
+      style={{ backgroundImage: `url(/brand/icons-toolbar-${TOOL_VARIANT}.webp)`, backgroundSize: "300% 300%", backgroundPosition: TOOL_POS[k] }}
       aria-hidden="true"
     />
   );
@@ -2185,6 +2190,11 @@ function OrderView({
   const [discAmount, setDiscAmount] = useState("");
   const [discReason, setDiscReason] = useState("");
   const [discBusy, setDiscBusy] = useState(false);
+  // 👥 Гости сони + 🚚 тип продажи (CloPOS ⋯ меню).
+  const [showGuests, setShowGuests] = useState(false);
+  const [guestsInput, setGuestsInput] = useState("");
+  const [guestsBusy, setGuestsBusy] = useState(false);
+  const [showSaleType, setShowSaleType] = useState(false);
   const [showMore, setShowMore] = useState(false); // ⋯ қўшимча амаллар менюси (CloPOS)
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
@@ -3606,6 +3616,29 @@ function OrderView({
               >
                 <ISwap className="h-5 w-5 text-clopos-icon" /> Бошқа столга кўчириш
               </button>
+              {/* 👥 Меҳмонлар сони (CloPOS «Изменить кол-во гостей») */}
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  setShowGuests(true);
+                  setGuestsInput(order.guests ? String(order.guests) : "");
+                }}
+                disabled={!online || order.locked}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+              >
+                <IUsers className="h-5 w-5 text-clopos-icon" /> Меҳмонлар сони{order.guests ? ` (${order.guests})` : ""}
+              </button>
+              {/* 🚚 Тип продажи (CloPOS «Изменить тип продажи») — зал/доставка/собой */}
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  setShowSaleType(true);
+                }}
+                disabled={!online || order.locked}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+              >
+                <IMoped className="h-5 w-5 text-clopos-icon" /> Тип продажи
+              </button>
               {tickets.length > 0 && (
                 <button
                   onClick={() => {
@@ -3640,6 +3673,95 @@ function OrderView({
                 <ITrash className="h-5 w-5" /> Заказни бекор қилиш
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* МЕҲМОНЛАР СОНИ MODAL (CloPOS «Изменить кол-во гостей») */}
+      {showGuests && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowGuests(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-3 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-[15px] font-bold text-brand-ink">Меҳмонлар сони</h3>
+            <input
+              value={guestsInput}
+              onChange={(e) => setGuestsInput(e.target.value.replace(/[^0-9]/g, ""))}
+              inputMode="numeric"
+              autoFocus
+              placeholder="Нечта меҳмон?"
+              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowGuests(false)}
+                className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
+              >
+                Бекор
+              </button>
+              <button
+                disabled={guestsBusy}
+                onClick={async () => {
+                  setGuestsBusy(true);
+                  try {
+                    await trpc.pos.updateMeta.mutate({ id, guests: Number(guestsInput) || 0 });
+                    setShowGuests(false);
+                    await refresh();
+                  } catch (e) {
+                    setSyncErr(e instanceof Error ? e.message : "Сақланмади");
+                  } finally {
+                    setGuestsBusy(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-brand-deep py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+              >
+                {guestsBusy ? "…" : "Сақлаш"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ТИП ПРОДАЖИ MODAL (CloPOS «Изменить тип продажи») — зал/доставка/собой */}
+      {showSaleType && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowSaleType(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-2 rounded-t-3xl bg-white p-4 shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="px-1 pb-1 text-[15px] font-bold text-brand-ink">Тип продажи</h3>
+            {(
+              [
+                ["dine_in", "🍽 Залда", "Зал сервиси (10%)"],
+                ["delivery", "🚚 Доставка", "Хизмат ҳақисиз"],
+                ["takeaway", "🥡 Собой", "Олиб кетиш, хизмат ҳақисиз"],
+              ] as const
+            ).map(([st, label, sub]) => (
+              <button
+                key={st}
+                onClick={async () => {
+                  setShowSaleType(false);
+                  await changeSaleType(st);
+                }}
+                className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition ${
+                  order.saleType === st
+                    ? "border-brand-deep bg-brand-deep/5"
+                    : "border-clopos-line hover:bg-clopos-bg"
+                }`}
+              >
+                <span className="text-[14px] text-brand-ink">{label}</span>
+                <span className="text-[11px] text-zinc-400">
+                  {order.saleType === st ? "✓ жорий" : sub}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}
