@@ -59,6 +59,7 @@ type MenuItem = {
   category: string | null;
   stopped: boolean;
   soldByWeight?: boolean;
+  isFavorite?: boolean;
 };
 type OpenOrder = {
   id: string;
@@ -2565,6 +2566,7 @@ function OrderView({
   const [menuCat, setMenuCat] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [portionsOnly, setPortionsOnly] = useState(false); // CloPOS «Продажи по порциям»
+  const [favOnly, setFavOnly] = useState(false); // CloPOS ★ — фақат севимли таомлар
   const [unsent, setUnsent] = useState(0);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -3018,6 +3020,7 @@ function OrderView({
   const filtered = menu
     .filter((m) => !menuCat || m.category === menuCat)
     .filter((m) => !portionsOnly || m.soldByWeight)
+    .filter((m) => !favOnly || m.isFavorite)
     .filter((m) => !q || m.name.toLowerCase().includes(q.toLowerCase()));
   const shown = filtered.slice(0, 120);
   const itemCount = order.items.reduce((s, it) => s + it.qty, 0);
@@ -3070,6 +3073,17 @@ function OrderView({
       setSyncErr(e instanceof Error ? e.message : "Стоп сақланмади");
     } finally {
       setStopBusy(null);
+    }
+  }
+
+  // Севимли toggle (CloPOS ★) — менежер+, оптимистик.
+  async function toggleFav(pId: string, next: boolean) {
+    setMenu((mm) => mm.map((x) => (x.id === pId ? { ...x, isFavorite: next } : x)));
+    try {
+      await trpc.catalog.products.setFavorite.mutate({ id: pId, isFavorite: next });
+    } catch (e) {
+      setMenu((mm) => mm.map((x) => (x.id === pId ? { ...x, isFavorite: !next } : x)));
+      setSyncErr(e instanceof Error ? e.message : "Севимли сақланмади");
     }
   }
 
@@ -3490,6 +3504,22 @@ function OrderView({
                 </button>
               )}
               <button
+                onClick={() => {
+                  setFavOnly((v) => !v);
+                  setMenuCat(null);
+                  setQ("");
+                  setPortionsOnly(false);
+                }}
+                title="Севимли таомлар (★)"
+                className={`grid h-[30px] w-8 place-items-center rounded-[4px] shadow-[0_1px_2px_rgba(0,0,0,.08)] transition ${
+                  favOnly ? "bg-clopos-bar text-white" : "bg-white text-[#F5A623] hover:brightness-95"
+                }`}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill={favOnly ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                  <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18l-6 3.4 1.4-6.8L2.3 9.9l6.9-.8z" />
+                </svg>
+              </button>
+              <button
                 onClick={() => { setMenuCat(null); setQ(""); }}
                 title="Категория-сетка"
                 className="grid h-[30px] w-8 place-items-center rounded-[4px] bg-white shadow-[0_1px_2px_rgba(0,0,0,.08)] transition hover:brightness-95"
@@ -3517,7 +3547,7 @@ function OrderView({
           )}
           {/* CloPOS drill-down: қидирув/фильтрсиз — 5× КАТЕГОРИЯ-СЕТКА (бирюза,
               handoff-макет); категория/қидирув танланса — таомлар. */}
-          {!q && !menuCat && !portionsOnly ? (
+          {!q && !menuCat && !portionsOnly && !favOnly ? (
             <div className="grid grid-cols-2 gap-[7px] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {menuCats.map((c) => (
                 <button
@@ -3567,11 +3597,47 @@ function OrderView({
                       key={m.id}
                       onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
                       disabled={m.stopped}
-                      className={`flex min-h-[76px] flex-col justify-between rounded-[2px] bg-white p-2.5 text-left shadow-[2px_3px_0_0_rgba(0,0,0,.14)] transition ${
+                      className={`relative flex min-h-[76px] flex-col justify-between rounded-[2px] bg-white p-2.5 text-left shadow-[2px_3px_0_0_rgba(0,0,0,.14)] transition ${
                         m.stopped ? "opacity-50 grayscale" : "hover:bg-brand-cream-soft active:brightness-95"
                       }`}
                     >
-                      <span className="line-clamp-2 text-[13px] font-semibold leading-tight text-brand-ink">
+                      {(m.isFavorite || isManager) && (
+                        <span
+                          onClick={
+                            isManager
+                              ? (e) => {
+                                  e.stopPropagation();
+                                  vibrate(8);
+                                  void toggleFav(m.id, !m.isFavorite);
+                                }
+                              : undefined
+                          }
+                          title={
+                            isManager
+                              ? m.isFavorite
+                                ? "Севимлидан олиш"
+                                : "Севимлига қўшиш"
+                              : undefined
+                          }
+                          className={`absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center ${
+                            isManager ? "cursor-pointer" : ""
+                          }`}
+                        >
+                          <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill={m.isFavorite ? "#F5A623" : "none"}
+                            stroke="#F5A623"
+                            strokeWidth={m.isFavorite ? 0 : 1.6}
+                            opacity={m.isFavorite ? 1 : 0.35}
+                            aria-hidden="true"
+                          >
+                            <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18l-6 3.4 1.4-6.8L2.3 9.9l6.9-.8z" />
+                          </svg>
+                        </span>
+                      )}
+                      <span className="line-clamp-2 pr-4 text-[13px] font-semibold leading-tight text-brand-ink">
                         {m.name}
                       </span>
                       <span className="mt-1.5 flex items-end justify-between gap-1.5">

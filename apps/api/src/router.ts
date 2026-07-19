@@ -2279,6 +2279,30 @@ export const appRouter = router({
           });
         }),
 
+      // Севимли toggle (CloPOS ★): менежер+ белгилайди — POS'да тезкор фильтр.
+      setFavorite: managerProcedure
+        .input(z.object({ id: z.string().uuid(), isFavorite: z.boolean() }))
+        .mutation(async ({ input, ctx }) => {
+          return db.transaction(async (tx) => {
+            const row = (
+              await tx
+                .update(products)
+                .set({ isFavorite: input.isFavorite })
+                .where(eq(products.id, input.id))
+                .returning({ id: products.id, name: products.name })
+            )[0];
+            if (!row) throw new TRPCError({ code: "NOT_FOUND" });
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: input.isFavorite ? "product.favorite" : "product.unfavorite",
+              entity: "product",
+              entityId: row.id,
+              summary: `${row.name} — ${input.isFavorite ? "севимлига қўшилди" : "севимлидан олинди"}`,
+            });
+            return { ok: true };
+          });
+        }),
+
       create: directorProcedure
         .input(
           z.object({
@@ -3787,6 +3811,8 @@ export const appRouter = router({
           stopped: products.stopped,
           // Оғирлик билан сотилади (гўшт кг) → плитка босилганда вазн сўралади.
           soldByWeight: products.soldByWeight,
+          // Севимли (CloPOS ★): POS тезкор фильтр.
+          isFavorite: products.isFavorite,
         })
         .from(products)
         .leftJoin(categories, eq(products.categoryId, categories.id))

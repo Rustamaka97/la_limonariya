@@ -107,6 +107,9 @@ export const products = pgTable("products", {
   // Стоп-лист: таом вақтинча тугади — менюда хира «СТОП», addItem рад этади.
   // active'дан фарқи: вақтинчалик ва кассир ҳам қўя олади (тез реакция).
   stopped: boolean("stopped").notNull().default(false),
+  // Севимли (CloPOS ★): POS'да тезкор фильтр — энг кўп сотиладиган таомлар.
+  // Кассир кўради/фильтрлайди, менежер+ белгилайди.
+  isFavorite: boolean("is_favorite").notNull().default(false),
   active: boolean("active").notNull().default(true),
   branchId: uuid("branch_id").references(() => branches.id),
   createdAt: timestamp("created_at", { withTimezone: true })
