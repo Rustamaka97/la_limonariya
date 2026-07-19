@@ -6157,7 +6157,14 @@ export const appRouter = router({
         .query(async ({ input }) => {
           const q = input.query?.trim();
           const rows = await db
-            .select({ id: customers.id, name: customers.name, phone: customers.phone })
+            .select({
+              id: customers.id,
+              name: customers.name,
+              phone: customers.phone,
+              // CloPOS каби детал: ҳамён баланси (±қарз) + ёпилган чеклар сони.
+              balance: sql<number>`coalesce((select sum(${customerWalletMovements.amount}) from ${customerWalletMovements} where ${customerWalletMovements.customerId} = ${customers.id}), 0)`.mapWith(Number),
+              checks: sql<number>`coalesce((select count(*) from ${orders} where ${orders.customerId} = ${customers.id} and ${orders.status} = 'closed'), 0)`.mapWith(Number),
+            })
             .from(customers)
             .where(
               q

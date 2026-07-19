@@ -2184,7 +2184,9 @@ function OrderView({
   // 👤 Мижоз бириктириш + 🏷 чегирма (CloPOS ⋯ меню).
   const [showCustomer, setShowCustomer] = useState(false);
   const [custQuery, setCustQuery] = useState("");
-  const [custResults, setCustResults] = useState<{ id: string; name: string; phone: string | null }[]>([]);
+  const [custResults, setCustResults] = useState<
+    { id: string; name: string; phone: string | null; balance: number; checks: number }[]
+  >([]);
   const [custBusy, setCustBusy] = useState(false);
   const [showDiscMenu, setShowDiscMenu] = useState(false);
   const [discAmount, setDiscAmount] = useState("");
@@ -3847,8 +3849,27 @@ function OrderView({
                         }}
                         className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition hover:bg-clopos-bg disabled:opacity-50"
                       >
-                        <span className="text-[14px] text-brand-ink">{c.name}</span>
-                        {c.phone && <span className="text-[12px] text-zinc-400">{c.phone}</span>}
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate text-[14px] text-brand-ink">{c.name}</span>
+                          {c.phone && <span className="text-[11px] text-zinc-400">{c.phone}</span>}
+                        </span>
+                        <span className="flex shrink-0 flex-col items-end">
+                          <span
+                            className={`text-[13px] font-medium ${
+                              c.balance < 0
+                                ? "text-red-600"
+                                : c.balance > 0
+                                  ? "text-emerald-600"
+                                  : "text-zinc-300"
+                            }`}
+                          >
+                            {c.balance !== 0 ? `${c.balance.toLocaleString()} so'm` : "—"}
+                          </span>
+                          <span className="text-[10px] text-zinc-400">
+                            {c.balance < 0 ? "қарз · " : ""}
+                            {c.checks} чек
+                          </span>
+                        </span>
                       </button>
                     </li>
                   ))}
