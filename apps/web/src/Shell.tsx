@@ -22,6 +22,26 @@ import { Vitrina } from "./Vitrina";
 import { trpc } from "./trpc";
 import { IMenu, IBell, ILogout, IPencil, IWarn } from "./icons";
 
+// POS иконка стил синови — Higgsfield премиум сет (расмдан crop). URL: ?icons=clay|material.
+const ICON_SHEET: Record<string, { img: string; size: string }> = {
+  clay: { img: "/brand/icons-clay.webp", size: "300% 300%" },
+  material: { img: "/brand/icons-material.webp", size: "400% 400%" },
+};
+const ICON_POS: Record<string, Record<string, string>> = {
+  clay: { dashboard: "0% 0%", cash: "50% 0%", chef: "100% 0%", chart: "100% 50%", gift: "0% 50%", receipt: "50% 50%", staff: "100% 100%" },
+  material: { dashboard: "0% 0%", cash: "33.33% 0%", chef: "66.67% 0%", chart: "100% 0%", gift: "0% 33.33%", receipt: "33.33% 33.33%", staff: "100% 100%" },
+};
+function NavIcon({ k, sheet }: { k?: string; sheet: string | null }) {
+  if (!k || !sheet || !ICON_SHEET[sheet] || !ICON_POS[sheet]?.[k]) return null;
+  return (
+    <span
+      className="mr-1.5 inline-block h-5 w-5 shrink-0 rounded align-[-4px] bg-no-repeat"
+      style={{ backgroundImage: `url(${ICON_SHEET[sheet].img})`, backgroundSize: ICON_SHEET[sheet].size, backgroundPosition: ICON_POS[sheet][k] }}
+      aria-hidden="true"
+    />
+  );
+}
+
 const ROLE_LABEL: Record<string, string> = {
   director: "Директор",
   manager: "Менежер",
@@ -109,14 +129,15 @@ export function Shell({
     onLogout();
   }
 
-  const tabs: { key: Tab; label: string }[] = [
-    ...(isDirector ? [{ key: "dashboard" as Tab, label: "Бошқарув" }] : []),
-    ...(isDirector ? [{ key: "tv" as Tab, label: "📺 ТВ" }] : []),
-    ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика" }] : []),
+  const iconStyle = new URLSearchParams(window.location.search).get("icons");
+  const tabs: { key: Tab; label: string; icon?: string }[] = [
+    ...(isDirector ? [{ key: "dashboard" as Tab, label: "Бошқарув", icon: "dashboard" }] : []),
+    ...(isDirector ? [{ key: "tv" as Tab, label: "ТВ" }] : []),
+    ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика", icon: "chart" }] : []),
     ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия" }] : []),
-    ...(canPos ? [{ key: "pos" as Tab, label: "Касса" }] : []),
+    ...(canPos ? [{ key: "pos" as Tab, label: "Касса", icon: "cash" }] : []),
     ...(["director", "manager", "cashier"].includes(user.role)
-      ? [{ key: "chekQidirish" as Tab, label: "Чек қидириш" }]
+      ? [{ key: "chekQidirish" as Tab, label: "Чек қидириш", icon: "receipt" }]
       : []),
     ...(canObvalka ? [{ key: "harid" as Tab, label: "Харид" }] : []),
     ...(canObvalka ? [{ key: "obvalka" as Tab, label: "Обвалка" }] : []),
@@ -127,7 +148,7 @@ export function Shell({
       ? [{ key: "assets" as Tab, label: "Инвентарь" }]
       : []),
     ...(["director", "manager"].includes(user.role)
-      ? [{ key: "vitrina" as Tab, label: "Витрина" }, { key: "kds" as Tab, label: "🍳 KDS" }]
+      ? [{ key: "vitrina" as Tab, label: "Витрина" }, { key: "kds" as Tab, label: "KDS", icon: "chef" }]
       : []),
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "ombor" as Tab, label: "Омбор" }]
@@ -136,12 +157,12 @@ export function Shell({
       ? [{ key: "hisobot" as Tab, label: "Ҳисобот" }]
       : []),
     ...(["director", "manager"].includes(user.role)
-      ? [{ key: "mijozlar" as Tab, label: "🎁 Мижозлар" }]
+      ? [{ key: "mijozlar" as Tab, label: "Мижозлар", icon: "gift" }]
       : []),
     ...(isDirector ? [{ key: "taannarx" as Tab, label: "Таннарх" }] : []),
     { key: "catalog", label: "Каталог" },
     { key: "recipes", label: "Рецептлар" },
-    ...(isDirector ? [{ key: "staff" as Tab, label: "Ходимлар" }] : []),
+    ...(isDirector ? [{ key: "staff" as Tab, label: "Ходимлар", icon: "staff" }] : []),
   ];
 
   return (
@@ -198,6 +219,7 @@ export function Shell({
                         tab === t.key ? "bg-brand text-white" : "text-zinc-600 hover:bg-zinc-100"
                       }`}
                     >
+                      <NavIcon k={t.icon} sheet={iconStyle} />
                       {t.label}
                     </button>
                   ))}
@@ -237,6 +259,7 @@ export function Shell({
                     : "text-zinc-500 hover:bg-zinc-100"
                 }`}
               >
+                <NavIcon k={t.icon} sheet={iconStyle} />
                 {t.label}
               </button>
             ))}
