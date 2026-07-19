@@ -220,6 +220,45 @@ function vibrate(pattern: number | number[]) {
   if ("vibrate" in navigator) navigator.vibrate(pattern);
 }
 
+// CloPOS рақам-клавиатура (numpad) — тўлов/скидка/касса/гости сумма киритиш.
+// Reusable: onKey(рақам) кетма-кет босилади, onBackspace ⌫, onClear (ихтиёрий) С.
+function NumPad({
+  onKey,
+  onBackspace,
+  onClear,
+  className = "",
+}: {
+  onKey: (d: string) => void;
+  onBackspace: () => void;
+  onClear?: () => void;
+  className?: string;
+}) {
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", onClear ? "C" : "000", "0", "⌫"];
+  return (
+    <div className={`grid grid-cols-3 gap-2 ${className}`}>
+      {keys.map((k) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => {
+            vibrate(8);
+            if (k === "⌫") onBackspace();
+            else if (k === "C") onClear?.();
+            else onKey(k);
+          }}
+          className={`rounded-xl border border-clopos-line py-3.5 text-[20px] font-semibold shadow-sm transition active:scale-95 ${
+            k === "⌫" || k === "C"
+              ? "bg-clopos-bg text-zinc-500 active:bg-zinc-200"
+              : "bg-white text-brand-ink active:bg-clopos-bg"
+          }`}
+        >
+          {k}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // Category colour-coding — fast visual scanning (Clopos has none).
 const CAT_COLORS: [RegExp, string][] = [
   [/шашлик/i, "#c1502e"],
@@ -1092,72 +1131,94 @@ function FloorView({
         </div>
       )}
 
-      {/* 💵 КАССА ОПЕРАЦИЯ MODAL (CloPOS «Добавить операцию») — расход/доход/инкассация */}
+      {/* 💵 КАССА ОПЕРАЦИЯ MODAL (CloPOS «Добавить операцию») — расход/доход/инкассация + numpad */}
       {showCashOp && (
         <div
           className="fixed inset-0 z-[60] flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
           onClick={() => setShowCashOp(false)}
         >
           <div
-            className="w-full max-w-sm space-y-3 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            className="flex max-h-[94vh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[15px] font-bold text-brand-ink">Касса операция</h3>
-            <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
-              {(
-                [
-                  ["expense", "Расход"],
-                  ["income", "Доход"],
-                  ["collection", "Инкассация"],
-                ] as const
-              ).map(([t, label]) => (
-                <button
-                  key={t}
-                  onClick={() => setCashOpType(t)}
-                  className={`flex-1 rounded-lg py-1.5 font-medium transition ${
-                    cashOpType === t ? "bg-brand-deep text-white" : "text-brand-ink hover:bg-clopos-bg"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <input
-              value={cashOpAmount}
-              onChange={(e) => setCashOpAmount(e.target.value.replace(/[^0-9]/g, ""))}
-              inputMode="numeric"
-              autoFocus
-              placeholder="Сумма (so'm)"
-              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
-            />
-            {cashOpType === "expense" && (
-              <select
-                value={cashOpCat}
-                onChange={(e) => setCashOpCat(e.target.value)}
-                className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+            {/* Header — CloPOS «Добавить операцию» */}
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">Касса операция</h3>
+              <button
+                onClick={() => setShowCashOp(false)}
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
               >
-                {[
-                  ["ijara", "Ижара"],
-                  ["gaz", "Газ"],
-                  ["elektr", "Электр"],
-                  ["ish_haqi", "Иш ҳақи"],
-                  ["jihoz", "Жиҳоз"],
-                  ["boshqa", "Бошқа"],
-                  ["ega_oldi", "Эга олди"],
-                ].map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              {/* Тип операции — CloPOS таблар */}
+              <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
+                {(
+                  [
+                    ["expense", "Расход"],
+                    ["income", "Доход"],
+                    ["collection", "Инкассация"],
+                  ] as const
+                ).map(([t, label]) => (
+                  <button
+                    key={t}
+                    onClick={() => setCashOpType(t)}
+                    className={`flex-1 rounded-lg py-1.5 font-medium transition ${
+                      cashOpType === t ? "bg-brand-deep text-white" : "text-brand-ink hover:bg-clopos-bg"
+                    }`}
+                  >
+                    {label}
+                  </button>
                 ))}
-              </select>
-            )}
-            <input
-              value={cashOpNote}
-              onChange={(e) => setCashOpNote(e.target.value)}
-              placeholder={cashOpType === "expense" ? "Изоҳ" : "Изоҳ (мажбурий)"}
-              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
-            />
-            <div className="flex gap-2 pt-1">
+              </div>
+              {/* Катта Сумма дисплей — numpad инпути */}
+              <div className="rounded-xl border border-clopos-line bg-clopos-bg/40 px-4 py-2.5 text-right">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Сумма</span>
+                <div className="text-[28px] font-bold leading-tight text-brand-deep tabular-nums">
+                  {cashOpAmount ? Number(cashOpAmount).toLocaleString() : "0"}
+                  <span className="ml-1 text-[15px] font-medium text-zinc-400">so'm</span>
+                </div>
+              </div>
+              <NumPad
+                onKey={(d) =>
+                  setCashOpAmount((v) => (v + d).replace(/^0+(?=\d)/, "").slice(0, 12))
+                }
+                onBackspace={() => setCashOpAmount((v) => v.slice(0, -1))}
+                onClear={() => setCashOpAmount("")}
+              />
+              {/* Категория (фақат расход) */}
+              {cashOpType === "expense" && (
+                <select
+                  value={cashOpCat}
+                  onChange={(e) => setCashOpCat(e.target.value)}
+                  className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+                >
+                  {[
+                    ["ijara", "Ижара"],
+                    ["gaz", "Газ"],
+                    ["elektr", "Электр"],
+                    ["ish_haqi", "Иш ҳақи"],
+                    ["jihoz", "Жиҳоз"],
+                    ["boshqa", "Бошқа"],
+                    ["ega_oldi", "Эга олди"],
+                  ].map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {/* Описание */}
+              <input
+                value={cashOpNote}
+                onChange={(e) => setCashOpNote(e.target.value)}
+                placeholder={cashOpType === "expense" ? "Изоҳ" : "Изоҳ (мажбурий)"}
+                className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+              />
+            </div>
+            {/* Footer — тугмалар */}
+            <div className="flex gap-2 border-t border-clopos-line p-4">
               <button
                 onClick={() => setShowCashOp(false)}
                 className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
@@ -1165,7 +1226,11 @@ function FloorView({
                 Бекор
               </button>
               <button
-                disabled={cashOpBusy || !cashOpAmount || (cashOpType !== "expense" && !cashOpNote.trim())}
+                disabled={
+                  cashOpBusy ||
+                  Number(cashOpAmount) < 1 ||
+                  (cashOpType !== "expense" && !cashOpNote.trim())
+                }
                 onClick={async () => {
                   setCashOpBusy(true);
                   try {
@@ -1185,6 +1250,8 @@ function FloorView({
                           : undefined,
                       note: cashOpNote.trim() || undefined,
                     });
+                    setCashOpAmount("");
+                    setCashOpNote("");
                     setShowCashOp(false);
                   } catch (e) {
                     alert(e instanceof Error ? e.message : "Операция қўшилмади");
@@ -4020,19 +4087,37 @@ function OrderView({
           onClick={() => setShowGuests(false)}
         >
           <div
-            className="w-full max-w-sm space-y-3 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            className="flex max-h-[94vh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[15px] font-bold text-brand-ink">Меҳмонлар сони</h3>
-            <input
-              value={guestsInput}
-              onChange={(e) => setGuestsInput(e.target.value.replace(/[^0-9]/g, ""))}
-              inputMode="numeric"
-              autoFocus
-              placeholder="Нечта меҳмон?"
-              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
-            />
-            <div className="flex gap-2">
+            {/* Header — CloPOS «Изменить кол-во гостей» */}
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">Меҳмонлар сони</h3>
+              <button
+                onClick={() => setShowGuests(false)}
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              {/* Катта дисплей — numpad инпути */}
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-clopos-line bg-clopos-bg/40 py-4">
+                <IUsers className="h-7 w-7 text-brand" />
+                <span className="text-[36px] font-bold leading-none text-brand-deep tabular-nums">
+                  {guestsInput || "0"}
+                </span>
+              </div>
+              <NumPad
+                onKey={(d) =>
+                  setGuestsInput((v) => (v + d).replace(/^0+(?=\d)/, "").slice(0, 2))
+                }
+                onBackspace={() => setGuestsInput((v) => v.slice(0, -1))}
+                onClear={() => setGuestsInput("")}
+              />
+            </div>
+            {/* Footer — тугмалар */}
+            <div className="flex gap-2 border-t border-clopos-line p-4">
               <button
                 onClick={() => setShowGuests(false)}
                 className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
@@ -4040,7 +4125,7 @@ function OrderView({
                 Бекор
               </button>
               <button
-                disabled={guestsBusy}
+                disabled={guestsBusy || Number(guestsInput) < 1}
                 onClick={async () => {
                   setGuestsBusy(true);
                   try {
@@ -4220,47 +4305,84 @@ function OrderView({
           onClick={() => setShowDiscMenu(false)}
         >
           <div
-            className="w-full max-w-sm space-y-3 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            className="flex max-h-[94vh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[15px] font-bold text-brand-ink">Чегирма</h3>
-            {/* Сумма / % тоггл (CloPOS каби) */}
-            <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
-              {(["sum", "pct"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setDiscMode(m)}
-                  className={`flex-1 rounded-lg py-1.5 font-medium transition ${
-                    discMode === m ? "bg-brand-deep text-white" : "text-brand-ink hover:bg-clopos-bg"
-                  }`}
-                >
-                  {m === "sum" ? "Сумма (so'm)" : "Фоиз (%)"}
-                </button>
-              ))}
+            {/* Header — CloPOS «Скидка» */}
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">Чегирма</h3>
+              <button
+                onClick={() => setShowDiscMenu(false)}
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
             </div>
-            <input
-              value={discAmount}
-              onChange={(e) => setDiscAmount(e.target.value.replace(/[^0-9]/g, ""))}
-              inputMode="numeric"
-              placeholder={discMode === "pct" ? "Фоиз (масалан 10)" : "Сумма (so'm)"}
-              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
-            />
-            {discMode === "pct" && !!discAmount && (
-              <p className="px-1 text-[12px] text-zinc-500">
-                ={" "}
-                {Math.round(
-                  (order.items.reduce((s, i) => s + i.price * i.qty, 0) * Number(discAmount)) / 100,
-                ).toLocaleString()}{" "}
-                so'm чегирма
-              </p>
-            )}
-            <input
-              value={discReason}
-              onChange={(e) => setDiscReason(e.target.value)}
-              placeholder="Сабаб (мажбурий)"
-              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
-            />
-            <div className="flex gap-2 pt-1">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              {/* Сумма / % тоггл (CloPOS каби) */}
+              <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
+                {(["sum", "pct"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setDiscMode(m)}
+                    className={`flex-1 rounded-lg py-1.5 font-medium transition ${
+                      discMode === m ? "bg-brand-deep text-white" : "text-brand-ink hover:bg-clopos-bg"
+                    }`}
+                  >
+                    {m === "sum" ? "Сумма (so'm)" : "Фоиз (%)"}
+                  </button>
+                ))}
+              </div>
+              {/* Катта дисплей — numpad инпути */}
+              <div className="rounded-xl border border-clopos-line bg-clopos-bg/40 px-4 py-2.5 text-right">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Чегирма</span>
+                <div className="text-[28px] font-bold leading-tight text-brand-deep tabular-nums">
+                  {discMode === "pct" ? (
+                    <>
+                      {discAmount || "0"}
+                      <span className="ml-0.5 text-[18px] font-medium text-zinc-400">%</span>
+                    </>
+                  ) : (
+                    <>
+                      {discAmount ? Number(discAmount).toLocaleString() : "0"}
+                      <span className="ml-1 text-[15px] font-medium text-zinc-400">so'm</span>
+                    </>
+                  )}
+                </div>
+                {discMode === "pct" && !!discAmount && (
+                  <p className="text-[12px] text-zinc-500">
+                    ={" "}
+                    {Math.round(
+                      (order.items.reduce((s, i) => s + i.price * i.qty, 0) * Number(discAmount)) / 100,
+                    ).toLocaleString()}{" "}
+                    so'm
+                  </p>
+                )}
+              </div>
+              <NumPad
+                onKey={(d) =>
+                  setDiscAmount((v) => {
+                    let nv = (v + d).replace(/^0+(?=\d)/, "");
+                    if (discMode === "pct") {
+                      nv = nv.slice(0, 3);
+                      if (Number(nv) > 100) nv = "100";
+                    } else nv = nv.slice(0, 10);
+                    return nv;
+                  })
+                }
+                onBackspace={() => setDiscAmount((v) => v.slice(0, -1))}
+                onClear={() => setDiscAmount("")}
+              />
+              {/* Сабаб — мажбурий (бизнинг аудит кучлироқ) */}
+              <input
+                value={discReason}
+                onChange={(e) => setDiscReason(e.target.value)}
+                placeholder="Сабаб (мажбурий)"
+                className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+              />
+            </div>
+            {/* Footer — тугмалар */}
+            <div className="flex gap-2 border-t border-clopos-line p-4">
               <button
                 onClick={() => setShowDiscMenu(false)}
                 className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
