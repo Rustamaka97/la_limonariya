@@ -377,6 +377,23 @@ function FloorView({
     refunds: number; total: number; checks: number; guests: number;
     byMethod: Record<string, number>; open: { count: number; sum: number };
   } | null>(null);
+  const [reportFrom, setReportFrom] = useState("");
+  const [reportTo, setReportTo] = useState("");
+  const runReport = async (from: string, to: string) => {
+    setReportBusy(true);
+    setReportData(null);
+    try {
+      const d = await trpc.pos.shiftReport.query({
+        from: new Date(`${from}T06:00`).toISOString(),
+        to: new Date(`${to}T06:00`).toISOString(),
+      });
+      setReportData(d);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Ҳисобот олинмади");
+    } finally {
+      setReportBusy(false);
+    }
+  };
   const [showClock, setShowClock] = useState(false); // 🕐 тўлиқ-экран соат
   const [soundOff, setSoundOff] = useState(() => localStorage.getItem("pos-sound-off") === "1");
   const [hallFilter, setHallFilter] = useState<string>("all");
@@ -821,28 +838,19 @@ function FloorView({
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {cashierUp && (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       setShowPanel(false);
-                      setReportData(null);
-                      setShowReport(true);
-                      setReportBusy(true);
                       const now = new Date();
-                      const from = new Date(now);
-                      from.setHours(6, 0, 0, 0);
-                      if (now.getHours() < 6) from.setDate(from.getDate() - 1);
-                      const to = new Date(from);
-                      to.setDate(to.getDate() + 1);
-                      try {
-                        const d = await trpc.pos.shiftReport.query({
-                          from: from.toISOString(),
-                          to: to.toISOString(),
-                        });
-                        setReportData(d);
-                      } catch (e) {
-                        alert(e instanceof Error ? e.message : "Ҳисобот олинмади");
-                      } finally {
-                        setReportBusy(false);
-                      }
+                      const d0 = new Date(now);
+                      if (now.getHours() < 6) d0.setDate(d0.getDate() - 1);
+                      const from = d0.toISOString().slice(0, 10);
+                      const d1 = new Date(d0);
+                      d1.setDate(d1.getDate() + 1);
+                      const to = d1.toISOString().slice(0, 10);
+                      setReportFrom(from);
+                      setReportTo(to);
+                      setShowReport(true);
+                      void runReport(from, to);
                     }}
                     className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
                   >
@@ -942,76 +950,135 @@ function FloorView({
           onClick={() => setShowReport(false)}
         >
           <div
-            className="flex max-h-[85vh] w-full max-w-sm flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
-              <h3 className="text-[15px] font-bold text-brand-ink">Смена ҳисоботи</h3>
+            {/* Header — CloPOS «Отчет» */}
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">Отчет</h3>
               <button
                 onClick={() => setShowReport(false)}
-                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
               >
                 <span className="text-lg leading-none" aria-hidden>✕</span>
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-5">
-              {reportBusy || !reportData ? (
-                <p className="py-8 text-center text-[13px] text-zinc-400">
-                  {reportBusy ? "Ҳисобланмоқда…" : "Маълумот йўқ"}
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <p className="mb-1 text-[12px] font-semibold uppercase text-zinc-400">Отчет о продажах</p>
-                    {(
-                      [
-                        ["Промежуточный итог", reportData.subtotal],
-                        ["Сервис", reportData.service],
-                        ["Скидка", reportData.discount],
-                        ["Угощение (текин)", reportData.comp],
-                        ["Возврат", reportData.refunds],
-                      ] as const
-                    ).map(([l, v]) => (
-                      <div key={l} className="flex justify-between py-1 text-[14px]">
-                        <span className="text-zinc-500">{l}</span>
-                        <span className="text-brand-ink">{v.toLocaleString()}</span>
-                      </div>
-                    ))}
-                    <div className="mt-1 flex justify-between border-t border-clopos-line pt-2 text-[15px] font-bold">
-                      <span className="text-brand-ink">Сумма</span>
-                      <span className="text-brand-deep">{reportData.total.toLocaleString()} so'm</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-[12px] font-semibold uppercase text-zinc-400">Другие детали</p>
-                    {(
-                      [
-                        ["Меҳмонлар", reportData.guests],
-                        ["Очиқ чеклар", reportData.open.count],
-                        ["Очиқ сумма", reportData.open.sum],
-                      ] as const
-                    ).map(([l, v]) => (
-                      <div key={l} className="flex justify-between py-1 text-[14px]">
-                        <span className="text-zinc-500">{l}</span>
-                        <span className="text-brand-ink">{v.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <p className="mb-1 text-[12px] font-semibold uppercase text-zinc-400">Способы оплаты</p>
-                    {Object.entries(reportData.byMethod).length === 0 ? (
-                      <p className="text-[13px] text-zinc-400">Тўлов йўқ</p>
-                    ) : (
-                      Object.entries(reportData.byMethod).map(([m, v]) => (
-                        <div key={m} className="flex justify-between py-1 text-[14px]">
-                          <span className="capitalize text-zinc-500">{m}</span>
-                          <span className="text-brand-ink">{v.toLocaleString()}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
+            <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+              {/* Чап — форма */}
+              <div className="shrink-0 space-y-3 border-b border-clopos-line bg-white p-4 sm:w-56 sm:border-b-0 sm:border-r">
+                <div>
+                  <label className="mb-1 block text-[12px] font-semibold text-brand-ink">С этой даты</label>
+                  <input
+                    type="date"
+                    value={reportFrom}
+                    onChange={(e) => setReportFrom(e.target.value)}
+                    className="w-full rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] outline-none focus:border-brand-deep"
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="mb-1 block text-[12px] font-semibold text-brand-ink">До этой даты</label>
+                  <input
+                    type="date"
+                    value={reportTo}
+                    onChange={(e) => setReportTo(e.target.value)}
+                    className="w-full rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] outline-none focus:border-brand-deep"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[12px] font-semibold text-brand-ink">Терминалы</label>
+                  <div className="rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] text-zinc-500">Все</div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[12px] font-semibold text-brand-ink">Тип отчета</label>
+                  <div className="rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] text-zinc-500">Стандартный</div>
+                </div>
+                <button
+                  disabled={reportBusy || !reportFrom || !reportTo}
+                  onClick={() => runReport(reportFrom, reportTo)}
+                  className="w-full rounded-xl bg-brand-deep py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+                >
+                  {reportBusy ? "…" : "Создать отчет"}
+                </button>
+              </div>
+              {/* Ўнг — натижа */}
+              <div className="min-h-0 flex-1 overflow-y-auto bg-clopos-bg/40 p-5">
+                {reportBusy || !reportData ? (
+                  <p className="py-10 text-center text-[13px] text-zinc-400">
+                    {reportBusy ? "Ҳисобланмоқда…" : "«Создать отчет» босинг"}
+                  </p>
+                ) : (
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[20px] font-bold text-brand-deep">ЛИМОНАРИЯ</h4>
+                      <button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-[13px] font-semibold text-white transition hover:bg-emerald-600"
+                      >
+                        🖨 Распечатать
+                      </button>
+                    </div>
+                    <p className="text-[12px] text-zinc-400">
+                      {reportFrom} 06:00 — {reportTo} 06:00
+                    </p>
+                    {(
+                      [
+                        [
+                          "Отчет о продажах",
+                          [
+                            ["Промежуточный итог", reportData.subtotal],
+                            ["Налог", 0],
+                            ["Угощение", reportData.comp],
+                            ["Сервис", reportData.service],
+                            ["Скидка", reportData.discount],
+                            ["Стоимость доставки", 0],
+                            ["Возврат товара", reportData.refunds],
+                          ],
+                          ["Сумма", reportData.total],
+                        ],
+                        [
+                          "Другие детали",
+                          [
+                            ["Количество гостей", reportData.guests],
+                            ["Открытые чеки", reportData.open.count],
+                            ["Сумма открытых чеков", reportData.open.sum],
+                          ],
+                          null,
+                        ],
+                        [
+                          "Способы оплаты",
+                          Object.entries(reportData.byMethod).map(([m, v]) => [
+                            ({ cash: "Наличными", card: "Карта", click: "Click", payme: "Payme", humo: "Humo", debt: "Қарз", avans: "Аванс" } as Record<string, string>)[m] ?? m,
+                            v,
+                          ]),
+                          null,
+                        ],
+                      ] as const
+                    ).map(([title, rows, sum]) => (
+                      <div key={title} className="rounded-xl bg-white p-4 shadow-sm">
+                        <p className="mb-2 border-b border-clopos-line pb-1.5 text-center text-[14px] font-bold text-brand-ink">{title}</p>
+                        {(rows as [string, number][]).length === 0 ? (
+                          <p className="text-center text-[13px] text-zinc-400">—</p>
+                        ) : (
+                          (rows as [string, number][]).map(([l, v]) => (
+                            <div key={l} className="flex items-baseline py-1 text-[14px]">
+                              <span className="text-zinc-600">{l}</span>
+                              <span className="mx-2 flex-1 border-b border-dotted border-zinc-300" />
+                              <span className="font-medium text-brand-deep">{v.toLocaleString()}</span>
+                            </div>
+                          ))
+                        )}
+                        {sum && (
+                          <div className="mt-1 flex items-baseline border-t border-clopos-line pt-2 text-[16px] font-bold">
+                            <span className="text-brand-ink">{sum[0]}:</span>
+                            <span className="mx-2 flex-1" />
+                            <span className="text-brand-deep">{sum[1].toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
