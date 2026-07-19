@@ -984,20 +984,28 @@ function FloorView({
                     className="w-full rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] outline-none focus:border-brand-deep"
                   />
                 </div>
-                <div>
-                  <label className="mb-1 block text-[12px] font-semibold text-brand-ink">Терминалы</label>
-                  <div className="rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] text-zinc-500">Все</div>
-                </div>
-                <div>
-                  <label className="mb-1 block text-[12px] font-semibold text-brand-ink">Тип отчета</label>
-                  <div className="rounded-lg border border-clopos-line px-2.5 py-2 text-[13px] text-zinc-500">Стандартный</div>
-                </div>
                 <button
                   disabled={reportBusy || !reportFrom || !reportTo}
                   onClick={() => runReport(reportFrom, reportTo)}
                   className="w-full rounded-xl bg-brand-deep py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
                 >
                   {reportBusy ? "…" : "Создать отчет"}
+                </button>
+                <button
+                  onClick={() => {
+                    const now = new Date();
+                    const d0 = new Date(now);
+                    if (now.getHours() < 6) d0.setDate(d0.getDate() - 1);
+                    const f = d0.toISOString().slice(0, 10);
+                    const d1 = new Date(d0);
+                    d1.setDate(d1.getDate() + 1);
+                    setReportFrom(f);
+                    setReportTo(d1.toISOString().slice(0, 10));
+                    void runReport(f, d1.toISOString().slice(0, 10));
+                  }}
+                  className="w-full rounded-lg border border-clopos-line py-2 text-[13px] font-medium text-brand-ink transition hover:bg-clopos-bg"
+                >
+                  Бугунги смена
                 </button>
               </div>
               {/* Ўнг — натижа */}
