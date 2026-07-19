@@ -3302,6 +3302,45 @@ export const appRouter = router({
     reservations: protectedProcedure.query(async () => {
       const from = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const to = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+      // Авто no-show: бронь вақтидан 45 дақ (30 «келмади» + 15) ўтган 'active' бронь →
+      // 'cancelled' (аванс forfeit — куяди, касса ўзгармайди). Флоор поллда лениво ишлайди:
+      // стол бўшайди, изи ҳисоботда/audit'да қолади. resolvedById null = авто (директор эмас).
+      const staleBefore = new Date(Date.now() - 45 * 60 * 1000);
+      const stale = await db
+        .select({
+          id: reservations.id,
+          name: reservations.name,
+          depositAmount: reservations.depositAmount,
+          depositAppliedAt: reservations.depositAppliedAt,
+        })
+        .from(reservations)
+        .where(and(eq(reservations.status, "active"), lt(reservations.reservedFor, staleBefore)));
+      if (stale.length > 0) {
+        await db.transaction(async (tx) => {
+          for (const r of stale) {
+            const pending = r.depositAmount > 0 && !r.depositAppliedAt;
+            const upd = await tx
+              .update(reservations)
+              .set({
+                status: "cancelled",
+                depositResolution: pending ? "forfeit" : null,
+                resolvedAt: new Date(),
+              })
+              .where(and(eq(reservations.id, r.id), eq(reservations.status, "active")))
+              .returning({ id: reservations.id });
+            if (upd.length > 0) {
+              await logAudit(tx, {
+                actorId: null,
+                action: "reservation.no_show",
+                entity: "reservation",
+                entityId: r.id,
+                summary: `Авто no-show: ${r.name} — 45 дақ келмади${pending ? ` · аванс ${r.depositAmount} куйди` : ""}`,
+                meta: { auto: true, depositAmount: r.depositAmount },
+              });
+            }
+          }
+        });
+      }
       return db
         .select({
           id: reservations.id,
