@@ -2746,7 +2746,7 @@ function OrderView({
             disabled={serviceBusy || !online || order.locked}
             title={order.serviceWaived ? "Хизмат ҳақини тиклаш" : "Хизмат ҳақини кечириш"}
             className={`grid h-10 w-9 place-items-center rounded-md transition disabled:opacity-30 ${
-              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
+              order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-gold hover:bg-brand-deep hover:text-white"
             }`}
           >
             <IPlate className="h-6 w-6" />
