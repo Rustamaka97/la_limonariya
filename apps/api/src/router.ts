@@ -4229,6 +4229,75 @@ export const appRouter = router({
 
     // 👤 Мижоз бириктириш (CloPOS «Добавить клиента»): очиқ заказга лоялти/қарз
     // учун мижоз. Роль: cashier+. Ёпилган/блокланган заказда рад.
+    // Мижоз картаси (заказ экрани, CloPOS «Клиенты» детал) — кассир кўради:
+    // баланс(±қарз) · жами сарф · жами чегирма · чеклар сони + рўйхати.
+    customerCard: cashierProcedure
+      .input(z.object({ customerId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const cust = (
+          await db
+            .select({ name: customers.name, phone: customers.phone })
+            .from(customers)
+            .where(eq(customers.id, input.customerId))
+            .limit(1)
+        )[0];
+        if (!cust) throw new TRPCError({ code: "NOT_FOUND", message: "Мижоз топилмади" });
+        // Баланс = ҳамён ҳаракатлари йиғиндиси (манфий = қарз).
+        const balance = Number(
+          (
+            await db
+              .select({ b: sql<number>`coalesce(sum(${customerWalletMovements.amount}), 0)` })
+              .from(customerWalletMovements)
+              .where(eq(customerWalletMovements.customerId, input.customerId))
+          )[0]?.b ?? 0,
+        );
+        // Мижозга боғланган ёпилган заказлар (сўнгги 20).
+        const ords = await db
+          .select({ id: orders.id, closedAt: orders.closedAt, discount: orders.discountAmount })
+          .from(orders)
+          .where(and(eq(orders.customerId, input.customerId), eq(orders.status, "closed")))
+          .orderBy(desc(orders.closedAt))
+          .limit(20);
+        const ids = ords.map((o) => o.id);
+        const payByOrder = new Map<string, { total: number; method: string }>();
+        let totalSpent = 0;
+        if (ids.length) {
+          const pays = await db
+            .select({
+              orderId: orderPayments.orderId,
+              method: orderPayments.method,
+              amount: orderPayments.amount,
+            })
+            .from(orderPayments)
+            .where(inArray(orderPayments.orderId, ids));
+          for (const p of pays) {
+            totalSpent += p.amount;
+            const cur = payByOrder.get(p.orderId);
+            payByOrder.set(p.orderId, {
+              total: (cur?.total ?? 0) + p.amount,
+              method: cur?.method ?? p.method,
+            });
+          }
+        }
+        const totalDiscount = ords.reduce((s, o) => s + (o.discount ?? 0), 0);
+        const checks = ords.map((o) => ({
+          id: o.id,
+          closedAt: o.closedAt,
+          total: payByOrder.get(o.id)?.total ?? 0,
+          method: payByOrder.get(o.id)?.method ?? null,
+        }));
+        return {
+          name: cust.name,
+          phone: cust.phone,
+          cashback: 0, // ҳозирча лоялти бонус йўқ (CloPOS-паритет плейсхолдер)
+          balance,
+          totalSpent,
+          totalDiscount,
+          visits: ords.length,
+          checks,
+        };
+      }),
+
     attachCustomer: cashierProcedure
       .input(z.object({ orderId: z.string().uuid(), customerId: z.string().uuid() }))
       .mutation(async ({ input, ctx }) => {

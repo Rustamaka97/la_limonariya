@@ -2588,6 +2588,21 @@ function OrderView({
     { id: string; name: string; phone: string | null; balance: number; checks: number }[]
   >([]);
   const [custBusy, setCustBusy] = useState(false);
+  // Танланган мижоз детали (CloPOS «Клиенты» ўнг панел — pos.customerCard).
+  const [custSel, setCustSel] = useState<{ id: string; name: string; phone: string | null } | null>(
+    null,
+  );
+  const [custCard, setCustCard] = useState<{
+    name: string;
+    phone: string | null;
+    cashback: number;
+    balance: number;
+    totalSpent: number;
+    totalDiscount: number;
+    visits: number;
+    checks: { id: string; closedAt: string | Date | null; total: number; method: string | null }[];
+  } | null>(null);
+  const [custCardBusy, setCustCardBusy] = useState(false);
   const [showDiscMenu, setShowDiscMenu] = useState(false);
   const [discAmount, setDiscAmount] = useState("");
   const [discReason, setDiscReason] = useState("");
@@ -4191,107 +4206,255 @@ function OrderView({
       {showCustomer && (
         <div
           className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
-          onClick={() => setShowCustomer(false)}
+          onClick={() => {
+            setShowCustomer(false);
+            setCustSel(null);
+            setCustCard(null);
+          }}
         >
           <div
-            className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            className="flex h-[88vh] w-full max-w-3xl overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
-              <h3 className="text-[15px] font-bold text-brand-ink">Мижоз бириктириш</h3>
-              <button
-                onClick={() => setShowCustomer(false)}
-                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
+            {/* Чап панел — қидирув + рўйхат (CloPOS) */}
+            <div className="flex w-64 shrink-0 flex-col border-r border-clopos-line">
+              <div className="flex items-center justify-between bg-brand px-4 py-3 text-white">
+                <h3 className="text-[15px] font-bold">Клиенты</h3>
+                <button
+                  onClick={() => {
+                    setShowCustomer(false);
+                    setCustSel(null);
+                    setCustCard(null);
+                  }}
+                  className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-white/15 sm:hidden"
+                >
+                  <span className="text-lg leading-none" aria-hidden>✕</span>
+                </button>
+              </div>
+              <div className="border-b border-clopos-line p-2.5">
+                <input
+                  value={custQuery}
+                  onChange={(e) => {
+                    const q = e.target.value;
+                    setCustQuery(q);
+                    trpc.finance.customers.search
+                      .query({ query: q })
+                      .then(setCustResults)
+                      .catch(() => {});
+                  }}
+                  placeholder="Поиск…"
+                  className="w-full rounded-xl border border-clopos-line px-3 py-2 text-[13px] outline-none focus:border-brand-deep"
+                />
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                {custResults.length === 0 ? (
+                  <p className="py-6 text-center text-[12px] text-zinc-400">
+                    {custQuery.trim() ? "Мижоз топилмади" : "Исм/тел бўйича қидиринг"}
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {custResults.map((c) => (
+                      <li key={c.id}>
+                        <button
+                          onClick={() => {
+                            setCustSel({ id: c.id, name: c.name, phone: c.phone });
+                            setCustCard(null);
+                            setCustCardBusy(true);
+                            trpc.pos.customerCard
+                              .query({ customerId: c.id })
+                              .then(setCustCard)
+                              .catch(() => {})
+                              .finally(() => setCustCardBusy(false));
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition ${
+                            custSel?.id === c.id ? "bg-brand/10" : "hover:bg-clopos-bg"
+                          }`}
+                        >
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-clopos-bg text-[13px] font-bold text-brand-deep">
+                            {c.name.trim().charAt(0).toUpperCase() || "?"}
+                          </span>
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate text-[13px] text-brand-ink">{c.name}</span>
+                            <span className="truncate text-[11px] text-zinc-400">
+                              {c.phone || "---"}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {custQuery.trim() && (
+                <button
+                  disabled={custBusy}
+                  onClick={async () => {
+                    setCustBusy(true);
+                    try {
+                      const c = await trpc.finance.customers.create.mutate({ name: custQuery.trim() });
+                      await trpc.pos.attachCustomer.mutate({ orderId: id, customerId: c.id });
+                      setShowCustomer(false);
+                      setCustSel(null);
+                      setCustCard(null);
+                      await refresh();
+                    } catch (e) {
+                      setSyncErr(e instanceof Error ? e.message : "Мижоз яратилмади");
+                    } finally {
+                      setCustBusy(false);
+                    }
+                  }}
+                  className="shrink-0 bg-brand-deep py-3 text-[13px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+                >
+                  {custBusy ? "…" : `«${custQuery.trim()}» — янги профил`}
+                </button>
+              )}
             </div>
-            <div className="border-b border-clopos-line p-3">
-              <input
-                value={custQuery}
-                onChange={(e) => {
-                  const q = e.target.value;
-                  setCustQuery(q);
-                  trpc.finance.customers.search
-                    .query({ query: q })
-                    .then(setCustResults)
-                    .catch(() => {});
-                }}
-                placeholder="Исм ёки телефон…"
-                className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
-              />
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {custResults.length === 0 ? (
-                <div className="py-6 text-center">
-                  <p className="text-[13px] text-zinc-400">Мижоз топилмади</p>
-                  {custQuery.trim() && (
+
+            {/* Ўнг панел — танланган мижоз детали (CloPOS «Клиенты») */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {!custSel ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-300">
+                  <IUser className="h-12 w-12" />
+                  <p className="text-[13px]">Мижоз танланг</p>
+                </div>
+              ) : (
+                <div>
+                  {/* Юқори — исм + Применить */}
+                  <div className="flex items-start justify-between bg-brand-cream/40 px-5 py-4">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[19px] font-bold text-brand-ink">{custSel.name}</h3>
+                      <p className="text-[12px] text-zinc-400">{custSel.phone || "---"}</p>
+                    </div>
                     <button
                       disabled={custBusy}
                       onClick={async () => {
                         setCustBusy(true);
                         try {
-                          const c = await trpc.finance.customers.create.mutate({ name: custQuery.trim() });
-                          await trpc.pos.attachCustomer.mutate({ orderId: id, customerId: c.id });
+                          await trpc.pos.attachCustomer.mutate({ orderId: id, customerId: custSel.id });
                           setShowCustomer(false);
+                          setCustSel(null);
+                          setCustCard(null);
                           await refresh();
                         } catch (e) {
-                          setSyncErr(e instanceof Error ? e.message : "Мижоз яратилмади");
+                          setSyncErr(e instanceof Error ? e.message : "Мижоз бириктирилмади");
                         } finally {
                           setCustBusy(false);
                         }
                       }}
-                      className="mt-3 rounded-xl bg-brand-deep px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+                      className="shrink-0 rounded-xl bg-brand-deep px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
                     >
-                      «{custQuery.trim()}» — янги мижоз яратиш
+                      {custBusy ? "…" : "Применить"}
                     </button>
-                  )}
-                </div>
-              ) : (
-                <ul className="space-y-1">
-                  {custResults.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        disabled={custBusy}
-                        onClick={async () => {
-                          setCustBusy(true);
-                          try {
-                            await trpc.pos.attachCustomer.mutate({ orderId: id, customerId: c.id });
-                            setShowCustomer(false);
-                            await refresh();
-                          } catch (e) {
-                            setSyncErr(e instanceof Error ? e.message : "Мижоз бириктирилмади");
-                          } finally {
-                            setCustBusy(false);
-                          }
-                        }}
-                        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition hover:bg-clopos-bg disabled:opacity-50"
-                      >
-                        <span className="flex min-w-0 flex-col">
-                          <span className="truncate text-[14px] text-brand-ink">{c.name}</span>
-                          {c.phone && <span className="text-[11px] text-zinc-400">{c.phone}</span>}
-                        </span>
-                        <span className="flex shrink-0 flex-col items-end">
+                  </div>
+
+                  {custCardBusy || !custCard ? (
+                    <p className="py-16 text-center text-[13px] text-zinc-400">
+                      {custCardBusy ? "Юкланмоқда…" : "—"}
+                    </p>
+                  ) : (
+                    <div className="space-y-5 p-5">
+                      {/* 2 катта карта — Кешбэк + Баланс */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-amber-100 text-[22px]">
+                            ⭐
+                          </span>
+                          <div>
+                            <p className="text-[20px] font-bold text-brand-ink">
+                              {custCard.cashback.toLocaleString()} <span className="text-[13px] font-medium text-zinc-400">so'm</span>
+                            </p>
+                            <p className="text-[12px] text-zinc-400">Кешбэк</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
                           <span
-                            className={`text-[13px] font-medium ${
-                              c.balance < 0
-                                ? "text-red-600"
-                                : c.balance > 0
-                                  ? "text-emerald-600"
-                                  : "text-zinc-300"
+                            className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-[22px] font-bold ${
+                              custCard.balance < 0 ? "bg-red-100 text-red-500" : "bg-emerald-100 text-emerald-600"
                             }`}
                           >
-                            {c.balance !== 0 ? `${c.balance.toLocaleString()} so'm` : "—"}
+                            $
                           </span>
-                          <span className="text-[10px] text-zinc-400">
-                            {c.balance < 0 ? "қарз · " : ""}
-                            {c.checks} чек
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                          <div>
+                            <p
+                              className={`text-[20px] font-bold ${
+                                custCard.balance < 0 ? "text-red-600" : "text-brand-ink"
+                              }`}
+                            >
+                              {custCard.balance.toLocaleString()} <span className="text-[13px] font-medium text-zinc-400">so'm</span>
+                            </p>
+                            <p className="text-[12px] text-zinc-400">Баланс{custCard.balance < 0 ? " (қарз)" : ""}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4 устун */}
+                      <div className="grid grid-cols-4 gap-2 border-t border-clopos-line pt-4">
+                        {(
+                          [
+                            ["Общая сумма расходов", `${custCard.totalSpent.toLocaleString()} so'm`],
+                            ["Общая скидка", `${custCard.totalDiscount.toLocaleString()} so'm`],
+                            ["Общий бонус", "0"],
+                            ["Всего чеков", String(custCard.visits)],
+                          ] as const
+                        ).map(([l, v]) => (
+                          <div key={l}>
+                            <p className="mb-0.5 text-[11px] leading-tight text-zinc-400">{l}</p>
+                            <p className="text-[15px] font-semibold text-brand-ink">{v}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Чеки рўйхати */}
+                      <div className="border-t border-clopos-line pt-4">
+                        <h4 className="mb-2 text-[15px] font-bold text-brand-ink">
+                          Чеки ({custCard.checks.length})
+                        </h4>
+                        {custCard.checks.length === 0 ? (
+                          <p className="py-4 text-center text-[13px] text-zinc-400">Чек йўқ</p>
+                        ) : (
+                          <div className="overflow-hidden rounded-xl border border-clopos-line">
+                            <div className="flex bg-clopos-bg px-3 py-2 text-[11px] font-semibold text-zinc-500">
+                              <span className="flex-1">Чек закрыт</span>
+                              <span className="w-24 text-right">Итог</span>
+                              <span className="w-24 text-right">Оплата</span>
+                            </div>
+                            {custCard.checks.map((ch) => (
+                              <div
+                                key={ch.id}
+                                className="flex border-t border-clopos-line px-3 py-2 text-[12px]"
+                              >
+                                <span className="flex-1 text-zinc-600">
+                                  {ch.closedAt
+                                    ? new Date(ch.closedAt).toLocaleString("ru-RU", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "—"}
+                                </span>
+                                <span className="w-24 text-right font-medium text-brand-deep">
+                                  {ch.total.toLocaleString()}
+                                </span>
+                                <span className="w-24 text-right text-zinc-500">
+                                  {({
+                                    cash: "Наличными",
+                                    card: "Карта",
+                                    click: "Click",
+                                    payme: "Payme",
+                                    humo: "Humo",
+                                    debt: "Қарз",
+                                    avans: "Аванс",
+                                  } as Record<string, string>)[ch.method ?? ""] ?? ch.method ?? "—"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
