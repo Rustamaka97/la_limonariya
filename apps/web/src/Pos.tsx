@@ -136,6 +136,9 @@ function resDayLabel(d: Date) {
 const hhmm = (d: Date) =>
   `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const resLate = (r: Reservation) => Date.now() > new Date(r.reservedFor).getTime() + RES_LATE_MS;
+// «Келмади»дан +15 дақ (жами 45) — бронь бутунлай учади, стол автомат бўшайди (эга: Б-вариант).
+const RES_GONE_MS = RES_LATE_MS + 15 * 60 * 1000;
+const resGone = (r: Reservation) => Date.now() > new Date(r.reservedFor).getTime() + RES_GONE_MS;
 
 // Сотув тури — ёрлиқ + иконка (CloPOS «На месте / Доставка / С собой»).
 const SALE_TYPES = ["dine_in", "delivery", "takeaway"] as const;
@@ -481,6 +484,7 @@ function FloorView({
   const resToday = resList.filter((r) => new Date(r.reservedFor) <= endOfToday);
   const resByTable = new Map<string, Reservation>();
   for (const r of resToday) {
+    if (resGone(r)) continue; // 45 дақ+ кечиккан бронь учди — стол бўшайди (бошқа меҳмонга берилади)
     const prev = resByTable.get(r.tableId);
     if (!prev || new Date(r.reservedFor) < new Date(prev.reservedFor)) resByTable.set(r.tableId, r);
   }
