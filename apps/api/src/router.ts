@@ -5241,7 +5241,8 @@ export const appRouter = router({
               .where(eq(orderItems.orderId, input.id));
             const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
             const total = subtotal + Math.round((subtotal * head.servicePct) / 100);
-            const discount = input.discount?.amount ?? 0;
+            // input.discount (ёпишда берилган) устун; бўлмаса setDiscount қўйгани.
+            const discount = input.discount?.amount ?? head.discountAmount ?? 0;
             if (discount > total)
               throw new TRPCError({
                 code: "BAD_REQUEST",

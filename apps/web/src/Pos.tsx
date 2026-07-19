@@ -2160,6 +2160,15 @@ function OrderView({
   const [reassignBusy, setReassignBusy] = useState(false);
   const [showClear, setShowClear] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
+  // 👤 Мижоз бириктириш + 🏷 чегирма (CloPOS ⋯ меню).
+  const [showCustomer, setShowCustomer] = useState(false);
+  const [custQuery, setCustQuery] = useState("");
+  const [custResults, setCustResults] = useState<{ id: string; name: string; phone: string | null }[]>([]);
+  const [custBusy, setCustBusy] = useState(false);
+  const [showDiscMenu, setShowDiscMenu] = useState(false);
+  const [discAmount, setDiscAmount] = useState("");
+  const [discReason, setDiscReason] = useState("");
+  const [discBusy, setDiscBusy] = useState(false);
   const [showMore, setShowMore] = useState(false); // ⋯ қўшимча амаллар менюси (CloPOS)
   const [cancelling, setCancelling] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
@@ -3484,6 +3493,37 @@ function OrderView({
               </button>
             </div>
             <div className="grid gap-1">
+              {/* 👤 Мижоз бириктириш (CloPOS «Добавить клиента») */}
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  setShowCustomer(true);
+                  setCustQuery("");
+                  trpc.finance.customers.search
+                    .query({})
+                    .then(setCustResults)
+                    .catch(() => {});
+                }}
+                disabled={!online || order.locked}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+              >
+                <IUser className="h-5 w-5 text-clopos-icon" /> Мижоз бириктириш
+              </button>
+              {/* 🏷 Чегирма (CloPOS «Скидка») — фақат manager+ */}
+              {isManager && (
+                <button
+                  onClick={() => {
+                    setShowMore(false);
+                    setShowDiscMenu(true);
+                    setDiscAmount("");
+                    setDiscReason("");
+                  }}
+                  disabled={!online || order.locked || order.items.length === 0}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
+                >
+                  <span className="w-5 text-center text-[17px]" aria-hidden>🏷</span> Чегирма
+                </button>
+              )}
               {isManager && (
                 <button
                   onClick={() => {
@@ -3554,6 +3594,156 @@ function OrderView({
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-red-600 transition hover:bg-red-50 disabled:opacity-40"
               >
                 <ITrash className="h-5 w-5" /> Заказни бекор қилиш
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МИЖОЗ БИРИКТИРИШ MODAL (CloPOS «Добавить клиента») — қидирув + янги */}
+      {showCustomer && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowCustomer(false)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
+              <h3 className="text-[15px] font-bold text-brand-ink">Мижоз бириктириш</h3>
+              <button
+                onClick={() => setShowCustomer(false)}
+                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="border-b border-clopos-line p-3">
+              <input
+                value={custQuery}
+                onChange={(e) => {
+                  const q = e.target.value;
+                  setCustQuery(q);
+                  trpc.finance.customers.search
+                    .query({ query: q })
+                    .then(setCustResults)
+                    .catch(() => {});
+                }}
+                placeholder="Исм ёки телефон…"
+                className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+              />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {custResults.length === 0 ? (
+                <div className="py-6 text-center">
+                  <p className="text-[13px] text-zinc-400">Мижоз топилмади</p>
+                  {custQuery.trim() && (
+                    <button
+                      disabled={custBusy}
+                      onClick={async () => {
+                        setCustBusy(true);
+                        try {
+                          const c = await trpc.finance.customers.create.mutate({ name: custQuery.trim() });
+                          await trpc.pos.attachCustomer.mutate({ orderId: id, customerId: c.id });
+                          setShowCustomer(false);
+                          await refresh();
+                        } catch (e) {
+                          setSyncErr(e instanceof Error ? e.message : "Мижоз яратилмади");
+                        } finally {
+                          setCustBusy(false);
+                        }
+                      }}
+                      className="mt-3 rounded-xl bg-brand-deep px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+                    >
+                      «{custQuery.trim()}» — янги мижоз яратиш
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <ul className="space-y-1">
+                  {custResults.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        disabled={custBusy}
+                        onClick={async () => {
+                          setCustBusy(true);
+                          try {
+                            await trpc.pos.attachCustomer.mutate({ orderId: id, customerId: c.id });
+                            setShowCustomer(false);
+                            await refresh();
+                          } catch (e) {
+                            setSyncErr(e instanceof Error ? e.message : "Мижоз бириктирилмади");
+                          } finally {
+                            setCustBusy(false);
+                          }
+                        }}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition hover:bg-clopos-bg disabled:opacity-50"
+                      >
+                        <span className="text-[14px] text-brand-ink">{c.name}</span>
+                        {c.phone && <span className="text-[12px] text-zinc-400">{c.phone}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ЧЕГИРМА MODAL (CloPOS «Скидка») — сумма + мажбурий сабаб */}
+      {showDiscMenu && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowDiscMenu(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-3 rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-[15px] font-bold text-brand-ink">Чегирма</h3>
+            <input
+              value={discAmount}
+              onChange={(e) => setDiscAmount(e.target.value.replace(/[^0-9]/g, ""))}
+              inputMode="numeric"
+              placeholder="Сумма (so'm)"
+              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+            />
+            <input
+              value={discReason}
+              onChange={(e) => setDiscReason(e.target.value)}
+              placeholder="Сабаб (мажбурий)"
+              className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+            />
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowDiscMenu(false)}
+                className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
+              >
+                Бекор
+              </button>
+              <button
+                disabled={discBusy || !discAmount || !discReason.trim()}
+                onClick={async () => {
+                  setDiscBusy(true);
+                  try {
+                    await trpc.pos.setDiscount.mutate({
+                      orderId: id,
+                      amount: Number(discAmount),
+                      reason: discReason.trim(),
+                    });
+                    setShowDiscMenu(false);
+                    await refresh();
+                  } catch (e) {
+                    setSyncErr(e instanceof Error ? e.message : "Чегирма қўйилмади");
+                  } finally {
+                    setDiscBusy(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-brand-deep py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+              >
+                {discBusy ? "…" : "Қўллаш"}
               </button>
             </div>
           </div>
