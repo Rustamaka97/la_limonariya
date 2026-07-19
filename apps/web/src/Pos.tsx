@@ -29,6 +29,22 @@ import {
   IScale, IGear, IWarn, ILink, IMoped, IBag, ISpin, ILogout,
 } from "./icons";
 
+// Заказ-toolbar 3D Clay иконкалари (Higgsfield премиум сет, расмдан crop) — эга танлови.
+const TOOL_POS: Record<string, string> = {
+  percent: "0% 0%", chat: "50% 0%", clock: "100% 0%",
+  split: "0% 50%", card: "50% 50%", lock: "100% 50%",
+  printer: "0% 100%", user: "50% 100%", more: "100% 100%",
+};
+function ToolIcon({ k, className = "h-7 w-7" }: { k: string; className?: string }) {
+  return (
+    <span
+      className={`inline-block shrink-0 bg-no-repeat ${className}`}
+      style={{ backgroundImage: "url(/brand/icons-toolbar-clay.webp)", backgroundSize: "300% 300%", backgroundPosition: TOOL_POS[k] }}
+      aria-hidden="true"
+    />
+  );
+}
+
 type Hall = { id: string; name: string; servicePct: number };
 type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null; w?: number | null; h?: number | null };
 type MenuItem = {
@@ -2694,7 +2710,7 @@ function OrderView({
               order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
             }`}
           >
-            <IPercent className="h-5 w-5" />
+            <ToolIcon k="percent" />
           </button>
         )}
         {/* 💬 Чекка изоҳ (комментарий) */}
@@ -2703,7 +2719,7 @@ function OrderView({
           title="Чекка изоҳ"
           className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
         >
-          <IChat className="h-5 w-5" />
+          <ToolIcon k="chat" />
         </button>
         {/* 🕐 История чека — амаллар тарихи (CloPOS «История чека») */}
         <button
@@ -2714,7 +2730,7 @@ function OrderView({
           title="История чека — амаллар тарихи"
           className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
         >
-          <IClock className="h-5 w-5" />
+          <ToolIcon k="clock" />
         </button>
         {/* ⤴ Счётни бўлиш (разделить) */}
         {order.items.reduce((s, i) => s + i.qty, 0) >= 2 && !order.locked && (
@@ -2724,7 +2740,7 @@ function OrderView({
             title="Счётни бўлиш — таомларни алоҳида чекка"
             className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
           >
-            <ISplit className="h-5 w-5" />
+            <ToolIcon k="split" />
           </button>
         )}
         <div className="my-1 h-px w-6 bg-clopos-line" />
@@ -2737,7 +2753,7 @@ function OrderView({
             title="Тўлов — чекни ёпиш"
             className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
           >
-            <ICard className="h-5 w-5" />
+            <ToolIcon k="card" />
           </button>
         )}
         {/* 🔒 Блок */}
@@ -2750,7 +2766,7 @@ function OrderView({
               order.locked ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
             }`}
           >
-            {order.locked ? <ILockOpen className="h-5 w-5" /> : <ILock className="h-5 w-5" />}
+            <ToolIcon k="lock" />
           </button>
         )}
         {/* 🖨 Пречек */}
@@ -2762,7 +2778,7 @@ function OrderView({
             precheckOk ? "bg-emerald-100 text-emerald-700" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
           }`}
         >
-          {precheckOk ? <ICheck className="h-5 w-5" /> : <IPrinter className="h-5 w-5" />}
+          {precheckOk ? <ICheck className="h-5 w-5" /> : <ToolIcon k="printer" />}
         </button>
         {/* ⋯ Қўшимча амаллар (CloPOS — официант · тозалаш · стол · тикет · стоп · бекор) */}
         <button
@@ -2770,7 +2786,7 @@ function OrderView({
           title="Қўшимча амаллар"
           className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white"
         >
-          <span className="text-xl leading-none" aria-hidden>⋯</span>
+          <ToolIcon k="more" />
         </button>
       </nav>
 
