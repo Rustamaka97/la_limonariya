@@ -4219,6 +4219,112 @@ export const appRouter = router({
         });
       }),
 
+    // 👤 Мижоз бириктириш (CloPOS «Добавить клиента»): очиқ заказга лоялти/қарз
+    // учун мижоз. Роль: cashier+. Ёпилган/блокланган заказда рад.
+    attachCustomer: cashierProcedure
+      .input(z.object({ orderId: z.string().uuid(), customerId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        const head = (
+          await db
+            .select({ status: orders.status, locked: orders.locked })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
+        const cust = (
+          await db
+            .select({ name: customers.name })
+            .from(customers)
+            .where(eq(customers.id, input.customerId))
+            .limit(1)
+        )[0];
+        if (!cust) throw new TRPCError({ code: "NOT_FOUND", message: "Мижоз топилмади" });
+        await db
+          .update(orders)
+          .set({ customerId: input.customerId })
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "order.attach_customer",
+          entity: "order",
+          entityId: input.orderId,
+          summary: `Мижоз: ${cust.name}`,
+        });
+        return { ok: true };
+      }),
+
+    // Мижозни олиб ташлаш (заказдан).
+    detachCustomer: cashierProcedure
+      .input(z.object({ orderId: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.orderId);
+        await db
+          .update(orders)
+          .set({ customerId: null })
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "order.detach_customer",
+          entity: "order",
+          entityId: input.orderId,
+          summary: "Мижоз олиб ташланди",
+        });
+        return { ok: true };
+      }),
+
+    // 🏷 Чегирма (CloPOS «Скидка»): очиқ заказга чегирма суммаси (so'm). Роль:
+    // director/manager (пулга тегади — тешик №12). Ёпишдан ОЛДИН қўяди (пречек
+    // учун); close ҳам input.discount берса устун (қуйида ?? бирлашган). Сабаб
+    // мажбурий. amount=0 → чегирмани олиб ташлаш. Текин заказга рад.
+    setDiscount: managerProcedure
+      .input(
+        z.object({
+          orderId: z.string().uuid(),
+          amount: z.number().int().nonnegative(),
+          reason: z.string().trim().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (input.amount > 0 && !input.reason)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Чегирма сабаби мажбурий" });
+        const head = (
+          await db
+            .select({ status: orders.status, locked: orders.locked, isComp: orders.isComp })
+            .from(orders)
+            .where(eq(orders.id, input.orderId))
+            .limit(1)
+        )[0];
+        if (!head) throw new TRPCError({ code: "NOT_FOUND" });
+        if (head.status !== "open")
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+        if (head.locked)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
+        if (head.isComp)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Текин заказга чегирма қўшиб бўлмайди" });
+        await db
+          .update(orders)
+          .set({
+            discountAmount: input.amount,
+            discountReason: input.amount > 0 ? (input.reason ?? null) : null,
+          })
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: input.amount > 0 ? "order.discount" : "order.discount_remove",
+          entity: "order",
+          entityId: input.orderId,
+          summary:
+            input.amount > 0 ? `Чегирма: ${input.amount} (${input.reason})` : "Чегирма олиб ташланди",
+        });
+        return { ok: true };
+      }),
+
     // 📜 Чек тарихи (CloPOS «История чека»): заказ бўйича ҳамма амал timeline'и —
     // ким, қачон, нима қилди. audit_log'дан (entity='order') ўқийди — алоҳида
     // жадвал шарт эмас. Официант фақат ўзиникини (assertOrderAccess).
@@ -5077,7 +5183,12 @@ export const appRouter = router({
           // шу қаторни FOR UPDATE қилади → сериаллашади).
           const head = (
             await tx
-              .select({ status: orders.status, servicePct: orders.servicePct })
+              .select({
+                status: orders.status,
+                servicePct: orders.servicePct,
+                // Ёпишдан олдин setDiscount қўйган чегирма (input.discount бермаса шу).
+                discountAmount: orders.discountAmount,
+              })
               .from(orders)
               .where(eq(orders.id, input.id))
               .limit(1)
@@ -6117,6 +6228,53 @@ export const appRouter = router({
             .orderBy(desc(customerWalletMovements.createdAt))
             .limit(30);
           return { balance: balRow?.b ?? 0, moves };
+        }),
+
+      // Мижоз таниш: телефон/исмдан танилган мижознинг бой профили — ташрифлар,
+      // жами сарф, ўртача чек, охирги ташриф, севган таомлар. Ҳозирча мижозга
+      // БОҒЛАНГАН ёпилган заказлардан (қарзли/бириктирилган) — вақт ўтиб тўлади.
+      profile: managerProcedure
+        .input(z.object({ customerId: z.string().uuid() }))
+        .query(async ({ input }) => {
+          const ords = await db
+            .select({ id: orders.id, closedAt: orders.closedAt })
+            .from(orders)
+            .where(and(eq(orders.customerId, input.customerId), eq(orders.status, "closed")));
+          const ids = ords.map((o) => o.id);
+          let totalSpent = 0;
+          let topDishes: { name: string; qty: number }[] = [];
+          if (ids.length) {
+            totalSpent = Number(
+              (
+                await db
+                  .select({ s: sql<number>`coalesce(sum(${orderPayments.amount}), 0)` })
+                  .from(orderPayments)
+                  .where(inArray(orderPayments.orderId, ids))
+              )[0]?.s ?? 0,
+            );
+            const items = await db
+              .select({ name: orderItems.name, qty: orderItems.qty })
+              .from(orderItems)
+              .where(inArray(orderItems.orderId, ids));
+            const byName = new Map<string, number>();
+            for (const it of items) byName.set(it.name, (byName.get(it.name) ?? 0) + it.qty);
+            topDishes = [...byName.entries()]
+              .map(([name, qty]) => ({ name, qty }))
+              .sort((a, b) => b.qty - a.qty)
+              .slice(0, 5);
+          }
+          const visits = ords.length;
+          const lastVisit = ords.reduce<Date | null>(
+            (m, o) => (o.closedAt && (!m || o.closedAt > m) ? o.closedAt : m),
+            null,
+          );
+          return {
+            visits,
+            totalSpent,
+            avgCheck: visits > 0 ? Math.round(totalSpent / visits) : 0,
+            lastVisit,
+            topDishes,
+          };
         }),
 
       // Директор қўлда ҳамён ҳаракати: + бонус (туғилган кун/лоялти), − редемпшн

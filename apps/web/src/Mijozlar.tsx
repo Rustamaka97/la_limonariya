@@ -14,6 +14,13 @@ type Move = {
   createdAt: string;
   by: string | null;
 };
+type Profile = {
+  visits: number;
+  totalSpent: number;
+  avgCheck: number;
+  lastVisit: string | null;
+  topDishes: { name: string; qty: number }[];
+};
 
 const fmt = (n: number) => n.toLocaleString("ru-RU");
 const KIND_LABEL: Record<string, string> = {
@@ -104,6 +111,7 @@ function WalletPanel({
 }) {
   const [balance, setBalance] = useState<number | null>(null);
   const [moves, setMoves] = useState<Move[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [kind, setKind] = useState<"bonus" | "redeem" | "adjust">("bonus");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -117,6 +125,10 @@ function WalletPanel({
         setBalance(r.balance);
         setMoves(r.moves);
       })
+      .catch(() => {});
+    trpc.finance.customers.profile
+      .query({ customerId: customer.id })
+      .then(setProfile)
       .catch(() => {});
   }
   useEffect(load, [customer.id]);
@@ -172,6 +184,45 @@ function WalletPanel({
           </div>
         </div>
 
+        {/* Мижоз таниш — профил статистикаси */}
+        {profile && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Ташриф" value={`${profile.visits}`} />
+              <Stat label="Жами сарф" value={fmt(profile.totalSpent)} />
+              <Stat label="Ўрт. чек" value={fmt(profile.avgCheck)} />
+              <Stat
+                label="Охирги"
+                value={
+                  profile.lastVisit
+                    ? new Date(profile.lastVisit).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+                    : "—"
+                }
+              />
+            </div>
+            {profile.topDishes.length > 0 && (
+              <div className="rounded-2xl border border-brand-cream-soft p-3">
+                <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400">Севган таомлар</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.topDishes.map((d) => (
+                    <span
+                      key={d.name}
+                      className="rounded-full bg-brand-cream px-2.5 py-1 text-xs font-medium text-brand-ink"
+                    >
+                      {d.name} <span className="tabular-nums text-brand">×{d.qty}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {profile.visits === 0 && (
+              <p className="px-1 text-[11px] text-zinc-400">
+                Ҳали боғланган ташриф йўқ — заказ ёпилганда мижоз бириктирилса, тарих тўлади.
+              </p>
+            )}
+          </div>
+        )}
+
         {canAdjust && (
           <div className="space-y-2 rounded-2xl border border-brand-cream-soft p-3">
             <div className="flex gap-1.5">
@@ -213,7 +264,7 @@ function WalletPanel({
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mb-1 text-xs font-semibold text-zinc-400">Тарих</div>
+          <div className="mb-1 text-xs font-semibold text-zinc-400">Ҳамён тарихи</div>
           {moves.length === 0 ? (
             <p className="py-4 text-center text-sm text-zinc-400">Ҳали ҳаракат йўқ</p>
           ) : (
@@ -241,6 +292,15 @@ function WalletPanel({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-brand-cream/40 p-2.5 text-center">
+      <div className="text-[10px] text-zinc-400">{label}</div>
+      <div className="mt-0.5 text-sm font-bold tabular-nums text-brand-ink">{value}</div>
     </div>
   );
 }
