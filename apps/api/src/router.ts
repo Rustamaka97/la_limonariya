@@ -3526,6 +3526,70 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    // ── QR-тўлов (стол устида): меҳмон стол QR'ини (?pay=tableId) очади → ўз
+    // чекини + Payme/Click тап-линкини кўради. Public (auth йўқ, фақат ЎЗ чеки).
+    // Тўлов тасдиғи ҳозирча кассир қўлда (webhook = кейинги фаза — payqr.ts изоҳи).
+    guestBill: publicProcedure
+      .input(z.object({ tableId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        const tbl = (
+          await db
+            .select({ name: tables.name, hallId: tables.hallId })
+            .from(tables)
+            .where(eq(tables.id, input.tableId))
+            .limit(1)
+        )[0];
+        if (!tbl) return { tableName: null, order: null, pay: null };
+        const ord = (
+          await db
+            .select({
+              id: orders.id,
+              servicePct: orders.servicePct,
+              isComp: orders.isComp,
+              discountAmount: orders.discountAmount,
+            })
+            .from(orders)
+            .where(
+              and(
+                eq(orders.status, "open"),
+                eq(orders.hallId, tbl.hallId),
+                eq(orders.tableNo, tbl.name),
+              ),
+            )
+            .orderBy(orders.createdAt)
+            .limit(1)
+        )[0];
+        if (!ord) return { tableName: tbl.name, order: null, pay: null };
+        const items = await db
+          .select({ name: orderItems.name, qty: orderItems.qty, price: orderItems.price })
+          .from(orderItems)
+          .where(eq(orderItems.orderId, ord.id));
+        const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+        const service = Math.round((subtotal * ord.servicePct) / 100);
+        const total = ord.isComp ? 0 : subtotal + service - ord.discountAmount;
+        const cfgRows = await db
+          .select({ key: appMeta.key, value: appMeta.value })
+          .from(appMeta)
+          .where(inArray(appMeta.key, ["payme_merchant_id", "click_service_id", "click_merchant_id"]));
+        const m = new Map(cfgRows.map((r) => [r.key, r.value]));
+        return {
+          tableName: tbl.name,
+          order: {
+            orderRef: ord.id.slice(0, 8).toUpperCase(),
+            items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+            subtotal,
+            service,
+            servicePct: ord.servicePct,
+            total,
+          },
+          pay: {
+            paymeMerchantId: m.get("payme_merchant_id") ?? null,
+            clickServiceId: m.get("click_service_id") ?? null,
+            clickMerchantId: m.get("click_merchant_id") ?? null,
+          },
+        };
+      }),
+
     menu: protectedProcedure.query(async () => {
       return db
         .select({

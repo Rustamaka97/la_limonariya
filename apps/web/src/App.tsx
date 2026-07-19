@@ -3,6 +3,7 @@ import { Login } from "./Login";
 import { Shell } from "./Shell";
 import { CallPage } from "./CallPage";
 import { CallAlerts } from "./CallAlerts";
+import { BillPage } from "./BillPage";
 import { idbGet, idbSet } from "./lib/idb";
 import { startOutbox } from "./lib/outbox";
 import { trpc } from "./trpc";
@@ -10,13 +11,14 @@ import { trpc } from "./trpc";
 export type SessionUser = { id: string; name: string; role: string };
 
 export function App() {
-  // Меҳмон стол QR'и: ?call=<tableId> → public официант-чақириш саҳифаси (auth йўқ).
-  // Hooks'дан ОЛДИН, шартсиз бир марта — rules-of-hooks бузилмайди (MainApp алоҳida).
-  const callTable =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("call")
-      : null;
+  // Меҳмон стол QR'лари (public, auth йўқ): ?call=<tableId> → официант чақириш,
+  // ?pay=<tableId> → чек + QR-тўлов. Hooks'дан ОЛДИН, шартсиз (MainApp алоҳида).
+  const params =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const callTable = params?.get("call");
   if (callTable) return <CallPage tableId={callTable} />;
+  const payTable = params?.get("pay");
+  if (payTable) return <BillPage tableId={payTable} />;
   return <MainApp />;
 }
 
