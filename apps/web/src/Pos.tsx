@@ -369,6 +369,14 @@ function FloorView({
   const [cashOpCat, setCashOpCat] = useState("boshqa");
   const [cashOpNote, setCashOpNote] = useState("");
   const [cashOpBusy, setCashOpBusy] = useState(false);
+  // 📊 Смена ҳисоботи (CloPOS «Создать отчет»).
+  const [showReport, setShowReport] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportData, setReportData] = useState<{
+    subtotal: number; service: number; discount: number; comp: number;
+    refunds: number; total: number; checks: number; guests: number;
+    byMethod: Record<string, number>; open: { count: number; sum: number };
+  } | null>(null);
   const [showClock, setShowClock] = useState(false); // 🕐 тўлиқ-экран соат
   const [soundOff, setSoundOff] = useState(() => localStorage.getItem("pos-sound-off") === "1");
   const [hallFilter, setHallFilter] = useState<string>("all");
@@ -813,6 +821,40 @@ function FloorView({
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {cashierUp && (
                   <button
+                    onClick={async () => {
+                      setShowPanel(false);
+                      setReportData(null);
+                      setShowReport(true);
+                      setReportBusy(true);
+                      const now = new Date();
+                      const from = new Date(now);
+                      from.setHours(6, 0, 0, 0);
+                      if (now.getHours() < 6) from.setDate(from.getDate() - 1);
+                      const to = new Date(from);
+                      to.setDate(to.getDate() + 1);
+                      try {
+                        const d = await trpc.pos.shiftReport.query({
+                          from: from.toISOString(),
+                          to: to.toISOString(),
+                        });
+                        setReportData(d);
+                      } catch (e) {
+                        alert(e instanceof Error ? e.message : "Ҳисобот олинмади");
+                      } finally {
+                        setReportBusy(false);
+                      }
+                    }}
+                    className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
+                  >
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">📊</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px] font-semibold text-brand-ink">Смена ҳисоботи</span>
+                      <span className="block truncate text-xs text-zinc-400">Создать отчет</span>
+                    </span>
+                  </button>
+                )}
+                {cashierUp && (
+                  <button
                     onClick={() => {
                       setShowPanel(false);
                       setCashOpType("expense");
@@ -892,6 +934,88 @@ function FloorView({
           </div>
         );
       })()}
+
+      {/* 📊 СМЕНА ҲИСОБОТИ MODAL (CloPOS «Отчет» / «Создать отчет») */}
+      {showReport && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setShowReport(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-sm flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
+              <h3 className="text-[15px] font-bold text-brand-ink">Смена ҳисоботи</h3>
+              <button
+                onClick={() => setShowReport(false)}
+                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              {reportBusy || !reportData ? (
+                <p className="py-8 text-center text-[13px] text-zinc-400">
+                  {reportBusy ? "Ҳисобланмоқда…" : "Маълумот йўқ"}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <p className="mb-1 text-[12px] font-semibold uppercase text-zinc-400">Отчет о продажах</p>
+                    {(
+                      [
+                        ["Промежуточный итог", reportData.subtotal],
+                        ["Сервис", reportData.service],
+                        ["Скидка", reportData.discount],
+                        ["Угощение (текин)", reportData.comp],
+                        ["Возврат", reportData.refunds],
+                      ] as const
+                    ).map(([l, v]) => (
+                      <div key={l} className="flex justify-between py-1 text-[14px]">
+                        <span className="text-zinc-500">{l}</span>
+                        <span className="text-brand-ink">{v.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div className="mt-1 flex justify-between border-t border-clopos-line pt-2 text-[15px] font-bold">
+                      <span className="text-brand-ink">Сумма</span>
+                      <span className="text-brand-deep">{reportData.total.toLocaleString()} so'm</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[12px] font-semibold uppercase text-zinc-400">Другие детали</p>
+                    {(
+                      [
+                        ["Меҳмонлар", reportData.guests],
+                        ["Очиқ чеклар", reportData.open.count],
+                        ["Очиқ сумма", reportData.open.sum],
+                      ] as const
+                    ).map(([l, v]) => (
+                      <div key={l} className="flex justify-between py-1 text-[14px]">
+                        <span className="text-zinc-500">{l}</span>
+                        <span className="text-brand-ink">{v.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[12px] font-semibold uppercase text-zinc-400">Способы оплаты</p>
+                    {Object.entries(reportData.byMethod).length === 0 ? (
+                      <p className="text-[13px] text-zinc-400">Тўлов йўқ</p>
+                    ) : (
+                      Object.entries(reportData.byMethod).map(([m, v]) => (
+                        <div key={m} className="flex justify-between py-1 text-[14px]">
+                          <span className="capitalize text-zinc-500">{m}</span>
+                          <span className="text-brand-ink">{v.toLocaleString()}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 💵 КАССА ОПЕРАЦИЯ MODAL (CloPOS «Добавить операцию») — расход/доход/инкассация */}
       {showCashOp && (

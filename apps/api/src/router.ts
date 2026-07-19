@@ -4378,6 +4378,61 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    // 📊 Смена ҳисоботи (CloPOS «Создать отчет»): from–to оралиқ сотув хулосаси —
+    // промежуточный/сервис/скидка/угощение/возврат/сумма + гости + очиқ чеклар +
+    // тўлов усуллари. Кассир+ (смена ёпишда кўради).
+    shiftReport: cashierProcedure
+      .input(z.object({ from: z.string().datetime(), to: z.string().datetime() }))
+      .query(async ({ input }) => {
+        const start = new Date(input.from);
+        const end = new Date(input.to);
+        const { revenue, byMethod, checks } = await revenueForWindow(start, end);
+        // Ёпилган заказлар: ҳар бирининг subtotal'и (order_items) + сервис/скидка/comp/гости.
+        const rows = await db
+          .select({
+            servicePct: orders.servicePct,
+            discountAmount: orders.discountAmount,
+            isComp: orders.isComp,
+            guests: orders.guests,
+            subtotal: sql<number>`coalesce((select sum(${orderItems.price} * ${orderItems.qty}) from ${orderItems} where ${orderItems.orderId} = ${orders.id}), 0)`.mapWith(Number),
+          })
+          .from(orders)
+          .where(and(eq(orders.status, "closed"), gte(orders.closedAt, start), lt(orders.closedAt, end)));
+        let subtotal = 0, service = 0, discount = 0, comp = 0, guests = 0;
+        for (const r of rows) {
+          subtotal += r.subtotal;
+          service += Math.round((r.subtotal * r.servicePct) / 100);
+          discount += r.discountAmount;
+          if (r.isComp) comp += r.subtotal;
+          guests += r.guests ?? 0;
+        }
+        const refundRow = (
+          await db
+            .select({ s: sql<number>`coalesce(sum(${refunds.amount}), 0)`.mapWith(Number) })
+            .from(refunds)
+            .where(and(gte(refunds.createdAt, start), lt(refunds.createdAt, end)))
+        )[0];
+        // Очиқ чеклар (жорий) — subtotal йиғиндиси.
+        const openRows = await db
+          .select({
+            subtotal: sql<number>`coalesce((select sum(${orderItems.price} * ${orderItems.qty}) from ${orderItems} where ${orderItems.orderId} = ${orders.id}), 0)`.mapWith(Number),
+          })
+          .from(orders)
+          .where(eq(orders.status, "open"));
+        return {
+          subtotal,
+          service,
+          discount,
+          comp,
+          refunds: refundRow?.s ?? 0,
+          total: revenue,
+          checks,
+          guests,
+          byMethod,
+          open: { count: openRows.length, sum: openRows.reduce((s, r) => s + r.subtotal, 0) },
+        };
+      }),
+
     // 📜 Чек тарихи (CloPOS «История чека»): заказ бўйича ҳамма амал timeline'и —
     // ким, қачон, нима қилди. audit_log'дан (entity='order') ўқийди — алоҳида
     // жадвал шарт эмас. Официант фақат ўзиникини (assertOrderAccess).
