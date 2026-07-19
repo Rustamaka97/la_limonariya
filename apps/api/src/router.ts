@@ -13,6 +13,7 @@ import {
 import { SESSION_COOKIE } from "./context";
 import {
   clientIp,
+  guestActionAllowed,
   loginBlockedFor,
   recordLoginFail,
   recordLoginSuccess,
@@ -3520,6 +3521,9 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input }) => {
+        // Спам ҳимояси: битта стол дақиқада 15 чақириқдан ошолмайди (дедуп ҳам бор).
+        if (!guestActionAllowed(`call:${input.tableId}`, 15))
+          throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Кўп сўров — бироздан кейин уриниб кўринг" });
         const kind = input.kind ?? "waiter";
         const tbl = (
           await db.select({ id: tables.id }).from(tables).where(eq(tables.id, input.tableId)).limit(1)
@@ -3665,6 +3669,9 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input }) => {
+        // Спам ҳимояси: битта стол дақиқада 20 буюртма-қўшишдан ошолмайди.
+        if (!guestActionAllowed(`add:${input.tableId}`, 20))
+          throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Кўп сўров — бироздан кейин уриниб кўринг" });
         const tbl = (
           await db
             .select({ name: tables.name, hallId: tables.hallId })

@@ -87,8 +87,30 @@ export function clientIp(c: HonoContext): string {
   return incoming?.socket?.remoteAddress ?? "unknown";
 }
 
+// ── Меҳмон public мутация throttle (callWaiter/guestAddItems) ──────────────
+// Auth йўқ → спам ҳимояси. СТОЛ бўйича калитланади (IP эмас!) — ресторан WiFi'да
+// ҳамма меҳмон битта IP'да, шунга IP-лимит легалларни блоклаган бўларди. Стол
+// калити: битта стол дақиқада N мутациядан ошолмайди, бошқа столлар мустақил.
+const GUEST_WINDOW_MS = 60_000;
+const guestByKey = new Map<string, { count: number; windowStart: number }>();
+
+export function guestActionAllowed(key: string, max: number, now: number = Date.now()): boolean {
+  let e = guestByKey.get(key);
+  if (!e || now - e.windowStart > GUEST_WINDOW_MS) {
+    e = { count: 0, windowStart: now };
+    guestByKey.set(key, e);
+  }
+  e.count++;
+  if (guestByKey.size > MAX_ENTRIES) {
+    for (const [k, v] of guestByKey)
+      if (now - v.windowStart > GUEST_WINDOW_MS) guestByKey.delete(k);
+  }
+  return e.count <= max;
+}
+
 // Тест учун (ички ҳолатни тозалаш).
 export function _resetRateLimit(): void {
+  guestByKey.clear();
   byIp.clear();
   global.fails = 0;
   global.windowStart = 0;
