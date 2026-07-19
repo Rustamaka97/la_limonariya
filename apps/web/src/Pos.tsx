@@ -2700,6 +2700,34 @@ function OrderView({
           панелига туташади (gap-0, бурчак тўғри) ────────────────────────────── */}
       <nav className="sticky top-24 flex h-fit w-11 shrink-0 flex-col items-center gap-0.5 self-start rounded-r-lg border-r border-brand-deep bg-clopos-rail py-2.5 lg:h-auto lg:self-stretch lg:rounded-r-none lg:border-r-0">
         {/* ══ CloPOS тартиби: клиент · скидка · хизмат · изоҳ · история · split ══ */}
+        {/* 👤 Мижоз бириктириш (CloPOS «Добавить клиента») — чап панель юқорисида */}
+        <button
+          onClick={() => {
+            setShowCustomer(true);
+            setCustQuery("");
+            trpc.finance.customers.search.query({}).then(setCustResults).catch(() => {});
+          }}
+          disabled={!online || order.locked}
+          title="Мижоз бириктириш"
+          className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
+        >
+          <ToolIcon k="user" />
+        </button>
+        {/* 🏷 Скидка (CloPOS «Скидка») — фақат manager+ */}
+        {isManager && (
+          <button
+            onClick={() => {
+              setShowDiscMenu(true);
+              setDiscAmount("");
+              setDiscReason("");
+            }}
+            disabled={!online || order.locked || order.items.length === 0}
+            title="Чегирма"
+            className="grid h-10 w-9 place-items-center rounded-md text-clopos-icon transition hover:bg-brand-deep hover:text-white disabled:opacity-30"
+          >
+            <ToolIcon k="percent" />
+          </button>
+        )}
         {/* 🍽 Хизмат ҳақи */}
         {canComp && (order.servicePct > 0 || order.serviceWaived) && (
           <button
@@ -2710,7 +2738,7 @@ function OrderView({
               order.serviceWaived ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "text-clopos-icon hover:bg-brand-deep hover:text-white"
             }`}
           >
-            <ToolIcon k="percent" />
+            <IPlate className="h-6 w-6" />
           </button>
         )}
         {/* 💬 Чекка изоҳ (комментарий) */}
