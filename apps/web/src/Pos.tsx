@@ -4169,10 +4169,20 @@ function OrderView({
           onClick={() => setShowSaleType(false)}
         >
           <div
-            className="w-full max-w-sm space-y-2 rounded-t-3xl bg-white p-4 shadow-xl sm:rounded-3xl"
+            className="w-full max-w-sm overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="px-1 pb-1 text-[15px] font-bold text-brand-ink">Тип продажи</h3>
+            {/* Header — CloPOS «Тип продажи» */}
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">Тип продажи</h3>
+              <button
+                onClick={() => setShowSaleType(false)}
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="space-y-2 p-4">
             {(
               [
                 ["dine_in", "🍽 Залда", "Зал сервиси (10%)"],
@@ -4198,6 +4208,7 @@ function OrderView({
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       )}
@@ -4692,11 +4703,12 @@ function OrderView({
             className="flex max-h-[80vh] w-full max-w-md flex-col rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-clopos-line px-5 py-3.5">
-              <h3 className="text-[15px] font-bold text-brand-ink">История чека</h3>
+            {/* Header — CloPOS «История чека» */}
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">История чека</h3>
               <button
                 onClick={() => setShowHistory(false)}
-                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
               >
                 <span className="text-lg leading-none" aria-hidden>✕</span>
               </button>
@@ -4705,16 +4717,28 @@ function OrderView({
               {events.length === 0 ? (
                 <p className="py-8 text-center text-[13px] text-zinc-400">Ҳали амал йўқ</p>
               ) : (
-                <ol className="space-y-2.5">
+                <ol>
                   {events.map((ev, i) => {
                     const d = new Date(ev.createdAt);
                     const p = (n: number) => String(n).padStart(2, "0");
                     return (
-                      <li key={i} className="border-l-2 border-brand-gold/50 pl-3">
-                        <div className="text-[13px] text-brand-ink">{ev.summary ?? ev.action}</div>
-                        <div className="mt-0.5 text-[11px] text-zinc-400">
-                          {ev.actorName ?? "—"} · {p(d.getHours())}:{p(d.getMinutes())} {p(d.getDate())}.
-                          {p(d.getMonth() + 1)}
+                      <li key={i} className="flex gap-3">
+                        {/* Timeline нуқта + чизиқ (CloPOS) */}
+                        <div className="flex flex-col items-center">
+                          <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-deep" />
+                          {i < events.length - 1 && <span className="w-px flex-1 bg-clopos-line" />}
+                        </div>
+                        <div className="pb-4">
+                          <div className="text-[13px] text-brand-ink">{ev.summary ?? ev.action}</div>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-zinc-400">
+                            <span className="flex items-center gap-1">
+                              <IClock className="h-3 w-3" /> {p(d.getHours())}:{p(d.getMinutes())}{" "}
+                              {p(d.getDate())}.{p(d.getMonth() + 1)}.{d.getFullYear()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <IUser className="h-3 w-3" /> {ev.actorName ?? "—"}
+                            </span>
+                          </div>
                         </div>
                       </li>
                     );
