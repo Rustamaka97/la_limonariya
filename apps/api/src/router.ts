@@ -3595,6 +3595,139 @@ export const appRouter = router({
         };
       }),
 
+    // ── QR-меню: меҳмон ўзи буюртма (?menu=tableId, public) ───────────────────
+    // Меҳмон менюни кўради, таом танлайди → столнинг очиқ заказига қўшилади
+    // (йўқ бўлса яратилади). КУХНЯГА автомат ЮБОРИЛМАЙДИ — официант кўриб
+    // «Отправить» босади (нотўғри/сохта буюртмадан ҳимоя, food-safety).
+    guestMenu: publicProcedure.query(async () => {
+      return db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          category: categories.name,
+          stopped: products.stopped,
+          soldByWeight: products.soldByWeight,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(and(eq(products.active, true), sql`${products.price} > 0`))
+        .orderBy(products.type, products.name);
+    }),
+
+    guestAddItems: publicProcedure
+      .input(
+        z.object({
+          tableId: z.string().uuid(),
+          items: z
+            .array(z.object({ productId: z.string().uuid(), qty: z.number().int().min(1).max(50) }))
+            .min(1)
+            .max(40),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        const tbl = (
+          await db
+            .select({ name: tables.name, hallId: tables.hallId })
+            .from(tables)
+            .where(eq(tables.id, input.tableId))
+            .limit(1)
+        )[0];
+        if (!tbl) throw new TRPCError({ code: "NOT_FOUND", message: "Стол топилмади" });
+        const hall = (
+          await db
+            .select({ id: halls.id, servicePct: halls.servicePct })
+            .from(halls)
+            .where(eq(halls.id, tbl.hallId))
+            .limit(1)
+        )[0];
+        if (!hall) throw new TRPCError({ code: "NOT_FOUND" });
+        return db.transaction(async (tx) => {
+          // Столнинг очиқ заказини топ ёки яс (меҳмон буюртмаси — waiterId null).
+          const ord = (
+            await tx
+              .select({ id: orders.id, locked: orders.locked })
+              .from(orders)
+              .where(
+                and(
+                  eq(orders.status, "open"),
+                  eq(orders.hallId, hall.id),
+                  eq(orders.tableNo, tbl.name),
+                ),
+              )
+              .orderBy(orders.createdAt)
+              .limit(1)
+              .for("update")
+          )[0];
+          let orderId: string;
+          if (ord) {
+            if (ord.locked)
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Чек блокланган — официантни чақиринг" });
+            orderId = ord.id;
+          } else {
+            const row = (
+              await tx
+                .insert(orders)
+                .values({ hallId: hall.id, tableNo: tbl.name, servicePct: hall.servicePct })
+                .returning({ id: orders.id })
+            )[0]!;
+            orderId = row.id;
+          }
+          const prods = await tx
+            .select({
+              id: products.id,
+              name: products.name,
+              price: products.price,
+              stopped: products.stopped,
+              active: products.active,
+              soldByWeight: products.soldByWeight,
+            })
+            .from(products)
+            .where(inArray(products.id, input.items.map((i) => i.productId)));
+          const pmap = new Map(prods.map((p) => [p.id, p]));
+          let added = 0;
+          for (const it of input.items) {
+            const p = pmap.get(it.productId);
+            // Стоп/вазнли/нофаол — жим ўтказамиз (меҳмон буларни қўшолмайди).
+            if (!p || !p.active || p.price <= 0 || p.stopped || p.soldByWeight) continue;
+            await tx.execute(
+              sql`select pg_advisory_xact_lock(hashtext(${`${orderId}:${it.productId}`}))`,
+            );
+            const existing = (
+              await tx
+                .select()
+                .from(orderItems)
+                .where(and(eq(orderItems.orderId, orderId), eq(orderItems.productId, it.productId)))
+                .limit(1)
+            )[0];
+            if (existing)
+              await tx
+                .update(orderItems)
+                .set({ qty: existing.qty + it.qty })
+                .where(eq(orderItems.id, existing.id));
+            else
+              await tx
+                .insert(orderItems)
+                .values({ orderId, productId: p.id, name: p.name, price: p.price, qty: it.qty });
+            added += it.qty;
+          }
+          if (added === 0)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Танланган таомлар қўшилмади (стоп ёки вазнли — официантни чақиринг)",
+            });
+          await logAudit(tx, {
+            actorId: null,
+            action: "order.guest_add",
+            entity: "order",
+            entityId: orderId,
+            summary: `QR-меҳмон буюртмаси: ${added} таом (${tbl.name})`,
+            meta: { tableId: input.tableId, source: "qr", added },
+          });
+          return { ok: true, orderId, added };
+        });
+      }),
+
     menu: protectedProcedure.query(async () => {
       return db
         .select({

@@ -4,6 +4,7 @@ import { Shell } from "./Shell";
 import { CallPage } from "./CallPage";
 import { CallAlerts } from "./CallAlerts";
 import { BillPage } from "./BillPage";
+import { GuestMenuPage } from "./GuestMenuPage";
 import { idbGet, idbSet } from "./lib/idb";
 import { startOutbox } from "./lib/outbox";
 import { trpc } from "./trpc";
@@ -19,6 +20,8 @@ export function App() {
   if (callTable) return <CallPage tableId={callTable} />;
   const payTable = params?.get("pay");
   if (payTable) return <BillPage tableId={payTable} />;
+  const menuTable = params?.get("menu");
+  if (menuTable) return <GuestMenuPage tableId={menuTable} />;
   return <MainApp />;
 }
 
