@@ -2567,6 +2567,7 @@ function OrderView({
   const [searchOpen, setSearchOpen] = useState(false);
   const [portionsOnly, setPortionsOnly] = useState(false); // CloPOS «Продажи по порциям»
   const [favOnly, setFavOnly] = useState(false); // CloPOS ★ — фақат севимли таомлар
+  const [menuHidden, setMenuHidden] = useState(false); // CloPOS ⏸ — меню яшир, заказга фокус
   const [unsent, setUnsent] = useState(0);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -3455,9 +3456,17 @@ function OrderView({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:-mt-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[449px_minmax(0,1fr)] lg:gap-0 lg:items-stretch">
+      <div
+        className={`grid grid-cols-1 gap-4 lg:-mt-3 lg:min-h-0 lg:flex-1 lg:gap-0 lg:items-stretch ${
+          menuHidden ? "lg:grid-cols-1" : "lg:grid-cols-[449px_minmax(0,1fr)]"
+        }`}
+      >
         {/* MENU (CloPOS: ЎНГДА, фон #F0F1F4, handoff-макет) */}
-        <section className="order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-menu p-2.5 lg:order-2 lg:overflow-y-auto lg:border-l">
+        <section
+          className={`order-1 min-w-0 space-y-2.5 border-clopos-line bg-clopos-menu p-2.5 lg:order-2 lg:overflow-y-auto lg:border-l ${
+            menuHidden ? "lg:hidden" : ""
+          }`}
+        >
           {/* CloPOS тулбар: уй-плитка чапда, ўнгда қидирув · порция · ⚙ · ☆ · стоп · сетка */}
           <div className="flex items-center justify-between gap-2">
             <button
@@ -3812,7 +3821,21 @@ function OrderView({
           <div className="flex min-h-[300px] flex-1 flex-col">
             <div className="flex items-center justify-between px-3 py-2">
               <span className="text-[13px] font-semibold text-[#3a3a44]">Заказ</span>
-              <span className="text-[12px] text-[#95959f]">{itemCount} таом</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] text-[#95959f]">{itemCount} таом</span>
+                <button
+                  onClick={() => setMenuHidden((v) => !v)}
+                  title={menuHidden ? "Менюни кўрсатиш" : "Фокус — менюни яшириш"}
+                  className={`hidden h-6 w-6 place-items-center rounded-md transition lg:grid ${
+                    menuHidden ? "bg-clopos-bar text-white" : "text-[#95959f] hover:bg-clopos-bg"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M15 4v16" />
+                  </svg>
+                </button>
+              </div>
             </div>
             {empty ? (
               <EmptyLemon title="Заказ ҳали бўш" hint="Менюдан таом танланг" />
