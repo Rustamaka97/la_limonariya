@@ -1097,7 +1097,7 @@ function FloorView({
                         [
                           "Способы оплаты",
                           Object.entries(reportData.byMethod).map(([m, v]) => [
-                            ({ cash: "Наличными", card: "Карта", click: "Click", payme: "Payme", humo: "Humo", debt: "Қарз", avans: "Аванс" } as Record<string, string>)[m] ?? m,
+                            ({ cash: "Наличными", card: "Карта", click: "Click", payme: "Payme", humo: "Humo", debt: "Қарз", balance: "Баланс", avans: "Аванс" } as Record<string, string>)[m] ?? m,
                             v,
                           ]),
                           null,
@@ -4702,6 +4702,7 @@ function OrderView({
                                     payme: "Payme",
                                     humo: "Humo",
                                     debt: "Қарз",
+                                    balance: "Баланс",
                                     avans: "Аванс",
                                   } as Record<string, string>)[ch.method ?? ""] ?? ch.method ?? "—"}
                                 </span>
@@ -5763,16 +5764,17 @@ function Chek({
         )}
         <div className="my-1 flex justify-between text-base font-bold">
           <span>ИТОГО</span>
-          <span className="tabular-nums">{fmt(order.total - order.discountAmount)}</span>
+          {/* total сервердан АЛЛАҚАЧОН чегирмали (subtotal+service−discount) — яна айирилмайди */}
+          <span className="tabular-nums">{fmt(order.total)}</span>
         </div>
         <Hr />
         {order.payments.map((pm, i) => (
           <Line key={i} l={PAY_LABEL[pm.method] ?? pm.method} r={fmt(pm.amount)} />
         ))}
-        {cashReceived != null && cashReceived > order.total - order.discountAmount && (
+        {cashReceived != null && cashReceived > order.total && (
           <>
             <Line l="Олинган" r={fmt(cashReceived)} />
-            <Line l="Қайтим" r={fmt(cashReceived - (order.total - order.discountAmount))} />
+            <Line l="Қайтим" r={fmt(cashReceived - order.total)} />
           </>
         )}
         <Hr />

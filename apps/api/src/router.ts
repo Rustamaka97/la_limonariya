@@ -4578,16 +4578,19 @@ export const appRouter = router({
         const end = new Date(input.to);
         const { revenue, byMethod, checks } = await revenueForWindow(start, end);
         // Ёпилган заказлар: ҳар бирининг subtotal'и (order_items) + сервис/скидка/comp/гости.
+        // ⚠️ leftJoin+groupBy (correlated subquery ЭМАС — drizzle'да 0 қайтаради, verify'да топилди).
         const rows = await db
           .select({
             servicePct: orders.servicePct,
             discountAmount: orders.discountAmount,
             isComp: orders.isComp,
             guests: orders.guests,
-            subtotal: sql<number>`coalesce((select sum(${orderItems.price} * ${orderItems.qty}) from ${orderItems} where ${orderItems.orderId} = ${orders.id}), 0)`.mapWith(Number),
+            subtotal: sql<number>`coalesce(sum(${orderItems.price} * ${orderItems.qty}), 0)`.mapWith(Number),
           })
           .from(orders)
-          .where(and(eq(orders.status, "closed"), gte(orders.closedAt, start), lt(orders.closedAt, end)));
+          .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+          .where(and(eq(orders.status, "closed"), gte(orders.closedAt, start), lt(orders.closedAt, end)))
+          .groupBy(orders.id);
         let subtotal = 0, service = 0, discount = 0, comp = 0, guests = 0;
         for (const r of rows) {
           subtotal += r.subtotal;
@@ -4602,13 +4605,15 @@ export const appRouter = router({
             .from(refunds)
             .where(and(gte(refunds.createdAt, start), lt(refunds.createdAt, end)))
         )[0];
-        // Очиқ чеклар (жорий) — subtotal йиғиндиси.
+        // Очиқ чеклар (жорий) — subtotal йиғиндиси (leftJoin+groupBy, correlated эмас).
         const openRows = await db
           .select({
-            subtotal: sql<number>`coalesce((select sum(${orderItems.price} * ${orderItems.qty}) from ${orderItems} where ${orderItems.orderId} = ${orders.id}), 0)`.mapWith(Number),
+            subtotal: sql<number>`coalesce(sum(${orderItems.price} * ${orderItems.qty}), 0)`.mapWith(Number),
           })
           .from(orders)
-          .where(eq(orders.status, "open"));
+          .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+          .where(eq(orders.status, "open"))
+          .groupBy(orders.id);
         return {
           subtotal,
           service,
@@ -5644,7 +5649,8 @@ export const appRouter = router({
               status: "closed",
               closedAt: new Date(),
               closedById: ctx.user.id,
-              ...(hasDebt ? { customerId: input.customerId } : {}),
+              // Қарз ЁКИ баланс тўловда мижоз заказга бирикади (тарих/running-balans).
+              ...(hasDebt || balancePay ? { customerId: input.customerId } : {}),
               ...(input.comp ? { isComp: true, compReason: input.comp.reason } : {}),
               ...(input.discount
                 ? { discountAmount: input.discount.amount, discountReason: input.discount.reason }
@@ -6570,9 +6576,6 @@ export const appRouter = router({
               id: customers.id,
               name: customers.name,
               phone: customers.phone,
-              // CloPOS каби детал: ҳамён баланси (±қарз) + ёпилган чеклар сони.
-              balance: sql<number>`coalesce((select sum(${customerWalletMovements.amount}) from ${customerWalletMovements} where ${customerWalletMovements.customerId} = ${customers.id}), 0)`.mapWith(Number),
-              checks: sql<number>`coalesce((select count(*) from ${orders} where ${orders.customerId} = ${customers.id} and ${orders.status} = 'closed'), 0)`.mapWith(Number),
             })
             .from(customers)
             .where(
@@ -6582,7 +6585,36 @@ export const appRouter = router({
             )
             .orderBy(customers.name)
             .limit(20);
-          return rows;
+          // CloPOS каби детал: ҳамён баланси (±қарз) + ёпилган чеклар сони.
+          // ⚠️ Алоҳида group query'лар (correlated subquery drizzle'да 0 қайтаради).
+          const ids = rows.map((r) => r.id);
+          const balMap = new Map<string, number>();
+          const chkMap = new Map<string, number>();
+          if (ids.length) {
+            const bals = await db
+              .select({
+                customerId: customerWalletMovements.customerId,
+                b: sql<number>`coalesce(sum(${customerWalletMovements.amount}), 0)`.mapWith(Number),
+              })
+              .from(customerWalletMovements)
+              .where(inArray(customerWalletMovements.customerId, ids))
+              .groupBy(customerWalletMovements.customerId);
+            for (const r of bals) balMap.set(r.customerId, r.b);
+            const chks = await db
+              .select({
+                customerId: orders.customerId,
+                n: sql<number>`count(*)`.mapWith(Number),
+              })
+              .from(orders)
+              .where(and(inArray(orders.customerId, ids), eq(orders.status, "closed")))
+              .groupBy(orders.customerId);
+            for (const r of chks) if (r.customerId) chkMap.set(r.customerId, r.n);
+          }
+          return rows.map((r) => ({
+            ...r,
+            balance: balMap.get(r.id) ?? 0,
+            checks: chkMap.get(r.id) ?? 0,
+          }));
         }),
 
       create: protectedProcedure
