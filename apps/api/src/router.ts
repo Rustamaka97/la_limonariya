@@ -5330,7 +5330,7 @@ export const appRouter = router({
           payments: z
             .array(
               z.object({
-                method: z.enum(["cash", "card", "click", "payme", "humo", "debt"]),
+                method: z.enum(["cash", "card", "click", "payme", "humo", "debt", "balance"]),
                 amount: z.number().int().nonnegative(),
               }),
             )
@@ -5357,6 +5357,13 @@ export const appRouter = router({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Қарзга ёпишда мижоз танланг",
+          });
+        // Баланс тўлов — мижоз МАЖБУРИЙ (кимнинг ҳамёнидан ечилади).
+        const balancePay = pays.find((p) => p.method === "balance");
+        if (balancePay && !input.customerId)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Баланс тўловда мижоз танланг",
           });
         // Чегирма — фақат директор/менежер, comp билан бирга эмас (текин=бепул).
         if (input.discount) {
@@ -5493,6 +5500,39 @@ export const appRouter = router({
               .insert(orderPayments)
               .values(pays.map((p) => ({ orderId: input.id, ...p })));
 
+          // Баланс тўлов — мижоз ҳамёнидан ечиш (redeem). Мижоз қаторини FOR UPDATE
+          // қулфлаб SUM текширамиз (параллел баланс тўловлар сериаллашсин — race йўқ,
+          // ҳамён минусга кетмайди). Нақд тортмага КИРМАЙДИ (till=cash); revenue'га
+          // киради (хизмат берилди, депозит олдин тушумга кирмаган).
+          if (balancePay && input.customerId && !input.comp) {
+            await tx
+              .select({ id: customers.id })
+              .from(customers)
+              .where(eq(customers.id, input.customerId))
+              .for("update");
+            const bal = Number(
+              (
+                await tx
+                  .select({ b: sql<number>`coalesce(sum(${customerWalletMovements.amount}), 0)` })
+                  .from(customerWalletMovements)
+                  .where(eq(customerWalletMovements.customerId, input.customerId))
+              )[0]?.b ?? 0,
+            );
+            if (balancePay.amount > bal)
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Ҳамёнда етарли эмас — баланс ${bal.toLocaleString()} so'm`,
+              });
+            await tx.insert(customerWalletMovements).values({
+              customerId: input.customerId,
+              amount: -balancePay.amount,
+              kind: "redeem",
+              orderId: input.id,
+              note: "Чек тўлови (баланс)",
+              createdById: ctx.user.id,
+            });
+          }
+
           // Аванс тушумга айланади: 'avans' қатори + идемпотент-белги (flip
           // ютган транзакциягина ёзади — иккиланиш йўқ).
           if (deposit > 0 && resRow) {
@@ -5516,7 +5556,7 @@ export const appRouter = router({
           if (moves.length) await tx.insert(stockMovements).values(moves);
           // Чек тарихи (CloPOS «закрыл чек Наличными N») — тўлов усули + сумма.
           const methodUz: Record<string, string> = {
-            cash: "Нақд", card: "Карта", click: "Click", payme: "PayMe", humo: "Humo", debt: "Қарз",
+            cash: "Нақд", card: "Карта", click: "Click", payme: "PayMe", humo: "Humo", debt: "Қарз", balance: "Баланс",
           };
           const closeSummary = input.comp
             ? `Текин ёпилди (${input.comp.reason})`

@@ -379,6 +379,13 @@
       "when": 1784483927364,
       "tag": "0053_flimsy_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1784516763326,
+      "tag": "0054_rich_harpoon",
+      "breakpoints": true
     }
   ]
 }

@@ -74,8 +74,8 @@ type OpenOrder = {
   mine?: boolean;
   createdAt: string;
 };
-type PayMethod = "cash" | "card" | "click" | "payme" | "humo" | "debt";
-const PAY_METHODS: PayMethod[] = ["cash", "card", "click", "payme", "humo", "debt"];
+type PayMethod = "cash" | "card" | "click" | "payme" | "humo" | "debt" | "balance";
+const PAY_METHODS: PayMethod[] = ["cash", "card", "click", "payme", "humo", "debt", "balance"];
 type Order = {
   id: string;
   checkNo: string;
@@ -125,6 +125,7 @@ const PAY_LABEL: Record<string, string> = {
   payme: "Payme",
   humo: "Ҳумо",
   debt: "Қарз",
+  balance: "Баланс клиента",
   avans: "Аванс (бронь)",
 };
 
@@ -2961,8 +2962,8 @@ function OrderView({
   function pay(method: PayMethod) {
     if (!order || closing) return;
     const payments = [{ method, amount: payTotal }];
-    // Қарз танланса — аввал мижоз танлаш (МАЖБУРИЙ).
-    if (method === "debt") { setPendingDebt(payments); return; }
+    // Қарз/баланс танланса — аввал мижоз танлаш (МАЖБУРИЙ).
+    if (method === "debt" || method === "balance") { setPendingDebt(payments); return; }
     submitClose(payments);
   }
 
@@ -2971,7 +2972,10 @@ function OrderView({
     const payments = (Object.entries(splits) as [PayMethod, string][])
       .map(([method, v]) => ({ method, amount: Math.round(Number(v) || 0) }))
       .filter((p) => p.amount > 0);
-    if (payments.some((p) => p.method === "debt")) { setPendingDebt(payments); return; }
+    if (payments.some((p) => p.method === "debt" || p.method === "balance")) {
+      setPendingDebt(payments);
+      return;
+    }
     submitClose(payments);
   }
 
@@ -5257,7 +5261,7 @@ function CustomerPicker({
 
   return (
     <div className="space-y-2 rounded-2xl border border-brand-cream-soft bg-brand-cream/20 p-3">
-      <p className="text-xs font-semibold text-brand-ink">Қарздор мижозни танланг</p>
+      <p className="text-xs font-semibold text-brand-ink">Мижозни танланг</p>
       {!creating ? (
         <>
           <input
