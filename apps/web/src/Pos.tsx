@@ -3569,6 +3569,17 @@ function OrderView({
                   <path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18l-6 3.4 1.4-6.8L2.3 9.9l6.9-.8z" />
                 </svg>
               </button>
+              {canDiscount && (
+                <button
+                  onClick={() => { setCatalogEdit((v) => !v); setMenuCat(null); setQ(""); }}
+                  title="Каталог таҳрир (⚙) — таом ном/нарх"
+                  className={`grid h-[30px] w-8 place-items-center rounded-[4px] shadow-[0_1px_2px_rgba(0,0,0,.08)] transition ${
+                    catalogEdit ? "bg-clopos-bar text-white" : "bg-white text-[#63637A] hover:brightness-95"
+                  }`}
+                >
+                  <IGear className="h-4 w-4" />
+                </button>
+              )}
               <button
                 onClick={() => { setMenuCat(null); setQ(""); }}
                 title="Категория-сетка"
@@ -3645,7 +3656,15 @@ function OrderView({
                   {shown.map((m) => (
                     <button
                       key={m.id}
-                      onClick={() => !m.stopped && (m.soldByWeight ? setWeighFor(m) : add(m.id, 1))}
+                      onClick={() => {
+                        if (catalogEdit) {
+                          setEditProd(m);
+                          setEditName(m.name);
+                          setEditPrice(String(m.price));
+                          return;
+                        }
+                        if (!m.stopped) m.soldByWeight ? setWeighFor(m) : add(m.id, 1);
+                      }}
                       disabled={m.stopped}
                       className={`relative flex min-h-[76px] flex-col justify-between rounded-[2px] bg-white p-2.5 text-left shadow-[2px_3px_0_0_rgba(0,0,0,.14)] transition ${
                         m.stopped ? "opacity-50 grayscale" : "hover:bg-brand-cream-soft active:brightness-95"
@@ -4245,6 +4264,85 @@ function OrderView({
       )}
 
       {/* МЕҲМОНЛАР СОНИ MODAL (CloPOS «Изменить кол-во гостей») */}
+      {/* ⚙ ТАОМ ТАҲРИР MODAL (CloPOS каталог-таҳрир ✏) — ном/нарх, директор */}
+      {editProd && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setEditProd(null)}
+        >
+          <div
+            className="w-full max-w-sm overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">Таом таҳрир</h3>
+              <button
+                onClick={() => setEditProd(null)}
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="space-y-3 p-4">
+              <div>
+                <label className="mb-1 block text-[12px] font-semibold text-brand-ink">Ном</label>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-[14px] outline-none focus:border-brand-deep"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[12px] font-semibold text-brand-ink">Нарх (so'm)</label>
+                <input
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value.replace(/[^0-9]/g, ""))}
+                  inputMode="numeric"
+                  className="w-full rounded-xl border border-clopos-line px-3 py-2.5 text-right text-[14px] tabular-nums outline-none focus:border-brand-deep"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-clopos-line p-4">
+              <button
+                onClick={() => setEditProd(null)}
+                className="flex-1 rounded-xl border border-clopos-line py-2.5 text-[14px] font-medium text-brand-ink transition hover:bg-clopos-bg"
+              >
+                Бекор
+              </button>
+              <button
+                disabled={editBusy || !editName.trim() || Number(editPrice) < 0}
+                onClick={async () => {
+                  if (!editProd) return;
+                  setEditBusy(true);
+                  try {
+                    await trpc.catalog.products.update.mutate({
+                      id: editProd.id,
+                      name: editName.trim(),
+                      price: Number(editPrice),
+                    });
+                    setMenu((mm) =>
+                      mm.map((x) =>
+                        x.id === editProd.id
+                          ? { ...x, name: editName.trim(), price: Number(editPrice) }
+                          : x,
+                      ),
+                    );
+                    setEditProd(null);
+                  } catch (e) {
+                    alert(e instanceof Error ? e.message : "Сақланмади");
+                  } finally {
+                    setEditBusy(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-brand-deep py-2.5 text-[14px] font-semibold text-white transition hover:bg-brand-ink disabled:opacity-50"
+              >
+                {editBusy ? "…" : "Сақлаш"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showGuests && (
         <div
           className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"
