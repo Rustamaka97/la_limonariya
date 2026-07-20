@@ -2483,6 +2483,59 @@ export const appRouter = router({
         });
       }),
 
+    // ── Модификатор каталоги (директор бошқаради) — пиёзсиз/+сир/+гўшт... ──
+    modifiersList: directorProcedure.query(async () => {
+      return db
+        .select({
+          id: modifiers.id,
+          name: modifiers.name,
+          priceDelta: modifiers.priceDelta,
+          sort: modifiers.sort,
+          active: modifiers.active,
+        })
+        .from(modifiers)
+        .orderBy(modifiers.sort, modifiers.name);
+    }),
+
+    modifierUpsert: directorProcedure
+      .input(
+        z.object({
+          id: z.string().uuid().optional(),
+          name: z.string().trim().min(1).max(60),
+          priceDelta: z.number().int().min(-10_000_000).max(10_000_000),
+          sort: z.number().int().min(0).max(999).optional(),
+          active: z.boolean().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (input.id) {
+          await db
+            .update(modifiers)
+            .set({
+              name: input.name,
+              priceDelta: input.priceDelta,
+              ...(input.sort != null ? { sort: input.sort } : {}),
+              ...(input.active != null ? { active: input.active } : {}),
+            })
+            .where(eq(modifiers.id, input.id));
+        } else {
+          await db.insert(modifiers).values({
+            name: input.name,
+            priceDelta: input.priceDelta,
+            sort: input.sort ?? 0,
+            active: input.active ?? true,
+          });
+        }
+        await logAudit(db, {
+          actorId: ctx.user.id,
+          action: "modifier.upsert",
+          entity: "modifier",
+          entityId: input.id,
+          summary: `Модификатор: ${input.name} (${input.priceDelta > 0 ? "+" : ""}${input.priceDelta})`,
+        });
+        return { ok: true };
+      }),
+
     // Products usable as tech-card lines: raw + carcass parts + semi-finished.
     components: protectedProcedure.query(async () => {
       return db

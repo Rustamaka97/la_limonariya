@@ -244,6 +244,132 @@ export function Catalog({ user }: { user: SessionUser }) {
           onChanged={() => swr("catalog.stations", () => trpc.catalog.stations.query(), setStationsList).catch(() => {})}
         />
       )}
+
+      {isDirector && <ModifiersSection />}
+    </div>
+  );
+}
+
+type Mod = { id: string; name: string; priceDelta: number; sort: number; active: boolean };
+function ModifiersSection() {
+  const [rows, setRows] = useState<Mod[] | null>(null);
+  const [edit, setEdit] = useState<Mod | "new" | null>(null);
+  const load = () => trpc.catalog.modifiersList.query().then(setRows).catch(() => setRows([]));
+  useEffect(() => {
+    void load();
+  }, []);
+  return (
+    <div className="rounded-xl border bg-white p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-brand-ink">
+          Модификаторлар <span className="font-normal text-zinc-400">(пиёзсиз, +сир…)</span>
+        </h3>
+        <button
+          onClick={() => setEdit("new")}
+          className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white"
+        >
+          ＋ Янги
+        </button>
+      </div>
+      {rows === null ? (
+        <div className="py-4 text-center text-zinc-400">⏳</div>
+      ) : rows.length === 0 ? (
+        <p className="py-4 text-center text-sm text-zinc-400">Ҳали модификатор йўқ</p>
+      ) : (
+        <div className="divide-y">
+          {rows.map((m) => (
+            <div
+              key={m.id}
+              className={`flex items-center justify-between gap-2 py-2 text-sm ${m.active ? "" : "opacity-40"}`}
+            >
+              <span>
+                {m.name}
+                {!m.active && " (ўчик)"}
+              </span>
+              <span className="flex items-center gap-3">
+                <span className="text-xs tabular-nums text-zinc-500">
+                  {m.priceDelta > 0 ? "+" : ""}
+                  {m.priceDelta.toLocaleString("ru-RU")}
+                </span>
+                <button onClick={() => setEdit(m)} className="text-zinc-300 hover:text-emerald-600" title="Таҳрирлаш">
+                  ✎
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {edit && (
+        <ModifierModal
+          mod={edit === "new" ? null : edit}
+          onClose={() => setEdit(null)}
+          onSaved={() => {
+            setEdit(null);
+            load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ModifierModal({ mod, onClose, onSaved }: { mod: Mod | null; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(mod?.name ?? "");
+  const [delta, setDelta] = useState(String(mod?.priceDelta ?? 0));
+  const [active, setActive] = useState(mod?.active ?? true);
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      await trpc.catalog.modifierUpsert.mutate({
+        id: mod?.id,
+        name: name.trim(),
+        priceDelta: Math.round(Number(delta) || 0),
+        active,
+      });
+      onSaved();
+    } catch {
+      /* жим — қайта уриниб кўради */
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-xs space-y-3 rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-semibold text-brand-ink">{mod ? "Модификатор" : "Янги модификатор"}</h3>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Ном (масалан: Пиёзсиз)"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+        />
+        <div>
+          <label className="text-xs text-zinc-500">Нарх (+/− so'm, 0 = бепул)</label>
+          <input
+            value={delta}
+            onChange={(e) => setDelta(e.target.value.replace(/[^\d-]/g, ""))}
+            inputMode="numeric"
+            className="w-full rounded-lg border px-3 py-2 text-sm tabular-nums"
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Фаол (менюда кўринади)
+        </label>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 rounded-lg border py-2 text-sm text-zinc-600">
+            Бекор
+          </button>
+          <button
+            onClick={save}
+            disabled={busy || !name.trim()}
+            className="flex-1 rounded-lg bg-brand py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {busy ? "…" : "Сақлаш"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
