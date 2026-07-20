@@ -104,6 +104,7 @@ type Order = {
     weightG?: number | null;
     note?: string | null;
     course?: number | null; // курс/подача (1=биринчи тўлқин); оффлайн-overlay'да йўқ
+    modifiers?: { name: string; priceDelta: number }[]; // модификаторлар (пиёзсиз, +сир)
   }[];
   payments: { method: string; amount: number }[];
   subtotal: number;
@@ -2569,6 +2570,12 @@ function OrderView({
   const [portionsOnly, setPortionsOnly] = useState(false); // CloPOS «Продажи по порциям»
   const [favOnly, setFavOnly] = useState(false); // CloPOS ★ — фақат севимли таомлар
   const [menuHidden, setMenuHidden] = useState(false); // CloPOS ⏸ — меню яшир, заказга фокус
+  // CloPOS ⚙ — POS'дан каталог тез-таҳрир (директор: таом ном/нарх). ✏ MVP.
+  const [catalogEdit, setCatalogEdit] = useState(false);
+  const [editProd, setEditProd] = useState<MenuItem | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
   const [unsent, setUnsent] = useState(0);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -2624,6 +2631,11 @@ function OrderView({
   const [moving, setMoving] = useState(false);
   const [note, setNote] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
+  // Модификаторлар (пиёзсиз, +сир): каталог + танланган итем picker'и.
+  const [modFor, setModFor] = useState<{ id: string; name: string } | null>(null);
+  const [modCatalog, setModCatalog] = useState<{ id: string; name: string; priceDelta: number }[]>([]);
+  const [modSel, setModSel] = useState<Set<string>>(new Set());
+  const [modBusy, setModBusy] = useState(false);
   const [online, setOnline] = useState(isOnline());
   const [syncErr, setSyncErr] = useState<string | null>(null);
   const [precheckBusy, setPrecheckBusy] = useState(false);
@@ -2685,6 +2697,31 @@ function OrderView({
       await trpc.pos.setItemCourse.mutate({ orderItemId: itemId, course: next });
     } catch {
       refresh();
+    }
+  }
+
+  // Модификатор каталогини бир марта юклаш (кичик рўйхат).
+  useEffect(() => {
+    trpc.pos.modifiers.query().then(setModCatalog).catch(() => {});
+  }, []);
+
+  function openMods(item: { id: string; name: string; modifiers?: { name: string }[] }) {
+    const names = new Set((item.modifiers ?? []).map((m) => m.name));
+    setModSel(new Set(modCatalog.filter((c) => names.has(c.name)).map((c) => c.id)));
+    setModFor({ id: item.id, name: item.name });
+  }
+
+  async function saveMods() {
+    if (!modFor) return;
+    setModBusy(true);
+    try {
+      await trpc.pos.setItemModifiers.mutate({ orderItemId: modFor.id, modifierIds: [...modSel] });
+      setModFor(null);
+      refresh();
+    } catch {
+      /* очиқ қолсин — қайта уриниб кўради */
+    } finally {
+      setModBusy(false);
     }
   }
 
@@ -3869,7 +3906,26 @@ function OrderView({
                           </div>
                         )
                       )}
+                      {(it.modifiers?.length ?? 0) > 0 && (
+                        <div className="truncate text-[11px] font-medium text-brand">
+                          + {it.modifiers!.map((m) => m.name).join(", ")}
+                        </div>
+                      )}
                     </button>
+                    {it.productId && online && !it.weightG && (
+                      <button
+                        type="button"
+                        onClick={() => openMods(it)}
+                        title="Модификатор (пиёзсиз, +сир...)"
+                        className={`shrink-0 rounded-md px-1.5 py-1 text-[13px] font-bold leading-none transition ${
+                          (it.modifiers?.length ?? 0) > 0
+                            ? "bg-brand text-white"
+                            : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200"
+                        }`}
+                      >
+                        ±
+                      </button>
+                    )}
                     {it.productId && online && (
                       <button
                         type="button"
@@ -4844,6 +4900,78 @@ function OrderView({
       )}
 
       {/* PAY MODAL */}
+      {/* Модификатор picker (пиёзсиз, +сир...) */}
+      {modFor && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+          onClick={() => setModFor(null)}
+        >
+          <div
+            className="flex max-h-[80dvh] w-full max-w-sm flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="truncate text-base font-bold text-brand-ink">± {modFor.name}</h3>
+              <button
+                onClick={() => setModFor(null)}
+                className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+              >
+                Ёпиш
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+              {modCatalog.length === 0 ? (
+                <p className="py-6 text-center text-sm text-zinc-400">Модификатор йўқ</p>
+              ) : (
+                modCatalog.map((m) => {
+                  const on = modSel.has(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() =>
+                        setModSel((s) => {
+                          const n = new Set(s);
+                          if (n.has(m.id)) n.delete(m.id);
+                          else n.add(m.id);
+                          return n;
+                        })
+                      }
+                      className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                        on ? "border-brand bg-brand-cream/40" : "border-brand-cream-soft hover:bg-zinc-50"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] ${
+                            on ? "border-brand bg-brand text-white" : "border-zinc-300 text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                        {m.name}
+                      </span>
+                      {m.priceDelta !== 0 && (
+                        <span className="shrink-0 text-xs font-semibold tabular-nums text-brand">
+                          {m.priceDelta > 0 ? "+" : ""}
+                          {fmt(m.priceDelta)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <button
+              onClick={saveMods}
+              disabled={modBusy}
+              className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-50"
+            >
+              {modBusy ? "…" : "Сақлаш"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {paying && (
         <div
           className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4"

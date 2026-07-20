@@ -348,6 +348,32 @@ export const orderItems = pgTable("order_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Модификатор каталоги (CloPOS-паритет): таомга қўшиладиган структурали танлов —
+// «пиёзсиз» (0), «яхши пишган» (0), «қўшимча сир» (+5000). Директор бошқаради.
+export const modifiers = pgTable("modifiers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  priceDelta: integer("price_delta").notNull().default(0),
+  sort: integer("sort").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+});
+
+// Заказ-таомга бириктирилган модификаторлар (snapshot: ном+нарх). ПУЛ-ХАВФСИЗ:
+// order_item.price = product.price + SUM(price_delta) қилиб сингдирилади → мавжуд
+// subtotal=price×qty математикаси ва close-гейт ЎЗГАРМАЙДИ. Бу — фақат кўрсатиш/чек.
+export const orderItemModifiers = pgTable(
+  "order_item_modifiers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderItemId: uuid("order_item_id")
+      .notNull()
+      .references(() => orderItems.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    priceDelta: integer("price_delta").notNull().default(0),
+  },
+  (t) => [index("oim_item_idx").on(t.orderItemId)],
+);
+
 // "Тикетсиз таом ЙЎҚ" control: an append-only record of what was actually sent
 // to the kitchen/station, when, and how much. Never edited — only inserted.
 // "Sent so far" for a product in an order = SUM(kitchen_ticket_items.qty) for

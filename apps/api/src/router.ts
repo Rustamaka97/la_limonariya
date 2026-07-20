@@ -38,7 +38,9 @@ import {
   kitchenTicketItems,
   kitchenTickets,
   marinadeBatches,
+  modifiers,
   normChanges,
+  orderItemModifiers,
   obvalka,
   obvalkaParts,
   orderItems,
@@ -1123,6 +1125,7 @@ async function computeUnsentItems(
 ) {
   const items = await exec
     .select({
+      itemId: orderItems.id,
       productId: orderItems.productId,
       name: orderItems.name,
       qty: orderItems.qty,
@@ -1135,6 +1138,27 @@ async function computeUnsentItems(
     .leftJoin(products, eq(orderItems.productId, products.id))
     .leftJoin(stations, eq(products.stationId, stations.id))
     .where(eq(orderItems.orderId, orderId));
+
+  // Модификаторлар (пиёзсиз, +сир...) — кухня тикети note'ига қўшилади, ошпаз кўрсин.
+  const modRows = items.length
+    ? await exec
+        .select({ orderItemId: orderItemModifiers.orderItemId, name: orderItemModifiers.name })
+        .from(orderItemModifiers)
+        .where(inArray(orderItemModifiers.orderItemId, items.map((i) => i.itemId)))
+    : [];
+  const modsByItem = new Map<string, string[]>();
+  for (const m of modRows) {
+    const a = modsByItem.get(m.orderItemId) ?? [];
+    a.push(m.name);
+    modsByItem.set(m.orderItemId, a);
+  }
+  // Итем note'и + модификаторлар = кухняга кўринадиган тўлиқ note.
+  const fullNote = (itemId: string, note: string | null): string | null => {
+    const mods = modsByItem.get(itemId);
+    if (!mods || mods.length === 0) return note;
+    const modStr = mods.join(", ");
+    return note ? `${modStr} · ${note}` : modStr;
+  };
 
   // group by productId (defense: addItem upserts by orderId+productId so
   // duplicates shouldn't occur, but don't let it corrupt the math if they do).
@@ -1149,12 +1173,12 @@ async function computeUnsentItems(
     if (g) {
       g.qty += it.qty;
       if (it.createdAt < g.createdAt) g.createdAt = it.createdAt;
-      g.note = g.note ?? it.note;
+      g.note = g.note ?? fullNote(it.itemId, it.note);
     } else {
       grouped.set(it.productId, {
         name: it.name,
         qty: it.qty,
-        note: it.note,
+        note: fullNote(it.itemId, it.note),
         course: it.course ?? 1,
         createdAt: it.createdAt,
         station: it.station,
@@ -3902,6 +3926,24 @@ export const appRouter = router({
           })
           .from(orderItems)
           .where(eq(orderItems.orderId, input.id));
+        // Модификаторлар (ҳар итемга) — cart'да кўрсатиш учун.
+        const itemMods = items.length
+          ? await db
+              .select({
+                orderItemId: orderItemModifiers.orderItemId,
+                name: orderItemModifiers.name,
+                priceDelta: orderItemModifiers.priceDelta,
+              })
+              .from(orderItemModifiers)
+              .where(inArray(orderItemModifiers.orderItemId, items.map((i) => i.id)))
+          : [];
+        const modsByItem = new Map<string, { name: string; priceDelta: number }[]>();
+        for (const m of itemMods) {
+          const a = modsByItem.get(m.orderItemId) ?? [];
+          a.push({ name: m.name, priceDelta: m.priceDelta });
+          modsByItem.set(m.orderItemId, a);
+        }
+        const itemsWithMods = items.map((i) => ({ ...i, modifiers: modsByItem.get(i.id) ?? [] }));
         const payments = await db
           .select({ method: orderPayments.method, amount: orderPayments.amount })
           .from(orderPayments)
@@ -3929,7 +3971,7 @@ export const appRouter = router({
         return {
           ...head,
           checkNo: input.id.slice(0, 5).toUpperCase(),
-          items,
+          items: itemsWithMods,
           payments,
           subtotal,
           service,
@@ -5166,6 +5208,77 @@ export const appRouter = router({
           .set({ course: input.course })
           .where(eq(orderItems.id, input.orderItemId));
         return { ok: true };
+      }),
+
+    // Модификатор каталоги (picker учун) — фаол модификаторлар.
+    modifiers: protectedProcedure.query(async () => {
+      return db
+        .select({ id: modifiers.id, name: modifiers.name, priceDelta: modifiers.priceDelta })
+        .from(modifiers)
+        .where(eq(modifiers.active, true))
+        .orderBy(modifiers.sort, modifiers.name);
+    }),
+
+    // Таомга модификатор бириктириш. ПУЛ-ХАВФСИЗ: order_item.price = product.price
+    // + SUM(delta) сингдирилади → subtotal=price×qty ва close-гейт ЎЗГАРМАЙДИ
+    // (addItem қты-ни ошираётганда price'га тегмайди — текширилган). Фақат очиқ,
+    // блокланмаган заказ; вазнли таомга модификатор йўқ (нархи кг-дан).
+    setItemModifiers: protectedProcedure
+      .input(
+        z.object({
+          orderItemId: z.string().uuid(),
+          modifierIds: z.array(z.string().uuid()).max(20),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+          const it = (
+            await tx
+              .select({
+                orderId: orderItems.orderId,
+                productId: orderItems.productId,
+                weightG: orderItems.weightG,
+              })
+              .from(orderItems)
+              .where(eq(orderItems.id, input.orderItemId))
+              .limit(1)
+              .for("update")
+          )[0];
+          if (!it) throw new TRPCError({ code: "NOT_FOUND" });
+          if (!it.productId || it.weightG != null)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Бу таомга модификатор қўйиб бўлмайди" });
+          await assertOrderAccess(tx, ctx.user, it.orderId);
+          const oHead = (
+            await tx
+              .select({ status: orders.status, locked: orders.locked })
+              .from(orders)
+              .where(eq(orders.id, it.orderId))
+              .limit(1)
+          )[0];
+          if (!oHead || oHead.status !== "open")
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
+          if (oHead.locked)
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Чек блокланган" });
+          // Танланган модификаторлар (каталогдан snapshot ном+нарх)
+          const chosen = input.modifierIds.length
+            ? await tx
+                .select({ name: modifiers.name, priceDelta: modifiers.priceDelta })
+                .from(modifiers)
+                .where(and(inArray(modifiers.id, input.modifierIds), eq(modifiers.active, true)))
+            : [];
+          const base =
+            (await tx.select({ price: products.price }).from(products).where(eq(products.id, it.productId)).limit(1))[0]
+              ?.price ?? 0;
+          const delta = chosen.reduce((s, m) => s + m.priceDelta, 0);
+          await tx.delete(orderItemModifiers).where(eq(orderItemModifiers.orderItemId, input.orderItemId));
+          if (chosen.length)
+            await tx.insert(orderItemModifiers).values(
+              chosen.map((m) => ({ orderItemId: input.orderItemId, name: m.name, priceDelta: m.priceDelta })),
+            );
+          // Нархни сингдир (базовый + дельта) — мавжуд пул математикаси ўз-ўзидан ҳисоблайди.
+          await tx.update(orderItems).set({ price: base + delta }).where(eq(orderItems.id, input.orderItemId));
+          return { ok: true, price: base + delta };
+        });
       }),
 
     sendToKitchen: protectedProcedure
