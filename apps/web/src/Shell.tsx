@@ -115,11 +115,31 @@ export function Shell({
     (navigator.userAgent.includes("LaLimonPOS") ||
       (typeof location !== "undefined" && location.search.includes("terminal")));
   const [menuOpen, setMenuOpen] = useState(false);
+  // 🔔 билдиришнома маркази (CloPOS «Уведомления») — POS роллари учун.
+  const [showNotif, setShowNotif] = useState(false);
+  const [notifs, setNotifs] = useState<
+    { kind: string; title: string; detail: string; at: string | Date | null; severity: "info" | "warn" | "error" }[]
+  >([]);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 15_000);
     return () => clearInterval(t);
   }, []);
+  useEffect(() => {
+    if (!canPos) return;
+    let alive = true;
+    const load = () =>
+      trpc.pos.notifications
+        .query()
+        .then((n) => alive && setNotifs(n))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 30_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [canPos]);
   const clock = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   // CloPOS каби: PIN'дан кейин биринчи ойна — доим Касса (пол). POS ролларининг
   // ҳаммаси (директор ҳам) кириши билан столларни кўради; директор истаса
@@ -198,9 +218,21 @@ export function Shell({
               <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
                 {ROLE_LABEL[user.role] ?? user.role}
               </span>
-              <span className="grid h-6 w-6 place-items-center text-white/80" title="Билдиришлар" aria-label="Билдиришлар">
-                <IBell className="h-5 w-5" />
-              </span>
+              {canPos && (
+                <button
+                  onClick={() => setShowNotif(true)}
+                  className="relative grid h-8 w-8 place-items-center rounded-lg text-white/80 transition hover:bg-white/15"
+                  title="Билдиришлар"
+                  aria-label="Билдиришлар"
+                >
+                  <IBell className="h-5 w-5" />
+                  {notifs.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {notifs.length}
+                    </span>
+                  )}
+                </button>
+              )}
               <span className="tabular-nums text-white/80">{clock}</span>
               <button
                 onClick={logout}
@@ -313,6 +345,71 @@ export function Shell({
           тегмайди (у ўзининг ☰ менюсини ишлатади). */}
       {!isTerminal && (
         <MobileNav tabs={tabs} tab={tab} setTab={setTab} iconStyle={iconStyle} />
+      )}
+
+      {/* 🔔 Билдиришнома маркази (CloPOS «Уведомления») — ўнгдан drawer */}
+      {showNotif && (
+        <div
+          className="fixed inset-0 z-[70] flex items-stretch justify-end bg-brand-ink/40 backdrop-blur-sm"
+          onClick={() => setShowNotif(false)}
+        >
+          <div
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
+              <h3 className="text-[16px] font-bold">
+                Билдиришномалар{notifs.length > 0 ? ` (${notifs.length})` : ""}
+              </h3>
+              <button
+                onClick={() => setShowNotif(false)}
+                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
+              >
+                <span className="text-lg leading-none" aria-hidden>✕</span>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {notifs.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-300">
+                  <IBell className="h-12 w-12" />
+                  <p className="text-[13px]">Янги билдиришнома йўқ</p>
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {notifs.map((n, i) => {
+                    const box =
+                      n.severity === "error"
+                        ? "border-red-400 bg-red-50"
+                        : n.severity === "warn"
+                          ? "border-amber-400 bg-amber-50"
+                          : "border-zinc-200 bg-white";
+                    const icon = n.kind === "call" ? "🔔" : n.kind === "stale" ? "⏰" : "🛑";
+                    return (
+                      <li
+                        key={i}
+                        className={`flex items-start gap-2.5 rounded-xl border-l-4 ${box} px-3 py-2.5`}
+                      >
+                        <span className="text-[16px]" aria-hidden>{icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold text-brand-ink">{n.title}</p>
+                          <p className="truncate text-[12px] text-zinc-500">{n.detail}</p>
+                        </div>
+                        {n.at && (
+                          <span className="shrink-0 text-[11px] text-zinc-400">
+                            {new Date(n.at).toLocaleTimeString("ru-RU", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

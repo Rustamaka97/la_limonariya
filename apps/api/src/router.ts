@@ -3676,6 +3676,68 @@ export const appRouter = router({
         return { ok: true };
       }),
 
+    // 🔔 Билдиришнома маркази (CloPOS «Уведомления»): La Limon-мос турлар йиғилади —
+    // официант чақируви · узоқ очиқ стол (тўламай кетиш хавфи) · стоп-лист.
+    // (CloPOS'даги доставка/курьер/киоск/call-центр — La Limon'да йўқ, ташланди.)
+    notifications: protectedProcedure.query(async () => {
+      const now = Date.now();
+      const items: {
+        kind: string;
+        title: string;
+        detail: string;
+        at: Date | null;
+        severity: "info" | "warn" | "error";
+      }[] = [];
+      // 1) Официант чақируви (ечилмаган) — энг муҳим, реал вақтли.
+      const calls = await db
+        .select({
+          kind: waiterCalls.kind,
+          createdAt: waiterCalls.createdAt,
+          tableName: tables.name,
+          hall: halls.name,
+        })
+        .from(waiterCalls)
+        .innerJoin(tables, eq(waiterCalls.tableId, tables.id))
+        .leftJoin(halls, eq(tables.hallId, halls.id))
+        .where(isNull(waiterCalls.resolvedAt))
+        .orderBy(desc(waiterCalls.createdAt));
+      const callUz: Record<string, string> = { waiter: "Официант", bill: "Ҳисоб", water: "Сув" };
+      for (const c of calls)
+        items.push({
+          kind: "call",
+          title: `Чақирув — ${callUz[c.kind] ?? c.kind}`,
+          detail: `${c.hall ?? "—"} · ${c.tableName}`,
+          at: c.createdAt,
+          severity: "warn",
+        });
+      // 2) Узоқ очиқ стол (3+ соат) — тўламай кетиш / унутилган чек хавфи.
+      const staleFrom = new Date(now - 3 * 3600 * 1000);
+      const stale = await db
+        .select({ createdAt: orders.createdAt, tableNo: orders.tableNo, hall: halls.name })
+        .from(orders)
+        .leftJoin(halls, eq(orders.hallId, halls.id))
+        .where(and(eq(orders.status, "open"), lt(orders.createdAt, staleFrom)))
+        .orderBy(orders.createdAt);
+      for (const s of stale) {
+        const hrs = Math.floor((now - new Date(s.createdAt).getTime()) / 3600000);
+        items.push({
+          kind: "stale",
+          title: "Узоқ очиқ стол",
+          detail: `${s.hall ?? "—"} · ${s.tableNo ?? "?"} · ${hrs} соат`,
+          at: s.createdAt,
+          severity: "error",
+        });
+      }
+      // 3) Стоп-лист (тугаган таомлар) — менежер қайта фаоллаштирсин.
+      const stopped = await db
+        .select({ name: products.name })
+        .from(products)
+        .where(and(eq(products.stopped, true), eq(products.active, true)));
+      for (const p of stopped)
+        items.push({ kind: "stop", title: "Стоп-лист", detail: p.name, at: null, severity: "info" });
+      return items;
+    }),
+
     // ── QR-тўлов (стол устида): меҳмон стол QR'ини (?pay=tableId) очади → ўз
     // чекини + Payme/Click тап-линкини кўради. Public (auth йўқ, фақат ЎЗ чеки).
     // Тўлов тасдиғи ҳозирча кассир қўлда (webhook = кейинги фаза — payqr.ts изоҳи).
