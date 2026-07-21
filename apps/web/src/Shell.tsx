@@ -21,6 +21,7 @@ import { Taannarx } from "./Taannarx";
 import { Vitrina } from "./Vitrina";
 import { trpc } from "./trpc";
 import { IMenu, IBell, ILogout, IPencil, IWarn, IWifi } from "./icons";
+import { NotifCenter } from "./NotifCenter";
 import { StatusPanel } from "./StatusPanel";
 
 // POS иконка стил синови — Higgsfield премиум сет (расмдан crop). URL: ?icons=clay|material.
@@ -386,70 +387,8 @@ export function Shell({
         <MobileNav tabs={tabs} tab={tab} setTab={setTab} iconStyle={iconStyle} />
       )}
 
-      {/* 🔔 Билдиришнома маркази (CloPOS «Уведомления») — ўнгдан drawer */}
-      {showNotif && (
-        <div
-          className="fixed inset-0 z-[70] flex items-stretch justify-end bg-brand-ink/40 backdrop-blur-sm"
-          onClick={() => setShowNotif(false)}
-        >
-          <div
-            className="flex h-full w-full max-w-md flex-col bg-white shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
-              <h3 className="text-[16px] font-bold">
-                Билдиришномалар{notifs.length > 0 ? ` (${notifs.length})` : ""}
-              </h3>
-              <button
-                onClick={() => setShowNotif(false)}
-                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {notifs.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-300">
-                  <IBell className="h-12 w-12" />
-                  <p className="text-[13px]">Янги билдиришнома йўқ</p>
-                </div>
-              ) : (
-                <ul className="space-y-1.5">
-                  {notifs.map((n, i) => {
-                    const box =
-                      n.severity === "error"
-                        ? "border-red-400 bg-red-50"
-                        : n.severity === "warn"
-                          ? "border-amber-400 bg-amber-50"
-                          : "border-zinc-200 bg-white";
-                    const icon = n.kind === "call" ? "🔔" : n.kind === "stale" ? "⏰" : "🛑";
-                    return (
-                      <li
-                        key={i}
-                        className={`flex items-start gap-2.5 rounded-xl border-l-4 ${box} px-3 py-2.5`}
-                      >
-                        <span className="text-[16px]" aria-hidden>{icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-semibold text-brand-ink">{n.title}</p>
-                          <p className="truncate text-[12px] text-zinc-500">{n.detail}</p>
-                        </div>
-                        {n.at && (
-                          <span className="shrink-0 text-[11px] text-zinc-400">
-                            {new Date(n.at).toLocaleTimeString("ru-RU", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 🔔 Билдиришнома маркази (CloPOS «Уведомления» 1:1) — Янги/Эски таб + чап турлар */}
+      {showNotif && <NotifCenter notifs={notifs} onClose={() => setShowNotif(false)} />}
 
       {showStatus && <StatusPanel onClose={() => setShowStatus(false)} />}
     </div>
