@@ -35,6 +35,21 @@ const TOOL_POS: Record<string, string> = {
   split: "0% 50%", card: "50% 50%", lock: "100% 50%",
   printer: "0% 100%", user: "50% 100%", more: "100% 100%",
 };
+// Бошқарув панели карточка иконкалари — навигация металл-олтин сети (icons-nav-gold.webp, 4×3).
+const NAV_POS: Record<string, string> = {
+  dashboard: "0% 0%", tv: "33.33% 0%", chart: "66.67% 0%", wallet: "100% 0%",
+  cash: "0% 50%", receipt: "33.33% 50%", bag: "66.67% 50%", chef: "100% 50%",
+  boxes: "0% 100%", gift: "33.33% 100%", book: "66.67% 100%", staff: "100% 100%",
+};
+function CardIcon({ k, className = "h-11 w-11" }: { k: string; className?: string }) {
+  return (
+    <span
+      className={`inline-block shrink-0 rounded-lg bg-no-repeat ${className}`}
+      style={{ backgroundImage: "url(/brand/icons-nav-gold.webp)", backgroundSize: "400% 300%", backgroundPosition: NAV_POS[k] ?? "0% 0%" }}
+      aria-hidden="true"
+    />
+  );
+}
 // ?toolbar=gold|glass|enamel|clay URL параметр билан вариант танланади (дефолт = металл-олтин).
 const TOOL_VARIANT = (() => {
   const v = new URLSearchParams(window.location.search).get("toolbar");
@@ -898,16 +913,16 @@ function FloorView({
         const dm = isDir || user.role === "manager";
         const cashierUp = ["director", "manager", "cashier"].includes(user.role);
         const items = [
-          { emoji: "📊", label: "Ҳисобот", sub: "Отчёты", tab: "hisobot", show: dm },
-          { emoji: "💰", label: "Молия / касса", sub: "Операции · Открыть кассу", tab: "moliya", show: isDir },
-          { emoji: "🗂", label: "Чек архиви", sub: "Архив чеков", tab: "chekQidirish", show: cashierUp },
-          { emoji: "📦", label: "Харид", sub: "Поставка", tab: "harid", show: dm },
-          { emoji: "🗑", label: "Омбор", sub: "Списания", tab: "ombor", show: dm },
-          { emoji: "👥", label: "Мижозлар", sub: "Клиенты", tab: "mijozlar", show: dm },
-          { emoji: "🪪", label: "Ходимлар", sub: "Сотрудник", tab: "staff", show: isDir },
-          { emoji: "🍽", label: "Каталог", sub: "Стоп-лист · меню", tab: "catalog", show: true },
-          { emoji: "📈", label: "Аналитика", sub: "", tab: "analitika", show: isDir },
-          { emoji: "🍳", label: "KDS", sub: "Кухня", tab: "kds", show: dm },
+          { emoji: "📊", icon: "chart", label: "Ҳисобот", sub: "Отчёты", tab: "hisobot", show: dm },
+          { emoji: "💰", icon: "wallet", label: "Молия / касса", sub: "Операции · Открыть кассу", tab: "moliya", show: isDir },
+          { emoji: "🗂", icon: "receipt", label: "Чек архиви", sub: "Архив чеков", tab: "chekQidirish", show: cashierUp },
+          { emoji: "📦", icon: "bag", label: "Харид", sub: "Поставка", tab: "harid", show: dm },
+          { emoji: "🗑", icon: "boxes", label: "Омбор", sub: "Списания", tab: "ombor", show: dm },
+          { emoji: "👥", icon: "gift", label: "Мижозлар", sub: "Клиенты", tab: "mijozlar", show: dm },
+          { emoji: "🪪", icon: "staff", label: "Ходимлар", sub: "Сотрудник", tab: "staff", show: isDir },
+          { emoji: "🍽", icon: "book", label: "Каталог", sub: "Стоп-лист · меню", tab: "catalog", show: true },
+          { emoji: "📈", icon: "chart", label: "Аналитика", sub: "", tab: "analitika", show: isDir },
+          { emoji: "🍳", icon: "chef", label: "KDS", sub: "Кухня", tab: "kds", show: dm },
         ].filter((x) => x.show);
         return (
           // CloPOS «Панель управления» — ТЎЛИҚ ЭКРАН (яшил header · кулранг грид · паст утилита-бар)
@@ -933,7 +948,7 @@ function FloorView({
                     }}
                     className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
                   >
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">📊</span>
+                    <CardIcon k="chart" />
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] font-semibold text-brand-ink">Смена ҳисоботи</span>
                       <span className="block truncate text-xs text-zinc-400">Создать отчет</span>
@@ -951,7 +966,7 @@ function FloorView({
                     }}
                     className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
                   >
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">💵</span>
+                    <CardIcon k="cash" />
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] font-semibold text-brand-ink">Касса операция</span>
                       <span className="block truncate text-xs text-zinc-400">Расход · Доход · Инкассация</span>
@@ -964,7 +979,7 @@ function FloorView({
                     onClick={() => { setShowPanel(false); onNavigate(it.tab, true); }}
                     className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
                   >
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">{it.emoji}</span>
+                    <CardIcon k={it.icon} />
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] font-semibold text-brand-ink">{it.label}</span>
                       {it.sub && <span className="block truncate text-xs text-zinc-400">{it.sub}</span>}
