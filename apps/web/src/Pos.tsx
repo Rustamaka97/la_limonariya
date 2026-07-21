@@ -395,7 +395,7 @@ function EmptyLemon({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-export function Pos({ user, onLogout, onNavigate }: { user: SessionUser; onLogout: () => void; onNavigate: (tab: string) => void }) {
+export function Pos({ user, onLogout, onNavigate, openPanel, onPanelOpened }: { user: SessionUser; onLogout: () => void; onNavigate: (tab: string, fromPanel?: boolean) => void; openPanel?: boolean; onPanelOpened?: () => void }) {
   const [orderId, setOrderId] = useState<string | null>(null);
   if (orderId)
     return (
@@ -406,7 +406,7 @@ export function Pos({ user, onLogout, onNavigate }: { user: SessionUser; onLogou
         onSwitch={setOrderId}
       />
     );
-  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} onNavigate={onNavigate} />;
+  return <FloorView user={user} onOpen={setOrderId} onNew={setOrderId} onLogout={onLogout} onNavigate={onNavigate} openPanel={openPanel} onPanelOpened={onPanelOpened} />;
 }
 
 // ── FLOOR: visual hall/table map (Clopos only has a flat list) ──────────────
@@ -416,12 +416,16 @@ function FloorView({
   onNew,
   onLogout,
   onNavigate,
+  openPanel,
+  onPanelOpened,
 }: {
   user: SessionUser;
   onOpen: (id: string) => void;
   onNew: (id: string) => void;
   onLogout: () => void;
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: string, fromPanel?: boolean) => void;
+  openPanel?: boolean;
+  onPanelOpened?: () => void;
 }) {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [tbls, setTbls] = useState<Table[]>([]);
@@ -436,6 +440,13 @@ function FloorView({
   const [showChecks, setShowChecks] = useState(false); // Чеки → очиқ-чеклар рўйхати
   const [checksQ, setChecksQ] = useState(""); // рўйхат қидируви (стол/официант)
   const [showPanel, setShowPanel] = useState(false); // ☰ → бошқарув панели (CloPOS)
+  // Панелдаги бўлимдан (Молия/Ҳисобот…) ← «Бошқарув панели» босилса — POS'га қайтиб панелни оч.
+  useEffect(() => {
+    if (!openPanel) return;
+    setShowPanel(true);
+    onPanelOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openPanel]);
   // 💵 Касса операция (CloPOS «Добавить операцию») — расход/доход/инкассация.
   const [showCashOp, setShowCashOp] = useState(false);
   const [cashOpType, setCashOpType] = useState<"expense" | "income" | "collection">("expense");
@@ -950,7 +961,7 @@ function FloorView({
                 {items.map((it) => (
                   <button
                     key={it.tab}
-                    onClick={() => { setShowPanel(false); onNavigate(it.tab); }}
+                    onClick={() => { setShowPanel(false); onNavigate(it.tab, true); }}
                     className="flex items-center gap-3 rounded-xl border border-brand-cream-soft bg-white px-4 py-4 text-left shadow-sm transition hover:border-brand hover:bg-brand-cream/30 active:scale-[.98] motion-reduce:active:scale-100"
                   >
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-cream text-2xl">{it.emoji}</span>
@@ -995,7 +1006,7 @@ function FloorView({
                 <span className="text-lg">⤢</span> Экран
               </button>
               <button
-                onClick={() => { setShowPanel(false); onNavigate("moliya"); }}
+                onClick={() => { setShowPanel(false); onNavigate("moliya", true); }}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
                 <span className="text-lg">🧾</span> Касса

@@ -162,6 +162,11 @@ export function Shell({
           ? "obvalka"
           : "catalog",
   );
+  // Панелдан бўлимга ўтганда — ← «Бошқарув панели»га қайтиш учун флаглар.
+  const [panelReturn, setPanelReturn] = useState(false); // бўлим панелдан очилдими
+  const [posOpenPanel, setPosOpenPanel] = useState(false); // POS mount'да панелни оч
+  // Nav-тугма босилса — «панелдан келинди» флагини тозала (← бар фақат тўғри жойда чиқсин).
+  const goTab = (t: Tab) => { setPanelReturn(false); setTab(t); };
 
   async function logout() {
     await trpc.auth.logout.mutate().catch(() => {});
@@ -277,7 +282,7 @@ export function Shell({
                     <button
                       key={t.key}
                       onClick={() => {
-                        setTab(t.key);
+                        goTab(t.key);
                         setMenuOpen(false);
                       }}
                       className={`rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
@@ -340,7 +345,7 @@ export function Shell({
             {tabs.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => goTab(t.key)}
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium ${
                   tab === t.key
                     ? "bg-brand text-white"
@@ -362,13 +367,40 @@ export function Shell({
       )}
 
       <main className={tab === "pos" ? "flex flex-1 flex-col p-0 pb-14 sm:pb-0" : `mx-auto w-full p-5 pb-20 sm:pb-6 ${tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
-        {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
+        {tab !== "pos" && panelReturn && (
+          <button
+            type="button"
+            onClick={() => {
+              setPanelReturn(false);
+              setPosOpenPanel(true);
+              setTab("pos");
+            }}
+            className="mb-4 inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-deep active:scale-95"
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M12 4l-6 6 6 6" />
+            </svg>
+            Бошқарув панели
+          </button>
+        )}
+        {tab === "dashboard" && <Dashboard onGoObvalka={() => goTab("obvalka")} />}
         {tab === "tv" && <Tv />}
         {tab === "kds" && <Kds />}
         {tab === "mijozlar" && <Mijozlar canAdjust={isDirector} />}
         {tab === "analitika" && <Analitika />}
         {tab === "moliya" && <Moliya />}
-        {tab === "pos" && <Pos user={user} onLogout={logout} onNavigate={(t) => setTab(t as Tab)} />}
+        {tab === "pos" && (
+          <Pos
+            user={user}
+            onLogout={logout}
+            onNavigate={(t, fromPanel) => {
+              setTab(t as Tab);
+              setPanelReturn(!!fromPanel);
+            }}
+            openPanel={posOpenPanel}
+            onPanelOpened={() => setPosOpenPanel(false)}
+          />
+        )}
         {tab === "chekQidirish" && <ChekQidirish />}
         {tab === "harid" && <Purchases />}
         {tab === "obvalka" && <Obvalka user={user} />}
@@ -393,7 +425,7 @@ export function Shell({
       {/* Мобил пастки навигация — фақат телефон (sm:hidden). Терминал exe'га
           тегмайди (у ўзининг ☰ менюсини ишлатади). */}
       {!isTerminal && (
-        <MobileNav tabs={tabs} tab={tab} setTab={setTab} iconStyle={iconStyle} />
+        <MobileNav tabs={tabs} tab={tab} setTab={goTab} iconStyle={iconStyle} />
       )}
 
       {/* 🔔 Билдиришнома маркази (CloPOS «Уведомления» 1:1) — Янги/Эски таб + чап турлар */}
