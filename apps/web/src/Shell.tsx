@@ -20,7 +20,8 @@ import { Recipes } from "./Recipes";
 import { Taannarx } from "./Taannarx";
 import { Vitrina } from "./Vitrina";
 import { trpc } from "./trpc";
-import { IMenu, IBell, ILogout, IPencil, IWarn } from "./icons";
+import { IMenu, IBell, ILogout, IPencil, IWarn, IWifi } from "./icons";
+import { StatusPanel } from "./StatusPanel";
 
 // POS иконка стил синови — Higgsfield премиум сет (расмдан crop). URL: ?icons=clay|material.
 const ICON_SHEET: Record<string, { img: string; size: string }> = {
@@ -117,6 +118,8 @@ export function Shell({
   const [menuOpen, setMenuOpen] = useState(false);
   // 🔔 билдиришнома маркази (CloPOS «Уведомления») — POS роллари учун.
   const [showNotif, setShowNotif] = useState(false);
+  // 📶 «Статус» панели (CloPOS «Статус») — принтер/уланиш ҳолати, ҳамма роль учун.
+  const [showStatus, setShowStatus] = useState(false);
   const [notifs, setNotifs] = useState<
     { kind: string; title: string; detail: string; at: string | Date | null; severity: "info" | "warn" | "error" }[]
   >([]);
@@ -233,6 +236,14 @@ export function Shell({
                   )}
                 </button>
               )}
+              <button
+                onClick={() => setShowStatus(true)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-white/80 transition hover:bg-white/15"
+                title="Статус (принтер/уланиш)"
+                aria-label="Статус"
+              >
+                <IWifi className="h-5 w-5" />
+              </button>
               <span className="tabular-nums text-white/80">{clock}</span>
               <button
                 onClick={logout}
@@ -288,6 +299,29 @@ export function Shell({
               <span className="rounded-full bg-brand-cream px-2 py-0.5 text-xs text-brand">
                 {ROLE_LABEL[user.role] ?? user.role}
               </span>
+              {canPos && (
+                <button
+                  onClick={() => setShowNotif(true)}
+                  className="relative grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-brand"
+                  title="Билдиришлар"
+                  aria-label="Билдиришлар"
+                >
+                  <IBell className="h-5 w-5" />
+                  {notifs.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {notifs.length}
+                    </span>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => setShowStatus(true)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-brand"
+                title="Статус (принтер/уланиш)"
+                aria-label="Статус"
+              >
+                <IWifi className="h-5 w-5" />
+              </button>
               <button onClick={logout} className="text-zinc-400 hover:text-red-500">
                 Чиқиш
               </button>
@@ -411,6 +445,8 @@ export function Shell({
           </div>
         </div>
       )}
+
+      {showStatus && <StatusPanel onClose={() => setShowStatus(false)} />}
     </div>
   );
 }
@@ -503,17 +539,33 @@ type Staff = {
   hasPin: boolean;
 };
 
-// Зал администратори панели — официант рўйхати + ҳолати (актив/PIN). Чақирувлар
-// глобал CallAlerts overlay'да, посуда «Инвентарь» табида. Штраф/мажлис/стол-банд
-// — кейинги итерация (янги backend).
+// Зал администратори панели — официант рўйхати + шу ойги жарима (сони/жами) +
+// «Жарима» тугма. Чақирувлар глобал CallAlerts overlay'да, посуда «Инвентарь»да.
 function AdminOfficiants() {
   const [staff, setStaff] = useState<Staff[] | null>(null);
-  useEffect(() => {
+  const [pens, setPens] = useState<
+    Record<string, { count: number; total: number }>
+  >({});
+  const [target, setTarget] = useState<Staff | null>(null);
+
+  const refresh = useCallback(() => {
     trpc.users.list
       .query()
       .then(setStaff)
       .catch(() => setStaff(null));
+    trpc.penalties.byStaff
+      .query()
+      .then((rows) =>
+        setPens(
+          Object.fromEntries(
+            rows.map((r) => [r.staffId, { count: r.count, total: r.total }]),
+          ),
+        ),
+      )
+      .catch(() => {});
   }, []);
+  useEffect(() => refresh(), [refresh]);
+
   const waiters = (staff ?? []).filter((s) => s.role === "waiter");
   return (
     <section className="space-y-3">
@@ -521,36 +573,181 @@ function AdminOfficiants() {
         Официантлар ({staff ? waiters.length : "…"})
       </h2>
       <div className="grid gap-2 sm:grid-cols-2">
-        {waiters.map((w) => (
-          <div
-            key={w.id}
-            className="flex items-center gap-3 rounded-xl border bg-white px-4 py-3"
-          >
-            <span
-              className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold uppercase ${
-                w.active
-                  ? "bg-brand-cream text-brand"
-                  : "bg-zinc-100 text-zinc-400"
-              }`}
+        {waiters.map((w) => {
+          const p = pens[w.id];
+          return (
+            <div
+              key={w.id}
+              className="flex items-center gap-3 rounded-xl border bg-white px-4 py-3"
             >
-              {w.name.slice(0, 2)}
-            </span>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{w.name}</div>
-              <div className="text-xs text-zinc-400">
-                {w.active ? "Актив" : "Нофаол"} ·{" "}
-                {w.hasPin ? "PIN бор" : "PIN йўқ"}
+              <span
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold uppercase ${
+                  w.active
+                    ? "bg-brand-cream text-brand"
+                    : "bg-zinc-100 text-zinc-400"
+                }`}
+              >
+                {w.name.slice(0, 2)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{w.name}</div>
+                <div className="text-xs text-zinc-400">
+                  {w.active ? "Актив" : "Нофаол"}
+                  {p && p.count > 0 && (
+                    <span className="text-red-500">
+                      {" · "}
+                      {p.count} жарима · {p.total.toLocaleString("ru-RU")} сўм
+                    </span>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={() => setTarget(w)}
+                className="shrink-0 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
+              >
+                Жарима
+              </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {staff && waiters.length === 0 && (
         <div className="rounded-xl border bg-white px-4 py-8 text-center text-sm text-zinc-400">
           Официант йўқ
         </div>
       )}
+      {target && (
+        <PenaltyModal
+          officiant={target}
+          monthCount={pens[target.id]?.count ?? 0}
+          onClose={() => setTarget(null)}
+          onSaved={() => {
+            setTarget(null);
+            refresh();
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+// Жарима қўйиш — зинапоя (30/50/100к, шу ой N-жаримага қараб авто-таклиф), сабаб
+// preset ёки эркин, изоҳ. Админ суммани ўзгартира олади.
+const PENALTY_STEPS = [30000, 50000, 100000];
+const PENALTY_REASONS = ["Стол йиғиштирмади", "Кеч келди", "Мижоз шикояти", "Бошқа"];
+function PenaltyModal({
+  officiant,
+  monthCount,
+  onClose,
+  onSaved,
+}: {
+  officiant: Staff;
+  monthCount: number;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const suggested =
+    PENALTY_STEPS[Math.min(monthCount, PENALTY_STEPS.length - 1)]!;
+  const [reason, setReason] = useState("");
+  const [amount, setAmount] = useState(String(suggested));
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (!reason.trim() || !Number(amount)) return;
+    setBusy(true);
+    try {
+      await trpc.penalties.create.mutate({
+        staffId: officiant.id,
+        amount: Number(amount),
+        reason: reason.trim(),
+        note: note.trim() || undefined,
+      });
+      onSaved();
+    } catch {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button
+        className="absolute inset-0 bg-black/40"
+        onClick={onClose}
+        aria-label="Ёпиш"
+      />
+      <div className="relative w-full max-w-sm rounded-t-3xl bg-white p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-2xl sm:rounded-3xl sm:pb-5">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-200 sm:hidden" />
+        <h3 className="text-base font-semibold">Жарима — {officiant.name}</h3>
+        <p className="mt-1 text-xs text-zinc-400">
+          Бу ойда: {monthCount} жарима · таклиф {(suggested / 1000).toFixed(0)}к
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {PENALTY_REASONS.map((r) => (
+            <button
+              key={r}
+              onClick={() => setReason(r)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                reason === r ? "bg-brand text-white" : "bg-zinc-100 text-zinc-600"
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Сабаб"
+          className="mt-2 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+        />
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
+            inputMode="numeric"
+            placeholder="сумма"
+            className="w-32 rounded-lg border px-3 py-2 text-right text-sm outline-none focus:border-brand"
+          />
+          <span className="text-sm text-zinc-400">сўм</span>
+          <div className="ml-auto flex gap-1">
+            {PENALTY_STEPS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setAmount(String(s))}
+                className="rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200"
+              >
+                {s / 1000}к
+              </button>
+            ))}
+          </div>
+        </div>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Изоҳ (ихтиёрий)"
+          rows={2}
+          className="mt-2 w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+        />
+
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-zinc-600"
+          >
+            Бекор
+          </button>
+          <button
+            onClick={save}
+            disabled={busy || !reason.trim() || !Number(amount)}
+            className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+          >
+            {busy ? "…" : "Жарима қўйиш"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
