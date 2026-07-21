@@ -60,6 +60,7 @@ import {
   skewerBatches,
   stations,
   stockMovements,
+  supplierPayments,
   tablePreps,
   tables,
   tillCounts,
@@ -3545,30 +3546,33 @@ export const appRouter = router({
           await db.select({ id: tables.id, name: tables.name }).from(tables).where(eq(tables.id, input.tableId)).limit(1)
         )[0];
         if (!tbl) throw new TRPCError({ code: "NOT_FOUND", message: "Стол топилмади" });
-        // Тўқнашув: шу столда ±90 дақиқа ичида бошқа фаол бронь бўлса — рад
-        // (директор бошқа вақт/стол танласин; жимгина устма-уст ёзилмасин).
-        const clashFrom = new Date(when.getTime() - 90 * 60 * 1000);
-        const clashTo = new Date(when.getTime() + 90 * 60 * 1000);
-        const clash = (
-          await db
-            .select({ id: reservations.id, at: reservations.reservedFor, name: reservations.name })
-            .from(reservations)
-            .where(
-              and(
-                eq(reservations.tableId, input.tableId),
-                eq(reservations.status, "active"),
-                gte(reservations.reservedFor, clashFrom),
-                lt(reservations.reservedFor, clashTo),
-              ),
-            )
-            .limit(1)
-        )[0];
-        if (clash)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Бу столда яқин вақтга бронь бор (${clash.name})`,
-          });
         return db.transaction(async (tx) => {
+          // Adviso­ry lock (столга) — параллел reservationCreate шу столга сериаллашсин
+          // (иккита бир хил вақтга бронь + иккита аванс ёзилиб қолмасин).
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.tableId}))`);
+          // Тўқнашув: шу столда ±90 дақиқа ичида бошқа фаол бронь бўлса — рад
+          // (директор бошқа вақт/стол танласин; жимгина устма-уст ёзилмасин).
+          const clashFrom = new Date(when.getTime() - 90 * 60 * 1000);
+          const clashTo = new Date(when.getTime() + 90 * 60 * 1000);
+          const clash = (
+            await tx
+              .select({ id: reservations.id, at: reservations.reservedFor, name: reservations.name })
+              .from(reservations)
+              .where(
+                and(
+                  eq(reservations.tableId, input.tableId),
+                  eq(reservations.status, "active"),
+                  gte(reservations.reservedFor, clashFrom),
+                  lt(reservations.reservedFor, clashTo),
+                ),
+              )
+              .limit(1)
+          )[0];
+          if (clash)
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Бу столда яқин вақтга бронь бор (${clash.name})`,
+            });
           const row = (
             await tx
               .insert(reservations)
@@ -4640,13 +4644,16 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ блокланган" });
         if (head.isComp)
           throw new TRPCError({ code: "BAD_REQUEST", message: "Текин заказга чегирма қўшиб бўлмайди" });
-        await db
+        const done = await db
           .update(orders)
           .set({
             discountAmount: input.amount,
             discountReason: input.amount > 0 ? (input.reason ?? null) : null,
           })
-          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")));
+          .where(and(eq(orders.id, input.orderId), eq(orders.status, "open")))
+          .returning({ id: orders.id });
+        if (!done.length)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
         await logAudit(db, {
           actorId: ctx.user.id,
           action: input.amount > 0 ? "order.discount" : "order.discount_remove",
@@ -4674,33 +4681,37 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { type, amount } = input;
         const note = input.note?.trim() || null;
-        if (type === "expense") {
-          await db.insert(expenses).values({
-            category: input.category ?? "boshqa",
-            amount,
-            method: "cash",
-            note,
-            createdById: ctx.user.id,
+        // Атомик: ledger insert + audit_log бир транзакцияда (журнал ёзилмаса,
+        // амал ҳам ёзилмаслиги керак — изсиз ўзгариш бўлмасин).
+        return db.transaction(async (tx) => {
+          if (type === "expense") {
+            await tx.insert(expenses).values({
+              category: input.category ?? "boshqa",
+              amount,
+              method: "cash",
+              note,
+              createdById: ctx.user.id,
+            });
+          } else if (type === "collection") {
+            if (!note)
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Инкассацияга изоҳ мажбурий" });
+            await tx.insert(cashCollections).values({ amount, note, performedById: ctx.user.id });
+          } else {
+            if (!note)
+              throw new TRPCError({ code: "BAD_REQUEST", message: "Даромадга изоҳ мажбурий" });
+            await tx.insert(cashIncome).values({ amount, note, performedById: ctx.user.id });
+          }
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: `cash.${type}`,
+            entity: "cash",
+            summary: `${
+              type === "expense" ? "Расход" : type === "income" ? "Доход" : "Инкассация"
+            }: ${amount.toLocaleString()} so'm`,
+            meta: { type, amount, category: input.category, note },
           });
-        } else if (type === "collection") {
-          if (!note)
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Инкассацияга изоҳ мажбурий" });
-          await db.insert(cashCollections).values({ amount, note, performedById: ctx.user.id });
-        } else {
-          if (!note)
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Даромадга изоҳ мажбурий" });
-          await db.insert(cashIncome).values({ amount, note, performedById: ctx.user.id });
-        }
-        await logAudit(db, {
-          actorId: ctx.user.id,
-          action: `cash.${type}`,
-          entity: "cash",
-          summary: `${
-            type === "expense" ? "Расход" : type === "income" ? "Доход" : "Инкассация"
-          }: ${amount.toLocaleString()} so'm`,
-          meta: { type, amount, category: input.category, note },
+          return { ok: true };
         });
-        return { ok: true };
       }),
 
     // 📊 Смена ҳисоботи (CloPOS «Создать отчет»): from–to оралиқ сотув хулосаси —
@@ -5441,17 +5452,44 @@ export const appRouter = router({
           if (!it.productId || it.weightG != null)
             throw new TRPCError({ code: "BAD_REQUEST", message: "Бу таомга модификатор қўйиб бўлмайди" });
           await assertOrderAccess(tx, ctx.user, it.orderId);
+          // FOR UPDATE — параллел pos.close/addItem шу заказни кутсин (price
+          // ёзилаётганда close эски нарх билан ёпиб қолмасин).
           const oHead = (
             await tx
               .select({ status: orders.status, locked: orders.locked })
               .from(orders)
               .where(eq(orders.id, it.orderId))
               .limit(1)
+              .for("update")
           )[0];
           if (!oHead || oHead.status !== "open")
             throw new TRPCError({ code: "BAD_REQUEST", message: "Заказ ёпилган" });
           if (oHead.locked)
             throw new TRPCError({ code: "BAD_REQUEST", message: "Чек блокланган" });
+          // Пиширилган/кухняга юборилган таомга модификатор — фақат директор/менежер
+          // (нарх ўзгаради, addItem'даги "аллақачон юборилган" гейти билан бир хил).
+          const sentRow = (
+            await tx
+              .select({ n: count(kitchenTicketItems.id) })
+              .from(kitchenTicketItems)
+              .innerJoin(kitchenTickets, eq(kitchenTicketItems.ticketId, kitchenTickets.id))
+              .where(
+                and(
+                  eq(kitchenTickets.orderId, it.orderId),
+                  eq(kitchenTicketItems.productId, it.productId),
+                ),
+              )
+          )[0];
+          if (Number(sentRow?.n ?? 0) > 0 && !["director", "manager"].includes(ctx.user.role))
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Кухняга юборилган таомга модификаторни фақат директор/менежер ўзгартира олади",
+            });
+          // Эски модификаторлар — audit учун (алмаштиришдан олдин).
+          const prevMods = await tx
+            .select({ name: orderItemModifiers.name })
+            .from(orderItemModifiers)
+            .where(eq(orderItemModifiers.orderItemId, input.orderItemId));
           // Танланган модификаторлар (каталогдан snapshot ном+нарх)
           const chosen = input.modifierIds.length
             ? await tx
@@ -5463,14 +5501,24 @@ export const appRouter = router({
             (await tx.select({ price: products.price }).from(products).where(eq(products.id, it.productId)).limit(1))[0]
               ?.price ?? 0;
           const delta = chosen.reduce((s, m) => s + m.priceDelta, 0);
+          // Манфий дельта нархни минусга туширмасин (0 — пастки чегара).
+          const price = Math.max(0, base + delta);
           await tx.delete(orderItemModifiers).where(eq(orderItemModifiers.orderItemId, input.orderItemId));
           if (chosen.length)
             await tx.insert(orderItemModifiers).values(
               chosen.map((m) => ({ orderItemId: input.orderItemId, name: m.name, priceDelta: m.priceDelta })),
             );
           // Нархни сингдир (базовый + дельта) — мавжуд пул математикаси ўз-ўзидан ҳисоблайди.
-          await tx.update(orderItems).set({ price: base + delta }).where(eq(orderItems.id, input.orderItemId));
-          return { ok: true, price: base + delta };
+          await tx.update(orderItems).set({ price }).where(eq(orderItems.id, input.orderItemId));
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "order_item.modifiers",
+            entity: "order",
+            entityId: it.orderId,
+            summary: `Модификатор: ${prevMods.map((m) => m.name).join(", ") || "—"} → ${chosen.map((m) => m.name).join(", ") || "—"}`,
+            meta: { orderItemId: input.orderItemId, base, delta, price },
+          });
+          return { ok: true, price };
         });
       }),
 
@@ -5897,6 +5945,7 @@ export const appRouter = router({
     cancel: protectedProcedure
       .input(z.object({ id: z.string().uuid(), note: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
+        await assertOrderAccess(db, ctx.user, input.id);
         return db.transaction(async (tx) => {
           // FOR UPDATE — параллел cancel/close шу қаторни кутсин: иккинчи cancel
           // блокланиб, кейин status='cancelled'ни кўради → рад этилади (loss/voided
@@ -7068,12 +7117,15 @@ export const appRouter = router({
         )
         .mutation(async ({ input, ctx }) => {
           return db.transaction(async (tx) => {
+            // FOR UPDATE — параллел adjust/pos.close(баланс тўлов) шу мижозни
+            // кутсин (баланс манфийга кетмасин, lost-update race йўқ).
             const cust = (
               await tx
                 .select({ name: customers.name })
                 .from(customers)
                 .where(eq(customers.id, input.customerId))
                 .limit(1)
+                .for("update")
             )[0];
             if (!cust) throw new TRPCError({ code: "NOT_FOUND", message: "Мижоз топилмади" });
             if (input.amount < 0) {
@@ -7218,6 +7270,14 @@ export const appRouter = router({
             amount: input.amount,
             reason: input.reason,
             performedById: ctx.user.id,
+          });
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "order.refund",
+            entity: "order",
+            entityId: input.orderId,
+            summary: `Қайтариш: ${input.amount.toLocaleString()} so'm (${input.reason})`,
+            meta: { amount: input.amount, reason: input.reason },
           });
           return { ok: true, remaining: remaining - input.amount };
         });
@@ -7506,6 +7566,21 @@ export const appRouter = router({
               code: "BAD_REQUEST",
               message: "Қарз ўзгарган — қайта уриниб кўринг",
             });
+          // Event-ledger: ким, қачон, қанча тўлагани (paidTotal — тезкор ўқиш
+          // учун кэш, шу ерда битта транзакцияда бирга ёзилади — drift йўқ).
+          await tx.insert(supplierPayments).values({
+            purchaseId: input.purchaseId,
+            amount: input.amount,
+            createdById: ctx.user.id,
+          });
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "supplier.pay",
+            entity: "purchase",
+            entityId: input.purchaseId,
+            summary: `Таъминотчига тўлов: ${input.amount.toLocaleString()} so'm`,
+            meta: { amount: input.amount, paidTotal: updated[0]!.paidTotal },
+          });
           return { ok: true, paidTotal: updated[0]!.paidTotal };
         });
       }),

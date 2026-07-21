@@ -724,6 +724,26 @@ export const debtPayments = pgTable(
   (t) => [index("dp_order_idx").on(t.orderId)],
 );
 
+// Таъминотчига тўловлар журнали — purchases.paidTotal шу ердан ҳисобланиши
+// керак (событие-ledger), лекин тезкор ўқиш учун paidTotal кэш сифатида
+// сақланади (ҳар икки ёзув битта транзакцияда — drift йўқ).
+export const supplierPayments = pgTable(
+  "supplier_payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    purchaseId: uuid("purchase_id")
+      .notNull()
+      .references(() => purchases.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    note: text("note"),
+    createdById: uuid("created_by_id").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("sp_purchase_idx").on(t.purchaseId)],
+);
+
 // Возврат: ёпилган чекдан мижозга қайтарилган пул — журнал, ёзилган order
 // ўзи ўзгармайди (тарихий чек тўғри қолади). #13 тешик назорати.
 export const refunds = pgTable(
