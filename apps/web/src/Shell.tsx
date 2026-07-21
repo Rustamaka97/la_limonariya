@@ -24,6 +24,7 @@ import { trpc } from "./trpc";
 import { IMenu, IBell, ILogout, IPencil, IWarn, IWifi } from "./icons";
 import { NotifCenter } from "./NotifCenter";
 import { StatusPanel } from "./StatusPanel";
+import { useHeartbeat } from "./lib/heartbeat";
 
 // POS иконка стил синови — Higgsfield премиум сет (расмдан crop). URL: ?icons=clay|material.
 const ICON_SHEET: Record<string, { img: string; size: string }> = {
@@ -105,6 +106,8 @@ export function Shell({
 }) {
   const isDirector = user.role === "director";
   const online = useOnline();
+  // Қурилма heartbeat — «Статус → Қурилмалар» панели учун (30с интервал).
+  useHeartbeat(true);
   const canObvalka = ["director", "manager", "buyer"].includes(user.role);
   const canPos = ["director", "manager", "cashier", "waiter"].includes(
     user.role,
@@ -396,7 +399,9 @@ export function Shell({
       {/* 🔔 Билдиришнома маркази (CloPOS «Уведомления» 1:1) — Янги/Эски таб + чап турлар */}
       {showNotif && <NotifCenter notifs={notifs} onClose={() => setShowNotif(false)} />}
 
-      {showStatus && <StatusPanel onClose={() => setShowStatus(false)} />}
+      {showStatus && (
+        <StatusPanel canTest={isDirector} onClose={() => setShowStatus(false)} />
+      )}
     </div>
   );
 }

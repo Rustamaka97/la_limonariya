@@ -55,5 +55,36 @@ services:
     ports:
       - "${SITES_PORT:-8090}:80"
 
+  # Тунги захира — касса маълумоти = пул. Ҳар кеча 03:00 (сервер вақти) pg_dump
+  # → ./backups/limonariya-YYYY-MM-DD.sql.gz, 14 кундан эскиси ўчади. Тиклаш:
+  #   gunzip -c backups/limonariya-XXXX.sql.gz | docker compose exec -T postgres psql -U limon -d limonariya
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-limon_dev}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        while true; do
+          now=$$(date +%s)
+          target=$$(date -d "03:00 next day" +%s 2>/dev/null || echo $$((now + 86400)))
+          # бугун ҳали 03:00 бўлмаган бўлса — бугунгисига
+          today=$$(date -d "03:00" +%s 2>/dev/null || echo 0)
+          if [ "$$today" -gt "$$now" ]; then target=$$today; fi
+          sleep $$((target - now))
+          f=/backups/limonariya-$$(date +%F).sql.gz
+          pg_dump -h postgres -U limon -d limonariya | gzip > "$$f.tmp" && mv "$$f.tmp" "$$f" \
+            && echo "[backup] ok: $$f ($$(du -h "$$f" | cut -f1))" \
+            || echo "[backup] XATO: pg_dump muvaffaqiyatsiz"
+          find /backups -name 'limonariya-*.sql.gz' -mtime +14 -delete
+        done
+
 volumes:
   pgdata:

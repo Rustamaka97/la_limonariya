@@ -991,3 +991,22 @@ export const tablePreps = pgTable(
   },
   (t) => [unique().on(t.dayKey, t.hallId)],
 );
+
+// Қурилма heartbeat — сис-админ «Қурилмалар» панели (Статус). Логин бўлган ҳар
+// клиент 30 сонияда упсерт қилади; онлайн = lastSeenAt < 90с. id — клиентнинг
+// localStorage'даги барқарор UUID'си (қурилма алмашса янги ёзув).
+export const deviceHeartbeats = pgTable("device_heartbeats", {
+  id: text("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id), // охирги ким ишлатган
+  userName: text("user_name"),
+  role: text("role"),
+  kind: text("kind").notNull().default("browser"), // terminal | pwa | browser
+  platform: text("platform"), // «Android» / «iPhone» / «Windows» — UA'дан
+  ip: text("ip"),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

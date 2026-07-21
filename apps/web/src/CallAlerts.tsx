@@ -10,11 +10,31 @@ const KIND: Record<string, { label: string; emoji: string }> = {
   water: { label: "Сув", emoji: "💧" },
 };
 
+// iOS/Safari: AudioContext user-gesture'сиз «suspended» туғилади → овоз чиқмайди.
+// Шунинг учун БИТТА умумий context: биринчи тегишда (pointerdown) resume қилинади,
+// беплар ўшани қайта ишлатади (ҳар сафар янги очиб/ёпмаймиз).
+let audioCtx: AudioContext | null = null;
+function getAudioCtx(): AudioContext | null {
+  try {
+    const AC =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!audioCtx) audioCtx = new AC();
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+export function unlockAudio() {
+  const ctx = getAudioCtx();
+  if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+}
+
 function beep() {
   if (localStorage.getItem("pos-sound-off") === "1") return;
   try {
-    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new AC();
+    const ctx = getAudioCtx();
+    if (!ctx || ctx.state !== "running") return; // ҳали unlock бўлмаган — жим
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = "sine";
@@ -26,7 +46,10 @@ function beep() {
     o.frequency.setValueAtTime(660, ctx.currentTime + 0.12);
     g.gain.setValueAtTime(0.0001, ctx.currentTime + 0.28);
     o.stop(ctx.currentTime + 0.3);
-    o.onended = () => ctx.close();
+    o.onended = () => {
+      o.disconnect();
+      g.disconnect();
+    };
   } catch {
     /* аудио блок — жим */
   }
@@ -51,9 +74,12 @@ export function CallAlerts() {
     poll();
     const iv = setInterval(poll, 15000);
     window.addEventListener("outbox:drain", poll);
+    // iOS unlock: ҳар қандай биринчи тегиш аудиони очади (кейингилар бекор-зарарсиз).
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
     return () => {
       clearInterval(iv);
       window.removeEventListener("outbox:drain", poll);
+      window.removeEventListener("pointerdown", unlockAudio);
     };
   }, []);
 

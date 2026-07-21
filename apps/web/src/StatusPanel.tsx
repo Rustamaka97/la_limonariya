@@ -13,7 +13,35 @@ import { IPrinter, IWifi, IWifiOff, ISpin, IWarn } from "./icons";
 const APP_VERSION = "1.0";
 
 type Printer = { id: string; name: string; ip: string | null; online: boolean };
+type Device = {
+  id: string;
+  userName: string | null;
+  role: string | null;
+  kind: string;
+  platform: string | null;
+  ip: string | null;
+  lastSeenAt: string | Date;
+  online: boolean;
+};
 type DotState = "on" | "off" | "none";
+
+const KIND_ICON: Record<string, string> = { terminal: "🖥", pwa: "📱", browser: "🌐" };
+const ROLE_SHORT: Record<string, string> = {
+  director: "Директор",
+  manager: "Менежер",
+  admin: "Админ",
+  cashier: "Кассир",
+  waiter: "Официант",
+  buyer: "Бозорчи",
+};
+
+function ago(t: string | Date): string {
+  const s = Math.max(0, Math.round((Date.now() - new Date(t).getTime()) / 1000));
+  if (s < 90) return "ҳозир";
+  if (s < 3600) return `${Math.round(s / 60)} дақ олдин`;
+  if (s < 86400) return `${Math.round(s / 3600)} соат олдин`;
+  return `${Math.round(s / 86400)} кун олдин`;
+}
 
 function Dot({ state }: { state: DotState }) {
   const c =
@@ -21,8 +49,18 @@ function Dot({ state }: { state: DotState }) {
   return <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${c}`} />;
 }
 
-export function StatusPanel({ onClose }: { onClose: () => void }) {
+export function StatusPanel({
+  onClose,
+  canTest = false,
+}: {
+  onClose: () => void;
+  canTest?: boolean;
+}) {
   const [printers, setPrinters] = useState<Printer[] | null>(null);
+  const [devices, setDevices] = useState<Device[]>([]);
+  // Тест-чек: қайси станцияда кетяпти + натижа хабари (id → матн).
+  const [testBusy, setTestBusy] = useState<string | null>(null);
+  const [testMsg, setTestMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null);
   const [serverOk, setServerOk] = useState<boolean | null>(null);
   const [serverTime, setServerTime] = useState<string | null>(null);
   const [queue, setQueue] = useState(0);
@@ -36,6 +74,7 @@ export function StatusPanel({ onClose }: { onClose: () => void }) {
     try {
       const d = await trpc.system.status.query();
       setPrinters(d.printers);
+      setDevices(d.devices ?? []);
       setServerTime(d.serverTime);
       setServerOk(true);
     } catch {
@@ -72,6 +111,23 @@ export function StatusPanel({ onClose }: { onClose: () => void }) {
 
   const withIp = printers?.filter((p) => p.ip) ?? [];
   const printersOnline = withIp.filter((p) => p.online).length;
+
+  async function testPrint(stationId: string) {
+    setTestBusy(stationId);
+    setTestMsg(null);
+    try {
+      await trpc.system.testPrint.mutate({ stationId });
+      setTestMsg({ id: stationId, ok: true, text: "Тест-чек юборилди — принтердан чиқишини кўринг" });
+    } catch (e) {
+      setTestMsg({
+        id: stationId,
+        ok: false,
+        text: e instanceof Error ? e.message : "Юборилмади",
+      });
+    } finally {
+      setTestBusy(null);
+    }
+  }
 
   return (
     <div
@@ -170,26 +226,44 @@ export function StatusPanel({ onClose }: { onClose: () => void }) {
                   {printers.map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-center gap-3 rounded-xl border bg-white px-3.5 py-2.5"
+                      className="rounded-xl border bg-white px-3.5 py-2.5"
                     >
-                      <Dot state={!p.ip ? "none" : p.online ? "on" : "off"} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold">{p.name}</div>
-                        <div className="truncate text-xs tabular-nums text-zinc-400">
-                          {p.ip ? `${p.ip}:9100` : "IP созланмаган"}
+                      <div className="flex items-center gap-3">
+                        <Dot state={!p.ip ? "none" : p.online ? "on" : "off"} />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold">{p.name}</div>
+                          <div className="truncate text-xs tabular-nums text-zinc-400">
+                            {p.ip ? `${p.ip}:9100` : "IP созланмаган"}
+                          </div>
                         </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                            !p.ip
+                              ? "bg-zinc-100 text-zinc-400"
+                              : p.online
+                                ? "bg-emerald-50 text-emerald-600"
+                                : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {!p.ip ? "йўқ" : p.online ? "онлайн" : "офлайн"}
+                        </span>
+                        {canTest && p.ip && (
+                          <button
+                            onClick={() => void testPrint(p.id)}
+                            disabled={testBusy !== null}
+                            className="shrink-0 rounded-lg bg-brand px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-brand-soft disabled:opacity-40"
+                          >
+                            {testBusy === p.id ? "…" : "Тест"}
+                          </button>
+                        )}
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                          !p.ip
-                            ? "bg-zinc-100 text-zinc-400"
-                            : p.online
-                              ? "bg-emerald-50 text-emerald-600"
-                              : "bg-red-50 text-red-600"
-                        }`}
-                      >
-                        {!p.ip ? "йўқ" : p.online ? "онлайн" : "офлайн"}
-                      </span>
+                      {testMsg?.id === p.id && (
+                        <p
+                          className={`mt-1.5 text-xs ${testMsg.ok ? "text-emerald-600" : "text-red-600"}`}
+                        >
+                          {testMsg.text}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -199,6 +273,50 @@ export function StatusPanel({ onClose }: { onClose: () => void }) {
                   <IWarn className="h-3.5 w-3.5 shrink-0" /> Серверга уланмади — принтер
                   ҳолати номаълум (зал серверини текширинг).
                 </p>
+              )}
+            </section>
+
+            {/* Қурилмалар — heartbeat (ким онлайн, охирги 7 кун) */}
+            <section>
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Қурилмалар · {devices.filter((d) => d.online).length}/{devices.length} онлайн
+              </h3>
+              {devices.length === 0 ? (
+                <div className="rounded-xl border bg-zinc-50 px-4 py-4 text-center text-xs text-zinc-400">
+                  Ҳали қурилма кўринмади
+                </div>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {devices.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-3 rounded-xl border bg-white px-3.5 py-2.5"
+                    >
+                      <Dot state={d.online ? "on" : "off"} />
+                      <span className="text-lg" aria-hidden>
+                        {KIND_ICON[d.kind] ?? "🌐"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">
+                          {d.userName ?? "—"}
+                          {d.role && (
+                            <span className="ml-1.5 text-xs font-normal text-zinc-400">
+                              {ROLE_SHORT[d.role] ?? d.role}
+                            </span>
+                          )}
+                        </div>
+                        <div className="truncate text-xs text-zinc-400">
+                          {[d.platform, d.ip].filter(Boolean).join(" · ")}
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 text-[11px] ${d.online ? "font-medium text-emerald-600" : "text-zinc-400"}`}
+                      >
+                        {d.online ? "онлайн" : ago(d.lastSeenAt)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </section>
           </div>
