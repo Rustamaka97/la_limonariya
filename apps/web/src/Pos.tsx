@@ -907,7 +907,7 @@ function FloorView({
                 {cashierUp && (
                   <button
                     onClick={() => {
-                      setShowPanel(false);
+                      // Панелни ёпмаймиз — модал устига очилади (z-60); ← босса панелга қайтади (иерархия).
                       const now = new Date();
                       const d0 = new Date(now);
                       if (now.getHours() < 6) d0.setDate(d0.getDate() - 1);
@@ -932,7 +932,7 @@ function FloorView({
                 {cashierUp && (
                   <button
                     onClick={() => {
-                      setShowPanel(false);
+                      // Панел очиқ қолади (иерархия) — ← модалдан аввал панелга қайтаради.
                       setCashOpType("expense");
                       setCashOpAmount("");
                       setCashOpNote("");
@@ -980,7 +980,7 @@ function FloorView({
                 <span className="text-lg">{soundOff ? "🔇" : "🔊"}</span> {soundOff ? "Овоз ўчиқ" : "Овоз"}
               </button>
               <button
-                onClick={() => { setShowPanel(false); setShowClock(true); }}
+                onClick={() => setShowClock(true)}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
                 <span className="text-lg">🕐</span> Соат
@@ -1284,7 +1284,7 @@ function FloorView({
       {/* 🕐 Тўлиқ-экран соат (☰ панел → Соат) — экранга бос ёпилади */}
       {showClock && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-brand-deep"
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-brand-deep"
           onClick={() => setShowClock(false)}
         >
           <BigClock />
