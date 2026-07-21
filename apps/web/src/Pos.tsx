@@ -1535,7 +1535,18 @@ function ConflictSheet({
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-semibold text-brand-ink">«{data.table}» — {data.orders.length} та очиқ заказ</h3>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Орқага"
+            aria-label="Орқага"
+            className="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-zinc-100 active:scale-95"
+          >
+            <IBack className="h-4 w-4" />
+          </button>
+          <h3 className="font-semibold text-brand-ink">«{data.table}» — {data.orders.length} та очиқ заказ</h3>
+        </div>
         <p className="mt-1 text-xs text-zinc-500">Заказни танланг ёки шу столга янгисини очинг:</p>
         <div className="mt-3 space-y-2">
           {data.orders.map((o) => (
@@ -1605,7 +1616,18 @@ function MoveSheet({
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-brand-ink/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-semibold text-brand-ink">⇄ Бошқа столга кўчириш</h3>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Орқага"
+            aria-label="Орқага"
+            className="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-zinc-100 active:scale-95"
+          >
+            <IBack className="h-4 w-4" />
+          </button>
+          <h3 className="font-semibold text-brand-ink">Бошқа столга кўчириш</h3>
+        </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {halls.map((h) => (
             <button
@@ -1674,7 +1696,18 @@ function QuickActionsSheet({
       <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         {mode === "menu" && (
           <>
-            <h3 className="font-semibold text-brand-ink">Тезкор амаллар</h3>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                title="Орқага"
+                aria-label="Орқага"
+                className="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-zinc-100 active:scale-95"
+              >
+                <IBack className="h-4 w-4" />
+              </button>
+              <h3 className="font-semibold text-brand-ink">Тезкор амаллар</h3>
+            </div>
             <div className="mt-3 space-y-2">
               <button
                 onClick={() => setMode("move")}
@@ -5922,12 +5955,20 @@ function SiblingsSheet({
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onClick={onClose}>
       <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-start gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Орқага"
+            aria-label="Орқага"
+            className="-ml-1 mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-zinc-100 active:scale-95"
+          >
+            <IBack className="h-4 w-4" />
+          </button>
+          <div className="min-w-0 flex-1">
             <h3 className="flex items-center gap-2 text-base font-bold text-brand-ink"><ISwap className="h-5 w-5" /> {current.tableNo} — заказлар</h3>
             <p className="text-xs text-zinc-400">Шу столда {siblings.length + 1} та очиқ заказ</p>
           </div>
-          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between rounded-xl border-2 border-brand bg-brand-cream/40 px-3 py-2.5">
