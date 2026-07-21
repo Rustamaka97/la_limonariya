@@ -5750,7 +5750,14 @@ function Chek({
         <Hr />
         {order.items.map((it, i) => (
           <div key={i} className="flex justify-between gap-2">
-            <span className="truncate">{it.name}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{it.name}</span>
+              {(it.modifiers?.length ?? 0) > 0 && (
+                <span className="block truncate text-[10px] text-zinc-500">
+                  + {it.modifiers!.map((m) => m.name).join(", ")}
+                </span>
+              )}
+            </span>
             <span className="whitespace-nowrap tabular-nums">
               {it.qty}×{fmt(it.price)}
             </span>
