@@ -51,6 +51,7 @@ export const ILogout = (p: IP) => <Svg {...p}><path d="M15 4h3a2 2 0 0 1 2 2v12a
 export const IBell = (p: IP) => <Svg {...p}><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" /><path d="M10.5 20a1.8 1.8 0 0 0 3 0" /></Svg>;
 export const ITv = (p: IP) => <Svg {...p}><rect x="2.5" y="6" width="19" height="12" rx="2" /><path d="M8 21h8M12 6V3" /></Svg>;
 export const IWifiOff = (p: IP) => <Svg {...p}><path d="M3 3l18 18" /><path d="M8.5 15.5a5 5 0 0 1 7 0" /><path d="M5 12a10 10 0 0 1 4-2.7M19 12a10 10 0 0 0-4.5-2.9" /><path d="M2 8.8A15 15 0 0 1 6 6.4M22 8.8a15 15 0 0 0-6.5-3.3" /><path d="M12 19h.01" /></Svg>;
+export const IWifi = (p: IP) => <Svg {...p}><path d="M2 8.8a15 15 0 0 1 20 0" /><path d="M5 12a10 10 0 0 1 14 0" /><path d="M8.5 15.5a5 5 0 0 1 7 0" /><path d="M12 19h.01" /></Svg>;
 export const IScale = (p: IP) => <Svg {...p}><path d="M12 3v18M7 21h10" /><path d="M5 7h14l-3 6a3 3 0 0 1-8 0z" transform="translate(-2 0)" /><path d="M12 7l7-1M12 7l-7 1" /></Svg>;
 export const IGear = (p: IP) => <Svg {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" /></Svg>;
 export const IWarn = (p: IP) => <Svg {...p}><path d="M12 3l9.5 16.5H2.5z" /><path d="M12 10v4M12 17h.01" /></Svg>;
