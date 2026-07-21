@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { trpc } from "./trpc";
 
 // 🔔 Билдиришнома маркази (CloPOS «Уведомления» 1:1 структура): чап турлар панели +
 // Янги/Эски таб + ўнг рўйхат. Турлар La Limon-мос (CloPOS'даги доставка/курьер/киоск —
@@ -34,15 +35,26 @@ export function NotifCenter({
 }) {
   const [tab, setTab] = useState<"new" | "old">("new"); // Новый / Старый
   const [kind, setKind] = useState("all"); // танланган тур
+  const [old, setOld] = useState<Notif[] | null>(null); // «Эски» — ечилган тарих (lazy)
 
-  // Ҳозирча ҳаммаси "Янги" (ечилмаган); "Эски" = ечилган тарих (backend кейин уланади).
+  // Чап панел сони — доим «Янги» (ечилмаган) бўйича (CloPOS каби).
   const countBy = useMemo(() => {
     const m: Record<string, number> = { all: notifs.length };
     for (const n of notifs) m[n.kind] = (m[n.kind] ?? 0) + 1;
     return m;
   }, [notifs]);
 
-  const list = tab === "old" ? [] : notifs.filter((n) => kind === "all" || n.kind === kind);
+  // «Эски» таб биринчи очилганда — ечилган чақирувлар тарихини юкла.
+  useEffect(() => {
+    if (tab !== "old" || old !== null) return;
+    trpc.pos.resolvedNotifications
+      .query()
+      .then(setOld)
+      .catch(() => setOld([]));
+  }, [tab, old]);
+
+  const source = tab === "old" ? (old ?? []) : notifs;
+  const list = source.filter((n) => kind === "all" || n.kind === kind);
 
   return (
     <div

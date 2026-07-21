@@ -3783,6 +3783,33 @@ export const appRouter = router({
       return items;
     }),
 
+    // 🔔 «Эски» таб — ечилган официант чақирувлар тарихи (сўнгги 20, ким ечди).
+    resolvedNotifications: protectedProcedure.query(async () => {
+      const rows = await db
+        .select({
+          kind: waiterCalls.kind,
+          resolvedAt: waiterCalls.resolvedAt,
+          tableName: tables.name,
+          hall: halls.name,
+          by: users.name,
+        })
+        .from(waiterCalls)
+        .innerJoin(tables, eq(waiterCalls.tableId, tables.id))
+        .leftJoin(halls, eq(tables.hallId, halls.id))
+        .leftJoin(users, eq(waiterCalls.resolvedById, users.id))
+        .where(isNotNull(waiterCalls.resolvedAt))
+        .orderBy(desc(waiterCalls.resolvedAt))
+        .limit(20);
+      const callUz: Record<string, string> = { waiter: "Официант", bill: "Ҳисоб", water: "Сув" };
+      return rows.map((r) => ({
+        kind: "call",
+        title: `Чақирув — ${callUz[r.kind] ?? r.kind} ✓`,
+        detail: `${r.hall ?? "—"} · ${r.tableName}${r.by ? ` · ${r.by}` : ""}`,
+        at: r.resolvedAt,
+        severity: "info" as const,
+      }));
+    }),
+
     // ── QR-тўлов (стол устида): меҳмон стол QR'ини (?pay=tableId) очади → ўз
     // чекини + Payme/Click тап-линкини кўради. Public (auth йўқ, фақат ЎЗ чеки).
     // Тўлов тасдиғи ҳозирча кассир қўлда (webhook = кейинги фаза — payqr.ts изоҳи).
