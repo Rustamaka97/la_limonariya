@@ -117,6 +117,14 @@ function WalletPanel({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // ⋮ меню (CloPOS каби «Применить» ёнида): Редактировать + Создать операцию.
+  // mode=edit → исм/тел таҳрир; showOp → операция блоки очиқ (доим кўринмайди).
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [showOp, setShowOp] = useState(false);
+  const [editName, setEditName] = useState(customer.name);
+  const [editPhone, setEditPhone] = useState(customer.phone ?? "");
+  const [editBusy, setEditBusy] = useState(false);
 
   function load() {
     trpc.finance.customers.wallet
@@ -161,6 +169,28 @@ function WalletPanel({
     }
   }
 
+  async function saveEdit() {
+    if (!editName.trim()) {
+      setErr("Исм киритинг");
+      return;
+    }
+    setEditBusy(true);
+    setErr(null);
+    try {
+      await trpc.finance.customers.update.mutate({
+        customerId: customer.id,
+        name: editName.trim(),
+        phone: editPhone.trim() || undefined,
+      });
+      setMode("view");
+      onChanged(); // рўйхатда исм/тел янгилансин
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Сақланмади");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6">
       <div className="flex max-h-[88dvh] w-full max-w-lg flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl">
@@ -169,12 +199,59 @@ function WalletPanel({
             <h3 className="text-base font-bold text-brand-ink">{customer.name}</h3>
             {customer.phone && <p className="text-xs text-zinc-400">{customer.phone}</p>}
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
-          >
-            Ёпиш
-          </button>
+          <div className="relative flex items-center gap-1">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="grid h-8 w-8 place-items-center rounded-lg text-xl leading-none text-zinc-500 transition hover:bg-zinc-100"
+              title="Амаллар"
+              aria-label="Амаллар"
+            >
+              ⋮
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+            >
+              Ёпиш
+            </button>
+            {menuOpen && (
+              <>
+                <button
+                  className="fixed inset-0 z-10 cursor-default"
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="Ёпиш"
+                />
+                <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-brand-cream-soft bg-white py-1 shadow-xl">
+                  <button
+                    onClick={() => {
+                      setEditName(customer.name);
+                      setEditPhone(customer.phone ?? "");
+                      setErr(null);
+                      setShowOp(false);
+                      setMode("edit");
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-brand-ink transition hover:bg-brand-cream/40"
+                  >
+                    ✎ Редактировать
+                  </button>
+                  {canAdjust && (
+                    <button
+                      onClick={() => {
+                        setErr(null);
+                        setMode("view");
+                        setShowOp(true);
+                        setMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-brand-ink transition hover:bg-brand-cream/40"
+                    >
+                      ➕ Создать операцию
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="rounded-2xl bg-brand-cream/40 p-4 text-center">
@@ -184,8 +261,47 @@ function WalletPanel({
           </div>
         </div>
 
+        {/* ✎ Редактировать — исм/телефон таҳрири (⋮ менюдан) */}
+        {mode === "edit" && (
+          <div className="space-y-2 rounded-2xl border border-brand-cream-soft p-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-brand-gold">Мижозни таҳрирлаш</div>
+            <input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Исм"
+              className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            <input
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              inputMode="tel"
+              placeholder="Телефон (ихтиёрий)"
+              className="w-full rounded-xl border border-brand-cream-soft px-3 py-2 text-sm tabular-nums outline-none focus:border-brand"
+            />
+            {err && <p className="text-xs text-red-500">{err}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setMode("view");
+                  setErr(null);
+                }}
+                className="flex-1 rounded-xl border border-brand-cream-soft py-2 text-sm text-zinc-600 transition hover:bg-zinc-50"
+              >
+                Бекор
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={editBusy || !editName.trim()}
+                className="flex-1 rounded-xl bg-brand py-2 text-sm font-semibold text-white transition hover:bg-brand-soft disabled:opacity-50"
+              >
+                {editBusy ? "…" : "Сақлаш"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Мижоз таниш — профил статистикаси */}
-        {profile && (
+        {mode === "view" && profile && (
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat label="Ташриф" value={`${profile.visits}`} />
@@ -223,8 +339,18 @@ function WalletPanel({
           </div>
         )}
 
-        {canAdjust && (
+        {mode === "view" && canAdjust && showOp && (
           <div className="space-y-2 rounded-2xl border border-brand-cream-soft p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wide text-brand-gold">Янги операция</span>
+              <button
+                onClick={() => setShowOp(false)}
+                className="rounded-md px-2 py-0.5 text-xs text-zinc-400 transition hover:bg-zinc-100"
+                aria-label="Ёпиш"
+              >
+                ✕
+              </button>
+            </div>
             <div className="flex gap-1.5">
               {(["bonus", "redeem", "adjust"] as const).map((k) => (
                 <button
