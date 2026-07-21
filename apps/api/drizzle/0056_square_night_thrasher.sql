@@ -1,1 +1,1 @@
-ALTER TYPE "public"."user_role" ADD VALUE 'admin' BEFORE 'buyer';
+ALTER TYPE "public"."user_role" ADD VALUE IF NOT EXISTS 'admin' BEFORE 'buyer';

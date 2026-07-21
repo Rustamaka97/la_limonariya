@@ -1,1 +1,1 @@
-ALTER TYPE "public"."payment_method" ADD VALUE 'balance' BEFORE 'avans';
+ALTER TYPE "public"."payment_method" ADD VALUE IF NOT EXISTS 'balance' BEFORE 'avans';

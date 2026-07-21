@@ -1,5 +1,5 @@
 {
-  "url": "http://100.124.38.91:8082/?terminal",
+  "url": "http://192.168.1.4:8080/?terminal",
   "fullscreen": true,
   "kiosk": false
 }
