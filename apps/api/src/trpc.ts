@@ -37,3 +37,11 @@ export const cashierProcedure = protectedProcedure.use(({ ctx, next }) => {
     throw new TRPCError({ code: "FORBIDDEN" });
   return next();
 });
+
+// Зал администратори — официантларни бошқаради, посуда-инвентарга жавобгар,
+// стол назорати/штраф/мажлис. Директор ҳам киради (супер-админ).
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!["director", "admin"].includes(ctx.user.role))
+    throw new TRPCError({ code: "FORBIDDEN" });
+  return next();
+});

@@ -21,6 +21,7 @@ export const appMeta = pgTable("app_meta", {
 export const userRole = pgEnum("user_role", [
   "director",
   "manager",
+  "admin",
   "buyer",
   "cashier",
   "waiter",
@@ -592,6 +593,11 @@ export const purchases = pgTable("purchases", {
   paidTotal: integer("paid_total").notNull().default(0), // supplier debt = total − paidTotal
   branchId: uuid("branch_id").references(() => branches.id),
   createdById: uuid("created_by_id").references(() => users.id),
+  // Бозорчи мобил: харид сақлангандаги GPS + чек/бозор расми (ихтиёрий — фақат
+  // бозорчи телефондан юборганда; директорга «бозор харитаси» учун асос).
+  geoLat: text("geo_lat"),
+  geoLng: text("geo_lng"),
+  photoUrl: text("photo_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

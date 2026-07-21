@@ -2094,7 +2094,7 @@ export const appRouter = router({
       .input(
         z.object({
           name: z.string().trim().min(1),
-          role: z.enum(["director", "manager", "buyer", "cashier", "waiter"]),
+          role: z.enum(["director", "manager", "admin", "buyer", "cashier", "waiter"]),
         }),
       )
       .mutation(async ({ input, ctx }) => {
@@ -2122,7 +2122,7 @@ export const appRouter = router({
         z.object({
           userId: z.string().uuid(),
           name: z.string().trim().min(1).optional(),
-          role: z.enum(["director", "manager", "buyer", "cashier", "waiter"]).optional(),
+          role: z.enum(["director", "manager", "admin", "buyer", "cashier", "waiter"]).optional(),
           active: z.boolean().optional(),
         }),
       )
@@ -6187,6 +6187,9 @@ export const appRouter = router({
         z.object({
           supplier: z.string().optional(),
           note: z.string().optional(),
+          geoLat: z.string().optional(),
+          geoLng: z.string().optional(),
+          photoUrl: z.string().optional(),
           items: z
             .array(
               z.object({
@@ -6249,6 +6252,9 @@ export const appRouter = router({
               .values({
                 supplier: input.supplier ?? null,
                 note: input.note ?? null,
+                geoLat: input.geoLat ?? null,
+                geoLng: input.geoLng ?? null,
+                photoUrl: input.photoUrl ?? null,
                 total,
                 createdById: ctx.user.id,
               })

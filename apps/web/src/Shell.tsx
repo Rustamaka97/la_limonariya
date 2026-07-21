@@ -47,6 +47,7 @@ function NavIcon({ k, sheet }: { k?: string; sheet: string | null }) {
 const ROLE_LABEL: Record<string, string> = {
   director: "Директор",
   manager: "Менежер",
+  admin: "Админ",
   buyer: "Бозорчи",
   cashier: "Кассир",
   waiter: "Официант",
@@ -71,6 +72,7 @@ type Tab =
   | "catalog"
   | "recipes"
   | "mijozlar"
+  | "officiants"
   | "staff";
 
 // Offline ҳолати — "offline-first"нинг кўринадиган қисми: алоҳida banner, чунки
@@ -123,7 +125,13 @@ export function Shell({
   // ҳаммаси (директор ҳам) кириши билан столларни кўради; директор истаса
   // «Бошқарув» табига ўтади. POS'сиз роллар (бозорчи) — обвалка/каталог.
   const [tab, setTab] = useState<Tab>(
-    canPos ? "pos" : canObvalka ? "obvalka" : "catalog",
+    canPos
+      ? "pos"
+      : user.role === "admin"
+        ? "officiants"
+        : canObvalka
+          ? "obvalka"
+          : "catalog",
   );
 
   async function logout() {
@@ -138,6 +146,9 @@ export function Shell({
     ...(isDirector ? [{ key: "analitika" as Tab, label: "Аналитика", icon: "chart" }] : []),
     ...(isDirector ? [{ key: "moliya" as Tab, label: "Молия", icon: "wallet" }] : []),
     ...(canPos ? [{ key: "pos" as Tab, label: "Касса", icon: "cash" }] : []),
+    ...(["director", "admin"].includes(user.role)
+      ? [{ key: "officiants" as Tab, label: "Официантлар", icon: "staff" }]
+      : []),
     ...(["director", "manager", "cashier"].includes(user.role)
       ? [{ key: "chekQidirish" as Tab, label: "Чек қидириш", icon: "receipt" }]
       : []),
@@ -146,7 +157,7 @@ export function Shell({
     ...(["director", "manager"].includes(user.role)
       ? [{ key: "inventarizatsiya" as Tab, label: "Инвентаризация" }]
       : []),
-    ...(["director", "manager"].includes(user.role)
+    ...(["director", "manager", "admin"].includes(user.role)
       ? [{ key: "assets" as Tab, label: "Инвентарь" }]
       : []),
     ...(["director", "manager"].includes(user.role)
@@ -250,7 +261,7 @@ export function Shell({
               </button>
             </div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-t px-4 py-1.5 sm:px-5">
+          <nav className="hidden gap-1 overflow-x-auto whitespace-nowrap border-t px-4 py-1.5 sm:flex sm:px-5">
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -275,7 +286,7 @@ export function Shell({
         </div>
       )}
 
-      <main className={tab === "pos" ? "flex flex-1 flex-col p-0" : `mx-auto p-5 ${tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
+      <main className={tab === "pos" ? "flex flex-1 flex-col p-0 pb-14 sm:pb-0" : `mx-auto w-full p-5 pb-20 sm:pb-6 ${tab === "tv" ? "max-w-6xl" : "max-w-4xl"}`}>
         {tab === "dashboard" && <Dashboard onGoObvalka={() => setTab("obvalka")} />}
         {tab === "tv" && <Tv />}
         {tab === "kds" && <Kds />}
@@ -288,6 +299,7 @@ export function Shell({
         {tab === "obvalka" && <Obvalka user={user} />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}
         {tab === "assets" && <Inventar />}
+        {tab === "officiants" && <AdminOfficiants />}
         {tab === "vitrina" && <Vitrina />}
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}
@@ -296,7 +308,93 @@ export function Shell({
         {tab === "recipes" && <Recipes canManage={isDirector} />}
         {tab === "staff" && <StaffSection />}
       </main>
+
+      {/* Мобил пастки навигация — фақат телефон (sm:hidden). Терминал exe'га
+          тегмайди (у ўзининг ☰ менюсини ишлатади). */}
+      {!isTerminal && (
+        <MobileNav tabs={tabs} tab={tab} setTab={setTab} iconStyle={iconStyle} />
+      )}
     </div>
+  );
+}
+
+// Телефон навигацияси: горизонтал скролл таб бар ўрнига пастки нав — биринчи 4
+// роль-таби доим кўзда, қолгани «Яна» → пастки варақ (bottom-sheet).
+function MobileNav({
+  tabs,
+  tab,
+  setTab,
+  iconStyle,
+}: {
+  tabs: { key: Tab; label: string; icon?: string }[];
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  iconStyle: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const MAX = 5;
+  const hasMore = tabs.length > MAX;
+  const bar = hasMore ? tabs.slice(0, MAX - 1) : tabs;
+  return (
+    <>
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-black/5 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
+        {bar.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium ${
+              tab === t.key ? "text-brand" : "text-zinc-400"
+            }`}
+          >
+            <NavIcon k={t.icon} sheet={iconStyle} />
+            <span className="max-w-full truncate px-0.5">{t.label}</span>
+          </button>
+        ))}
+        {hasMore && (
+          <button
+            onClick={() => setOpen(true)}
+            className={`flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium ${
+              open ? "text-brand" : "text-zinc-400"
+            }`}
+          >
+            <IMenu className="h-5 w-5" />
+            <span>Яна</span>
+          </button>
+        )}
+      </nav>
+
+      {open && (
+        <div className="fixed inset-0 z-40 sm:hidden">
+          <button
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+            aria-label="Ёпиш"
+          />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-200" />
+            <div className="grid grid-cols-3 gap-2">
+              {tabs.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => {
+                    setTab(t.key);
+                    setOpen(false);
+                  }}
+                  className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-3 text-xs font-medium ${
+                    tab === t.key
+                      ? "bg-brand text-white"
+                      : "bg-zinc-50 text-zinc-600"
+                  }`}
+                >
+                  <NavIcon k={t.icon} sheet={iconStyle} />
+                  <span className="max-w-full truncate">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -307,6 +405,57 @@ type Staff = {
   active: boolean;
   hasPin: boolean;
 };
+
+// Зал администратори панели — официант рўйхати + ҳолати (актив/PIN). Чақирувлар
+// глобал CallAlerts overlay'да, посуда «Инвентарь» табида. Штраф/мажлис/стол-банд
+// — кейинги итерация (янги backend).
+function AdminOfficiants() {
+  const [staff, setStaff] = useState<Staff[] | null>(null);
+  useEffect(() => {
+    trpc.users.list
+      .query()
+      .then(setStaff)
+      .catch(() => setStaff(null));
+  }, []);
+  const waiters = (staff ?? []).filter((s) => s.role === "waiter");
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold text-zinc-500">
+        Официантлар ({staff ? waiters.length : "…"})
+      </h2>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {waiters.map((w) => (
+          <div
+            key={w.id}
+            className="flex items-center gap-3 rounded-xl border bg-white px-4 py-3"
+          >
+            <span
+              className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold uppercase ${
+                w.active
+                  ? "bg-brand-cream text-brand"
+                  : "bg-zinc-100 text-zinc-400"
+              }`}
+            >
+              {w.name.slice(0, 2)}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{w.name}</div>
+              <div className="text-xs text-zinc-400">
+                {w.active ? "Актив" : "Нофаол"} ·{" "}
+                {w.hasPin ? "PIN бор" : "PIN йўқ"}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {staff && waiters.length === 0 && (
+        <div className="rounded-xl border bg-white px-4 py-8 text-center text-sm text-zinc-400">
+          Официант йўқ
+        </div>
+      )}
+    </section>
+  );
+}
 
 function StaffSection() {
   const [staff, setStaff] = useState<Staff[] | null>(null);
