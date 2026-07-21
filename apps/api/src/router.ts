@@ -60,6 +60,7 @@ import {
   skewerBatches,
   stations,
   stockMovements,
+  tablePreps,
   tables,
   tillCounts,
   users,
@@ -6497,6 +6498,81 @@ export const appRouter = router({
           });
           return { id: row?.id };
         });
+      }),
+  }),
+
+  // Эрталабки стол-тайёрлаш (мажлис) — зал администратори (admin/director) кунлик
+  // текширади. Ҳар зал: чек-лист (jsonb) + расм + изоҳ. Upsert — кунига ҳар зал битта.
+  tablePrep: router({
+    byDay: adminProcedure
+      .input(z.object({ day: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        const dayKey = input?.day || new Date().toISOString().slice(0, 10);
+        return db
+          .select({
+            id: tablePreps.id,
+            hallId: tablePreps.hallId,
+            items: tablePreps.items,
+            photoUrl: tablePreps.photoUrl,
+            note: tablePreps.note,
+            createdAt: tablePreps.createdAt,
+          })
+          .from(tablePreps)
+          .where(eq(tablePreps.dayKey, dayKey));
+      }),
+    submit: adminProcedure
+      .input(
+        z.object({
+          hallId: z.string().uuid().nullable().optional(),
+          items: z.record(z.string(), z.boolean()),
+          photoUrl: z.string().optional(),
+          note: z.string().trim().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const dayKey = new Date().toISOString().slice(0, 10);
+        const hallId = input.hallId ?? null;
+        const existing = (
+          await db
+            .select({ id: tablePreps.id })
+            .from(tablePreps)
+            .where(
+              and(
+                eq(tablePreps.dayKey, dayKey),
+                hallId
+                  ? eq(tablePreps.hallId, hallId)
+                  : isNull(tablePreps.hallId),
+              ),
+            )
+            .limit(1)
+        )[0];
+        if (existing) {
+          await db
+            .update(tablePreps)
+            .set({
+              items: input.items,
+              photoUrl: input.photoUrl || null,
+              note: input.note?.trim() || null,
+              createdById: ctx.user.id,
+              createdAt: new Date(),
+            })
+            .where(eq(tablePreps.id, existing.id));
+          return { id: existing.id };
+        }
+        const row = (
+          await db
+            .insert(tablePreps)
+            .values({
+              dayKey,
+              hallId,
+              items: input.items,
+              photoUrl: input.photoUrl || null,
+              note: input.note?.trim() || null,
+              createdById: ctx.user.id,
+            })
+            .returning({ id: tablePreps.id })
+        )[0];
+        return { id: row?.id };
       }),
   }),
 

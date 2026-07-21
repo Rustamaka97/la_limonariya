@@ -16,6 +16,7 @@ import { Obvalka } from "./Obvalka";
 import { Ombor } from "./Ombor";
 import { Pos } from "./Pos";
 import { Purchases } from "./Purchases";
+import { TablePrep } from "./TablePrep";
 import { Recipes } from "./Recipes";
 import { Taannarx } from "./Taannarx";
 import { Vitrina } from "./Vitrina";
@@ -75,6 +76,7 @@ type Tab =
   | "recipes"
   | "mijozlar"
   | "officiants"
+  | "tablePrep"
   | "staff";
 
 // Offline ҳолати — "offline-first"нинг кўринадиган қисми: алоҳida banner, чунки
@@ -172,6 +174,9 @@ export function Shell({
     ...(canPos ? [{ key: "pos" as Tab, label: "Касса", icon: "cash" }] : []),
     ...(["director", "admin"].includes(user.role)
       ? [{ key: "officiants" as Tab, label: "Официантлар", icon: "staff" }]
+      : []),
+    ...(["director", "admin"].includes(user.role)
+      ? [{ key: "tablePrep" as Tab, label: "Мажлис" }]
       : []),
     ...(["director", "manager", "cashier"].includes(user.role)
       ? [{ key: "chekQidirish" as Tab, label: "Чек қидириш", icon: "receipt" }]
@@ -372,6 +377,7 @@ export function Shell({
             <AdminTables />
           </>
         )}
+        {tab === "tablePrep" && <TablePrep />}
         {tab === "vitrina" && <Vitrina />}
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}

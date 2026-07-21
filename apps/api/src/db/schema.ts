@@ -949,3 +949,25 @@ export const penalties = pgTable(
   },
   (t) => [index("penalty_staff_idx").on(t.staffId, t.createdAt)],
 );
+
+// Эрталабки стол-тайёрлаш (мажлис) — зал администратори кунлик текширади. Ҳар
+// зал учун чек-лист (jsonb: тарелка/вилка/қошиқ/пепелница/зубочистка/салфетка) +
+// расм + изоҳ. (dayKey, hallId) — кунига ҳар зал битта ёзув (upsert).
+export const tablePreps = pgTable(
+  "table_preps",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dayKey: text("day_key").notNull(),
+    hallId: uuid("hall_id").references(() => halls.id),
+    items: jsonb("items").notNull(),
+    photoUrl: text("photo_url"),
+    note: text("note"),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.dayKey, t.hallId)],
+);
