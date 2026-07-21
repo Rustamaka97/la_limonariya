@@ -407,6 +407,20 @@
       "when": 1784545646508,
       "tag": "0057_same_ben_urich",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1784612849870,
+      "tag": "0058_military_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1784614070285,
+      "tag": "0059_swift_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

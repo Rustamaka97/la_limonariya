@@ -365,7 +365,12 @@ export function Shell({
         {tab === "obvalka" && <Obvalka user={user} />}
         {tab === "inventarizatsiya" && <Inventarizatsiya user={user} />}
         {tab === "assets" && <Inventar />}
-        {tab === "officiants" && <AdminOfficiants />}
+        {tab === "officiants" && (
+          <>
+            <AdminOfficiants />
+            <AdminTables />
+          </>
+        )}
         {tab === "vitrina" && <Vitrina />}
         {tab === "ombor" && <Ombor />}
         {tab === "hisobot" && <Hisobot />}
@@ -748,6 +753,82 @@ function PenaltyModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// Стол банд — зал администратори столни «банд»/«бўш» белгилайди (меҳмон келди,
+// официант ҳали заказ очмаган). Босиш = ҳолатни алмаштириш. POS floor'да ҳам
+// сариқ кўринади (кейинги фаза, Pos.tsx floor интеграцияси).
+type PosTable = {
+  id: string;
+  name: string;
+  heldAt: string | Date | null;
+  heldNote: string | null;
+};
+function AdminTables() {
+  const [tables, setTables] = useState<PosTable[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const refresh = useCallback(() => {
+    trpc.pos.tables
+      .query()
+      .then((t) => setTables(t as PosTable[]))
+      .catch(() => setTables(null));
+  }, []);
+  useEffect(() => refresh(), [refresh]);
+
+  async function toggle(t: PosTable) {
+    setBusy(t.id);
+    try {
+      if (t.heldAt) await trpc.pos.releaseTable.mutate({ id: t.id });
+      else await trpc.pos.holdTable.mutate({ id: t.id });
+      refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const heldCount = (tables ?? []).filter((t) => t.heldAt).length;
+  return (
+    <section className="mt-6 space-y-3">
+      <h2 className="text-sm font-semibold text-zinc-500">
+        Столлар{" "}
+        {heldCount > 0 && (
+          <span className="text-amber-600">· {heldCount} банд</span>
+        )}
+      </h2>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {(tables ?? []).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => toggle(t)}
+            disabled={busy === t.id}
+            className={`rounded-xl border px-3 py-3 text-left transition disabled:opacity-50 ${
+              t.heldAt
+                ? "border-amber-300 bg-amber-50"
+                : "border-zinc-200 bg-white hover:border-brand"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t.name}</span>
+              {t.heldAt && <span className="text-xs">🔒</span>}
+            </div>
+            <div
+              className={`mt-1 text-xs ${
+                t.heldAt ? "text-amber-600" : "text-zinc-400"
+              }`}
+            >
+              {t.heldAt ? "Банд · бўшатиш" : "Бўш · банд қилиш"}
+            </div>
+          </button>
+        ))}
+      </div>
+      {tables && tables.length === 0 && (
+        <div className="rounded-xl border bg-white px-4 py-8 text-center text-sm text-zinc-400">
+          Стол йўқ
+        </div>
+      )}
+    </section>
   );
 }
 

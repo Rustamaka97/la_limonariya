@@ -226,8 +226,8 @@ export function Vitrina() {
       {/* B — бугунги сих батчлари */}
       <section>
         <h2 className="mb-2 text-sm font-semibold text-zinc-500">Бугунги сих батчлари</h2>
-        <div className="overflow-hidden rounded-xl border bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border bg-white">
+          <table className="w-full min-w-[520px] text-sm">
             <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
               <tr>
                 <th className="px-4 py-2 font-medium">Таом</th>
@@ -287,8 +287,8 @@ export function Vitrina() {
             {savingCounts ? "…" : "Санашни сақлаш"}
           </button>
         </div>
-        <div className="overflow-hidden rounded-xl border bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border bg-white">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
               <tr>
                 <th className="px-4 py-2 font-medium">Таом</th>

@@ -47,6 +47,7 @@ import {
   orderPayments,
   orders,
   partTypes,
+  penalties,
   products,
   purchaseItems,
   purchases,
@@ -94,6 +95,7 @@ import {
 } from "./insights";
 import { TRPCError } from "@trpc/server";
 import {
+  adminProcedure,
   buyerProcedure,
   cashierProcedure,
   directorProcedure,
@@ -102,6 +104,7 @@ import {
   publicProcedure,
   router,
 } from "./trpc";
+import { systemRouter } from "./system";
 
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 const pinSchema = z.string().regex(/^\d{4}$/, "PIN — 4 ta raqam");
@@ -1990,6 +1993,9 @@ async function assertOrderAccess(
 }
 
 export const appRouter = router({
+  // POS «Статус» панели (принтер/станция ҳолати) — system.ts да, коллизияни
+  // камайтириш учун алоҳида sub-router.
+  system: systemRouter,
   health: publicProcedure.query(async () => {
     await db.execute(sql`select 1`);
     return { ok: true, ts: new Date().toISOString() };
@@ -3374,6 +3380,8 @@ export const appRouter = router({
           posY: tables.posY,
           w: tables.w,
           h: tables.h,
+          heldAt: tables.heldAt,
+          heldNote: tables.heldNote,
         })
         .from(tables)
         .where(eq(tables.active, true))
@@ -3396,6 +3404,43 @@ export const appRouter = router({
       .input(z.object({ id: z.string().uuid(), w: z.number().int().min(80).max(600), h: z.number().int().min(60).max(400) }))
       .mutation(async ({ input }) => {
         await db.update(tables).set({ w: input.w, h: input.h }).where(eq(tables.id, input.id));
+        return { ok: true };
+      }),
+
+    // Стол «банд» белгиси — зал администратори/официант/кассир қўяди (меҳмон
+    // келди, заказ ҳали очилмаган). Бўшатиш ёки заказ очилиши билан тозаланади.
+    holdTable: protectedProcedure
+      .input(z.object({ id: z.string().uuid(), note: z.string().trim().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (
+          !["director", "manager", "cashier", "waiter", "admin"].includes(
+            ctx.user.role,
+          )
+        )
+          throw new TRPCError({ code: "FORBIDDEN" });
+        await db
+          .update(tables)
+          .set({
+            heldById: ctx.user.id,
+            heldAt: new Date(),
+            heldNote: input.note?.trim() || null,
+          })
+          .where(eq(tables.id, input.id));
+        return { ok: true };
+      }),
+    releaseTable: protectedProcedure
+      .input(z.object({ id: z.string().uuid() }))
+      .mutation(async ({ input, ctx }) => {
+        if (
+          !["director", "manager", "cashier", "waiter", "admin"].includes(
+            ctx.user.role,
+          )
+        )
+          throw new TRPCError({ code: "FORBIDDEN" });
+        await db
+          .update(tables)
+          .set({ heldById: null, heldAt: null, heldNote: null })
+          .where(eq(tables.id, input.id));
         return { ok: true };
       }),
 
@@ -6349,6 +6394,85 @@ export const appRouter = router({
       }),
   }),
 
+  // Официант жаримаси (штраф) — зал администратори (admin) ёки директор қўяди.
+  // Зинапоя (30/50/100к) frontend'да таклиф; «ой нолланиши» — byStaff жорий ой
+  // бошидан санайди (жадвал ўчмайди, тарих сақланади).
+  penalties: router({
+    byStaff: adminProcedure.query(async () => {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const rows = await db
+        .select({
+          staffId: penalties.staffId,
+          cnt: count(penalties.id),
+          total: sql<number>`coalesce(sum(${penalties.amount}), 0)`,
+        })
+        .from(penalties)
+        .where(gte(penalties.createdAt, monthStart))
+        .groupBy(penalties.staffId);
+      return rows.map((r) => ({
+        staffId: r.staffId,
+        count: Number(r.cnt),
+        total: Number(r.total),
+      }));
+    }),
+    list: adminProcedure
+      .input(z.object({ staffId: z.string().uuid() }))
+      .query(async ({ input }) => {
+        return db
+          .select({
+            id: penalties.id,
+            amount: penalties.amount,
+            reason: penalties.reason,
+            note: penalties.note,
+            createdAt: penalties.createdAt,
+          })
+          .from(penalties)
+          .where(eq(penalties.staffId, input.staffId))
+          .orderBy(desc(penalties.createdAt))
+          .limit(50);
+      }),
+    create: adminProcedure
+      .input(
+        z.object({
+          staffId: z.string().uuid(),
+          amount: z.number().int().positive(),
+          reason: z.string().trim().min(1),
+          note: z.string().trim().optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        return db.transaction(async (tx) => {
+          const row = (
+            await tx
+              .insert(penalties)
+              .values({
+                staffId: input.staffId,
+                amount: input.amount,
+                reason: input.reason,
+                note: input.note || null,
+                createdById: ctx.user.id,
+              })
+              .returning({ id: penalties.id })
+          )[0];
+          await logAudit(tx, {
+            actorId: ctx.user.id,
+            action: "penalty.create",
+            entity: "penalty",
+            entityId: row?.id ?? null,
+            summary: `${input.amount} сўм — ${input.reason}`,
+            meta: {
+              staffId: input.staffId,
+              amount: input.amount,
+              reason: input.reason,
+            },
+          });
+          return { id: row?.id };
+        });
+      }),
+  }),
+
   finance: router({
     expenses: router({
       list: directorProcedure
@@ -6698,6 +6822,40 @@ export const appRouter = router({
           )[0];
           if (!row) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
           return { id: row.id };
+        }),
+
+      // Мижоз маълумотини таҳрирлаш (исм/телефон) — пул эмас, менежер+. Аудитга ёзилади.
+      update: managerProcedure
+        .input(
+          z.object({
+            customerId: z.string().uuid(),
+            name: z.string().trim().min(1),
+            phone: z.string().trim().max(32).optional(),
+          }),
+        )
+        .mutation(async ({ input, ctx }) => {
+          return db.transaction(async (tx) => {
+            const cust = (
+              await tx
+                .select({ name: customers.name })
+                .from(customers)
+                .where(eq(customers.id, input.customerId))
+                .limit(1)
+            )[0];
+            if (!cust) throw new TRPCError({ code: "NOT_FOUND", message: "Мижоз топилмади" });
+            await tx
+              .update(customers)
+              .set({ name: input.name, phone: input.phone || null })
+              .where(eq(customers.id, input.customerId));
+            await logAudit(tx, {
+              actorId: ctx.user.id,
+              action: "customer.update",
+              entity: "customer",
+              entityId: input.customerId,
+              summary: `${cust.name} → ${input.name}${input.phone ? ` (${input.phone})` : ""}`,
+            });
+            return { ok: true };
+          });
         }),
 
       // Лоялти CRM: мижозлар + ҳамён баланси (= SUM wallet movements).

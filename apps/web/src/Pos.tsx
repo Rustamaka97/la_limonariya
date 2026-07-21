@@ -51,7 +51,7 @@ function ToolIcon({ k, className = "h-7 w-7" }: { k: string; className?: string 
 }
 
 type Hall = { id: string; name: string; servicePct: number };
-type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null; w?: number | null; h?: number | null };
+type Table = { id: string; hallId: string; name: string; sort: number; posX: number | null; posY: number | null; w?: number | null; h?: number | null; heldAt?: string | Date | null; heldNote?: string | null };
 type MenuItem = {
   id: string;
   name: string;
@@ -752,14 +752,19 @@ function FloorView({
                                 : void create(h.id, t.name, 2, "dine_in")
                           }
                           className={`flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-[2px] px-2 py-2 text-center leading-tight shadow-[2px_3px_0_0_rgba(0,0,0,.24)] transition hover:brightness-105 active:scale-[.98] motion-reduce:active:scale-100 ${
-                            !resView
-                              ? "floor-free text-white"
-                              : late
-                                ? "bg-red-600 text-white"
-                                : "bg-clopos-reserved text-clopos-reserved-text"
+                            t.heldAt && !heatOn
+                              ? "bg-amber-400 text-white"
+                              : !resView
+                                ? "floor-free text-white"
+                                : late
+                                  ? "bg-red-600 text-white"
+                                  : "bg-clopos-reserved text-clopos-reserved-text"
                           }`}
                         >
                           <span className="line-clamp-2 text-[13px] font-bold">{t.name}</span>
+                          {t.heldAt && !heatOn && (
+                            <span className="text-[10px] font-semibold">🔒 банд</span>
+                          )}
                           {rsv && !heatOn && (
                             <>
                               <span className="text-[11px] font-bold">

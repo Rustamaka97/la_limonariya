@@ -29,12 +29,6 @@ export function App() {
 function MainApp() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
-  // DEV-ONLY (import.meta.env.DEV): ?devrole=admin|buyer|manager|director — логинсиз
-  // мобил UI синови. Production build'да ЎЛИК (DEV=false). Backend оқим синалмайди.
-  const devRole =
-    import.meta.env.DEV && typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("devrole")
-      : null;
 
   const load = useCallback(async () => {
     try {
@@ -65,23 +59,20 @@ function MainApp() {
     };
   }, [load]);
 
-  if (loading && !devRole) {
+  if (loading) {
     return (
       <main className="grid min-h-dvh place-items-center bg-zinc-900 text-zinc-500">
         ⏳
       </main>
     );
   }
-  const activeUser: SessionUser | null = devRole
-    ? { id: "dev", name: `Dev·${devRole}`, role: devRole }
-    : user;
-  if (!activeUser) return <Login onSuccess={setUser} />;
+  if (!user) return <Login onSuccess={setUser} />;
   // Директор стол QR принт-саҳифаси (?tableqr) — логин керак, фақат директор.
-  if (activeUser.role === "director" && new URLSearchParams(window.location.search).has("tableqr"))
+  if (user.role === "director" && new URLSearchParams(window.location.search).has("tableqr"))
     return <TableQrPage />;
   return (
     <>
-      <Shell user={activeUser} onLogout={() => setUser(null)} />
+      <Shell user={user} onLogout={() => setUser(null)} />
       {/* Официант чақириқ огоҳлантириши — POS устида, ҳамма экранда кўринади */}
       <CallAlerts />
     </>

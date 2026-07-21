@@ -234,6 +234,11 @@ export const tables = pgTable("tables", {
   // Плитка ўлчами px (CloPOS каби катта банкет-зал/кабина); null = дефолт 148×96.
   w: integer("w"),
   h: integer("h"),
+  // Стол «банд» белгиси (зал администратори — меҳмон келди, официант ҳали заказ
+  // очмаган). null = бўш; заказ очилса POS floor заказни кўрсатади (банд иккиламчи).
+  heldById: uuid("held_by_id").references(() => users.id),
+  heldAt: timestamp("held_at", { withTimezone: true }),
+  heldNote: text("held_note"),
   active: boolean("active").notNull().default(true),
 });
 
@@ -920,4 +925,27 @@ export const vitrinaCounts = pgTable(
       .defaultNow(),
   },
   (t) => [unique().on(t.dayKey, t.productId)],
+);
+
+// Официант жаримаси (штраф) — зал администратори қўяди. Зинапоясимон сумма
+// (30/50/100к) frontend'да таклиф қилинади, амалдаги қиймат шу ерда сақланади.
+// «Ой нолланиши» — byStaff запроси фақат жорий ой бошидан санайди (жадвал ўчмайди).
+export const penalties = pgTable(
+  "penalties",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    staffId: uuid("staff_id")
+      .notNull()
+      .references(() => users.id), // жарима олган ходим (официант)
+    amount: integer("amount").notNull(), // сўм
+    reason: text("reason").notNull(), // сабаб (preset ёки эркин)
+    note: text("note"),
+    createdById: uuid("created_by_id")
+      .notNull()
+      .references(() => users.id), // қўйган админ/директор
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("penalty_staff_idx").on(t.staffId, t.createdAt)],
 );
