@@ -262,6 +262,38 @@ function NumPad({
   );
 }
 
+// CloPOS «Панель управления» хедери — чап-тепа ← «орқага» + сарлавҳа.
+// Ҳар бир «жойга кирдим» экран/диалог тепасига бир хил чиқиш (Ҳисобот, Касса, Чеклар, Мижоз…).
+function BackHeader({
+  title,
+  onBack,
+  right,
+  className = "",
+}: {
+  title: string;
+  onBack: () => void;
+  right?: import("react").ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-3 bg-brand px-4 py-3 text-white shadow-md ${className}`}>
+      <button
+        type="button"
+        onClick={() => { vibrate(8); onBack(); }}
+        title="Орқага"
+        aria-label="Орқага"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition hover:bg-white/15 active:scale-95"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M12 4l-6 6 6 6" />
+        </svg>
+      </button>
+      <h3 className="min-w-0 flex-1 truncate text-[17px] font-bold leading-tight">{title}</h3>
+      {right}
+    </div>
+  );
+}
+
 // Category colour-coding — fast visual scanning (Clopos has none).
 const CAT_COLORS: [RegExp, string][] = [
   [/шашлик/i, "#c1502e"],
@@ -869,18 +901,7 @@ function FloorView({
         return (
           // CloPOS «Панель управления» — ТЎЛИҚ ЭКРАН (яшил header · кулранг грид · паст утилита-бар)
           <div className="fixed inset-0 z-50 flex flex-col bg-clopos-bg" style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif" }}>
-            <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white shadow-md">
-              <button
-                onClick={() => setShowPanel(false)}
-                title="Орқага"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition hover:bg-white/15"
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M12 4l-6 6 6 6" />
-                </svg>
-              </button>
-              <h3 className="text-lg font-bold">Бошқарув панели</h3>
-            </div>
+            <BackHeader title="Бошқарув панели" onBack={() => setShowPanel(false)} />
             <div className="flex-1 overflow-y-auto p-4 sm:p-5">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {cashierUp && (
@@ -1000,16 +1021,8 @@ function FloorView({
             className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — CloPOS «Отчет» */}
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
-              <h3 className="text-[16px] font-bold">Отчет</h3>
-              <button
-                onClick={() => setShowReport(false)}
-                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
-            </div>
+            {/* Header — CloPOS «Отчет» (чап-тепа ← орқага) */}
+            <BackHeader title="Отчет" onBack={() => setShowReport(false)} />
             <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
               {/* Чап — форма */}
               <div className="shrink-0 space-y-3 border-b border-clopos-line bg-white p-4 sm:w-56 sm:border-b-0 sm:border-r">
@@ -1149,16 +1162,8 @@ function FloorView({
             className="flex max-h-[94vh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — CloPOS «Добавить операцию» */}
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
-              <h3 className="text-[16px] font-bold">Касса операция</h3>
-              <button
-                onClick={() => setShowCashOp(false)}
-                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
-            </div>
+            {/* Header — CloPOS «Добавить операцию» (чап-тепа ← орқага) */}
+            <BackHeader title="Касса операция" onBack={() => setShowCashOp(false)} />
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
               {/* Тип операции — CloPOS таблар */}
               <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
@@ -1294,18 +1299,11 @@ function FloorView({
           onClick={() => setShowChecks(false)}
         >
           <div
-            className="flex max-h-[85dvh] w-full max-w-2xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+            className="flex max-h-[85dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-brand-ink">Очиқ чеклар — {(orders ?? []).length}</h3>
-              <button
-                onClick={() => setShowChecks(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
-              >
-                Ёпиш
-              </button>
-            </div>
+            <BackHeader title={`Очиқ чеклар — ${(orders ?? []).length}`} onBack={() => setShowChecks(false)} />
+            <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
             <input
               value={checksQ}
               onChange={(e) => setChecksQ(e.target.value)}
@@ -1348,6 +1346,7 @@ function FloorView({
               {(orders ?? []).length === 0 && (
                 <p className="py-8 text-center text-sm text-zinc-400">Очиқ чек йўқ</p>
               )}
+            </div>
             </div>
           </div>
         </div>
@@ -2152,26 +2151,31 @@ function ReservationsSheet({
         className="flex max-h-[88dvh] w-full max-w-2xl flex-col gap-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-brand-ink">
-            {view === "new" ? "🕐 Янги бронь" : `🕐 Бронлар — ${list.length}`}
-          </h3>
-          <div className="flex items-center gap-2">
-            {view === "list" && canManage && (
-              <button
-                onClick={() => setView("new")}
-                className="rounded-lg bg-clopos-gold px-3 py-1.5 text-sm font-semibold text-clopos-gold-text transition hover:brightness-105"
-              >
-                + Янги бронь
-              </button>
-            )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <button
+              type="button"
               onClick={() => (view === "new" ? setView("list") : onClose())}
-              className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100"
+              title="Орқага"
+              aria-label="Орқага"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-zinc-100 active:scale-95"
             >
-              {view === "new" ? "Орқага" : "Ёпиш"}
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 4l-6 6 6 6" />
+              </svg>
             </button>
+            <h3 className="truncate text-base font-bold text-brand-ink">
+              {view === "new" ? "🕐 Янги бронь" : `🕐 Бронлар — ${list.length}`}
+            </h3>
           </div>
+          {view === "list" && canManage && (
+            <button
+              onClick={() => setView("new")}
+              className="shrink-0 rounded-lg bg-clopos-gold px-3 py-1.5 text-sm font-semibold text-clopos-gold-text transition hover:brightness-105"
+            >
+              + Янги бронь
+            </button>
+          )}
         </div>
         {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
 
@@ -2428,11 +2432,22 @@ function NewOrderSheet({
         style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div>
-          <h3 className="text-lg font-bold text-brand-ink">
-            {fixedTable ? preset.table : "Янги заказ"}
-          </h3>
-          <p className="text-xs text-zinc-400">{preset.hall.name}</p>
+        <div className="flex items-start gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Орқага"
+            aria-label="Орқага"
+            className="-ml-1 mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-zinc-100 active:scale-95"
+          >
+            <IBack className="h-4 w-4" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-bold text-brand-ink">
+              {fixedTable ? preset.table : "Янги заказ"}
+            </h3>
+            <p className="text-xs text-zinc-400">{preset.hall.name}</p>
+          </div>
         </div>
 
         {!fixedTable && (
@@ -4357,16 +4372,8 @@ function OrderView({
             className="flex max-h-[94vh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — CloPOS «Изменить кол-во гостей» */}
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
-              <h3 className="text-[16px] font-bold">Меҳмонлар сони</h3>
-              <button
-                onClick={() => setShowGuests(false)}
-                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
-            </div>
+            {/* Header — CloPOS «Изменить кол-во гостей» (чап-тепа ← орқага) */}
+            <BackHeader title="Меҳмонлар сони" onBack={() => setShowGuests(false)} />
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
               {/* Катта дисплей — numpad инпути */}
               <div className="flex items-center justify-center gap-2 rounded-xl border border-clopos-line bg-clopos-bg/40 py-4">
@@ -4424,16 +4431,8 @@ function OrderView({
             className="w-full max-w-sm overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — CloPOS «Тип продажи» */}
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
-              <h3 className="text-[16px] font-bold">Тип продажи</h3>
-              <button
-                onClick={() => setShowSaleType(false)}
-                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
-            </div>
+            {/* Header — CloPOS «Тип продажи» (чап-тепа ← орқага) */}
+            <BackHeader title="Тип продажи" onBack={() => setShowSaleType(false)} />
             <div className="space-y-2 p-4">
             {(
               [
@@ -4481,19 +4480,14 @@ function OrderView({
           >
             {/* Чап панел — қидирув + рўйхат (CloPOS) */}
             <div className="flex w-64 shrink-0 flex-col border-r border-clopos-line">
-              <div className="flex items-center justify-between bg-brand px-4 py-3 text-white">
-                <h3 className="text-[15px] font-bold">Клиенты</h3>
-                <button
-                  onClick={() => {
-                    setShowCustomer(false);
-                    setCustSel(null);
-                    setCustCard(null);
-                  }}
-                  className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-white/15 sm:hidden"
-                >
-                  <span className="text-lg leading-none" aria-hidden>✕</span>
-                </button>
-              </div>
+              <BackHeader
+                title="Клиенты"
+                onBack={() => {
+                  setShowCustomer(false);
+                  setCustSel(null);
+                  setCustCard(null);
+                }}
+              />
               <div className="border-b border-clopos-line p-2.5">
                 <input
                   value={custQuery}
@@ -4735,16 +4729,8 @@ function OrderView({
             className="flex max-h-[94vh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — CloPOS «Скидка» */}
-            <div className="flex items-center justify-between bg-brand px-5 py-3 text-white">
-              <h3 className="text-[16px] font-bold">Чегирма</h3>
-              <button
-                onClick={() => setShowDiscMenu(false)}
-                className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/15"
-              >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
-              </button>
-            </div>
+            {/* Header — CloPOS «Скидка» (чап-тепа ← орқага) */}
+            <BackHeader title="Чегирма" onBack={() => setShowDiscMenu(false)} />
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
               {/* Сумма / % тоггл (CloPOS каби) */}
               <div className="flex rounded-xl border border-clopos-line p-0.5 text-[13px]">
@@ -5847,14 +5833,10 @@ function WeighSheet({
   const chips = [250, 500, 750, 1000, 1500, 2000];
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onClick={onClose}>
-      <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="flex items-center gap-2 text-base font-bold text-brand-ink"><IScale className="h-5 w-5" /> {name}</h3>
-            <p className="text-xs text-zinc-400">{fmt(pricePerKg)} so'm/кг — вазн киритинг</p>
-          </div>
-          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
-        </div>
+      <div className="w-full max-w-sm overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <BackHeader title={name} onBack={onClose} />
+        <div className="space-y-3 p-4">
+        <p className="-mb-1 text-xs text-zinc-400">{fmt(pricePerKg)} so'm/кг — вазн киритинг</p>
         <input
           autoFocus
           inputMode="numeric"
@@ -5887,6 +5869,7 @@ function WeighSheet({
         >
           Қўшиш
         </button>
+        </div>
       </div>
     </div>
   );
@@ -5980,14 +5963,9 @@ function SplitSheet({
     .filter((m) => m.qty > 0);
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onClick={onClose}>
-      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between p-4 pb-2">
-          <div>
-            <h3 className="flex items-center gap-2 text-base font-bold text-brand-ink"><ISplit className="h-5 w-5" /> Счётни бўлиш</h3>
-            <p className="text-xs text-zinc-400">Янги чекка ўтадиган таомларни танланг</p>
-          </div>
-          <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100">Ёпиш</button>
-        </div>
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <BackHeader title="Счётни бўлиш" onBack={onClose} />
+        <p className="px-4 pb-1 pt-2.5 text-xs text-zinc-400">Янги чекка ўтадиган таомларни танланг</p>
         <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4">
           {order.items.map((i) => {
             const isWeight = i.weightG != null;

@@ -67,7 +67,18 @@ export function NotifCenter({
       >
         {/* Чап — турлар панели (CloPOS) */}
         <div className="flex w-52 shrink-0 flex-col border-r border-clopos-line bg-clopos-bg/40">
-          <div className="bg-brand px-4 py-3 text-white">
+          <div className="flex items-center gap-2 bg-brand px-4 py-3 text-white">
+            <button
+              type="button"
+              onClick={onClose}
+              title="Орқага"
+              aria-label="Орқага"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg transition hover:bg-white/15 active:scale-95"
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 4l-6 6 6 6" />
+              </svg>
+            </button>
             <h3 className="text-[15px] font-bold">Билдиришлар</h3>
           </div>
           <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
