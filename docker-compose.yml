@@ -73,12 +73,11 @@ services:
       - -c
       - |
         while true; do
-          now=$$(date +%s)
-          target=$$(date -d "03:00 next day" +%s 2>/dev/null || echo $$((now + 86400)))
-          # бугун ҳали 03:00 бўлмаган бўлса — бугунгисига
-          today=$$(date -d "03:00" +%s 2>/dev/null || echo 0)
-          if [ "$$today" -gt "$$now" ]; then target=$$today; fi
-          sleep $$((target - now))
+          # кейинги 03:00 гача секунд — соф арифметика (busybox date GNU -d билмайди)
+          h=$$(date +%H); m=$$(date +%M)
+          now_s=$$((10#$$h * 3600 + 10#$$m * 60))
+          tgt=$$((3 * 3600))
+          if [ "$$now_s" -lt "$$tgt" ]; then sleep $$((tgt - now_s)); else sleep $$((86400 - now_s + tgt)); fi
           f=/backups/limonariya-$$(date +%F).sql.gz
           pg_dump -h postgres -U limon -d limonariya | gzip > "$$f.tmp" && mv "$$f.tmp" "$$f" \
             && echo "[backup] ok: $$f ($$(du -h "$$f" | cut -f1))" \
