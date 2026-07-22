@@ -1491,6 +1491,7 @@ async function firePrintCheck(orderId: string): Promise<void> {
       tableNo: head.tableNo,
       waiter: head.waiter,
       createdAt: head.createdAt,
+      closedAt: new Date(),
       isComp: head.isComp,
       compReason: head.compReason,
       items,

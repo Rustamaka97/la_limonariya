@@ -1,4 +1,5 @@
 import net from "node:net";
+import { LOGO_RASTER, PHRASE_RASTERS } from "./assets";
 
 // ── CP866 кодлаш (кирилл термал принтерлар учун стандарт) ──────────────────
 // ASCII ўзгармайди. Кирилл А-Я/а-я/Ё диапазонлари CP866 харитасига. Ўзбек
@@ -67,7 +68,36 @@ const pad = (n: number) => String(n).padStart(2, "0");
 function hhmm(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+const RU_MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+function ruDateTime(d: Date): string {
+  return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()} г., ${hhmm(d)}`;
+}
 const fmt = (n: number) => n.toLocaleString("ru-RU");
+// CloPOS каби: вергул-минг + .00 (itemRow ва мижоз чеки суммалари).
+const money = (n: number) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// CloPOS каби 4 устунли таом жадвали (48 кенг): Наименование | К-во | Цена | Сумма.
+// Рақам устунлари жами 29 белги (5+11+13), ном 19. Узун ном алоҳида қаторга
+// тушади, кейин рақамлар — кесилмайди, устун бузилмайди.
+const COLW = 5 + 11 + 13;
+const ITEM_HEAD = Buffer.concat([
+  txt(
+    "Наименование".padEnd(WIDTH - COLW) +
+      "К-во".padStart(5) +
+      "Цена".padStart(11) +
+      "Сумма".padStart(13),
+  ),
+  nl,
+]);
+function itemRow(name: string, qty: number, price: number): Buffer {
+  const cols =
+    String(qty).padStart(5) + money(price).padStart(11) + money(price * qty).padStart(13);
+  if (name.length <= WIDTH - COLW) {
+    return Buffer.concat([txt(name.padEnd(WIDTH - COLW) + cols), nl]);
+  }
+  return Buffer.concat([txt(name), nl, txt(" ".repeat(WIDTH - COLW) + cols), nl]);
+}
 
 // ── Кухня тикети (битта станция) ──────────────────────────────────────────
 export type KitchenMeta = {
@@ -120,6 +150,7 @@ export type CheckData = {
   tableNo: string | null;
   waiter: string | null;
   createdAt: Date;
+  closedAt?: Date;
   isComp: boolean;
   compReason: string | null;
   items: { name: string; price: number; qty: number }[];
@@ -131,43 +162,47 @@ export type CheckData = {
   payments: { method: string; amount: number }[];
 };
 const PAY_LABEL: Record<string, string> = {
-  cash: "Нақд", card: "Карта", click: "Click", payme: "Payme", humo: "Ҳумо", debt: "Қарз",
+  cash: "Наличными", card: "Карта", click: "Click", payme: "Payme", humo: "Humo", debt: "Долг",
+  balance: "Баланс", avans: "Аванс (бронь)",
 };
 export function buildCheck(o: CheckData): Buffer {
-  const parts: Buffer[] = [
-    ESC.init,
-    ESC.alignC,
-    ESC.boldOn,
-    txt(o.brandName), nl,
-    ESC.boldOff,
-    txt(`${o.brandCity} · ${o.brandPhone}`), nl,
-    hr(),
-    txt(o.isComp ? "ТЕКИН (ходим/гость)" : "ГОСТЕВОЙ СЧЁТ"), nl,
-  ];
-  if (o.isComp && o.compReason) parts.push(txt(`сабаб: ${o.compReason}`), nl);
-  parts.push(ESC.alignL, hr(), twoCol("Зал", o.hall ?? "—"));
-  if (o.tableNo) parts.push(twoCol("Стол", o.tableNo));
-  parts.push(
-    twoCol("Заказ №", o.checkNo),
-    twoCol("Вақт", hhmm(o.createdAt)),
-    twoCol("Официант", o.waiter ?? "—"),
-    hr(),
-  );
-  for (const it of o.items) parts.push(twoCol(it.name, `${it.qty}x${fmt(it.price)}`));
+  const dhOn = Buffer.from([0x1d, 0x21, 0x01]); // 2× баланд (кенгликка тегмайди)
+  const dhOff = Buffer.from([0x1d, 0x21, 0x00]);
+  // Лого — Palatino расм (assets.ts'да муҳрланган; сервер шрифт чизмайди).
+  const parts: Buffer[] = [ESC.init, LOGO_RASTER, nl, ESC.alignL];
+  if (o.isComp)
+    parts.push(ESC.alignC, txt(o.compReason ? `БЕСПЛАТНО: ${o.compReason}` : "БЕСПЛАТНО (гость)"), nl, ESC.alignL);
+  // Мета — 2× баланд (Официант жирный, эга сўрови бўйича).
+  parts.push(dhOn, ESC.boldOn, txt(`Официант: ${o.waiter ?? "—"}`), nl, ESC.boldOff);
+  parts.push(txt(`Стол: ${o.hall ?? "—"}${o.tableNo ? ` / ${o.tableNo}` : ""}`), nl);
+  parts.push(txt(`Заказ: ${o.checkNo}`), nl);
+  parts.push(txt(`Открыт: ${ruDateTime(o.createdAt)}`), nl);
+  if (o.closedAt) parts.push(txt(`Закрыт: ${ruDateTime(o.closedAt)}`), nl);
+  parts.push(dhOff, hr(), ITEM_HEAD);
+  for (const it of o.items) parts.push(itemRow(it.name, it.qty, it.price));
   parts.push(
     hr(),
-    twoCol("Оралиқ сумма", fmt(o.subtotal)),
-    twoCol(`Хизмат ${o.servicePct}%`, fmt(o.service)),
+    twoCol("Промежуточный итог", `${money(o.subtotal)}uzs`),
+    twoCol(`Плата за обслуживание (${o.servicePct}%)`, `${money(o.service)}uzs`),
   );
-  if (o.discount && o.discount > 0) parts.push(twoCol("Чегирма", `-${fmt(o.discount)}`));
-  parts.push(
-    ESC.boldOn,
-    twoCol("ЖАМИ", `${fmt(o.total)} so'm`),
-    ESC.boldOff,
-    hr(),
-  );
-  for (const p of o.payments) parts.push(twoCol(PAY_LABEL[p.method] ?? p.method, fmt(p.amount)));
-  parts.push(hr(), ESC.alignC, txt("СПАСИБО! ЖДЕМ ВАС СНОВА!"), nl, ESC.alignL, ESC.feedCut, ESC.kick);
+  if (o.discount && o.discount > 0) parts.push(twoCol("Скидка", `-${money(o.discount)}uzs`));
+  // ИТОГО — 2× баланд + жирный (энг муҳим рақам).
+  parts.push(ESC.boldOn, dhOn, twoCol("ИТОГО", `${money(o.total)}uzs`), dhOff, ESC.boldOff);
+  parts.push(txt("Способ оплаты"), nl);
+  for (const p of o.payments)
+    parts.push(twoCol("  " + (PAY_LABEL[p.method] ?? p.method), `${money(p.amount)}uzs`));
+  // Пер-гость бўлиш: чек 2..6 кишига тенг бўлса, ҳар бирига қанча.
+  if (o.total > 0 && !o.isComp) {
+    parts.push(hr(), txt("На каждого (поровну):"), nl);
+    for (let n = 2; n <= 6; n++) {
+      parts.push(twoCol(`  ${n} человек`, `${money(Math.round(o.total / n))}uzs`));
+    }
+  }
+  parts.push(hr());
+  // Пастки фраза — 4 тадан тасодифий (Palatino расм, story учун).
+  const phrase = PHRASE_RASTERS[Math.floor(Math.random() * PHRASE_RASTERS.length)];
+  if (phrase) parts.push(phrase);
+  parts.push(ESC.feedCut, ESC.kick);
   return Buffer.concat(parts);
 }
 
@@ -240,10 +275,13 @@ export function buildPrecheck(o: Omit<CheckData, "payments" | "isComp" | "compRe
   parts.push(
     twoCol("Заказ №", o.checkNo),
     twoCol("Вақт", hhmm(o.createdAt)),
+    ESC.boldOn,
     twoCol("Официант", o.waiter ?? "—"),
+    ESC.boldOff,
     hr(),
+    ITEM_HEAD,
   );
-  for (const it of o.items) parts.push(twoCol(it.name, `${it.qty}x${fmt(it.price)}`));
+  for (const it of o.items) parts.push(itemRow(it.name, it.qty, it.price));
   parts.push(
     hr(),
     twoCol("Оралиқ сумма", fmt(o.subtotal)),
@@ -252,7 +290,9 @@ export function buildPrecheck(o: Omit<CheckData, "payments" | "isComp" | "compRe
   if (o.discount && o.discount > 0) parts.push(twoCol("Чегирма", `-${fmt(o.discount)}`));
   parts.push(
     ESC.boldOn,
+    Buffer.from([0x1d, 0x21, 0x01]),
     twoCol("ЖАМИ", `${fmt(o.total)} so'm`),
+    Buffer.from([0x1d, 0x21, 0x00]),
     ESC.boldOff,
     hr(),
     ESC.alignC,
