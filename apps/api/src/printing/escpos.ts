@@ -32,7 +32,10 @@ export function encodeCp866(text: string): Buffer {
 
 // ── ESC/POS команда байтлари ──────────────────────────────────────────────
 const ESC = {
-  init: Buffer.from([0x1b, 0x40]),
+  // ESC @ (reset) + ESC t 17 (CP866 код-саҳифани танлаш). Иккинчисисиз принтер
+  // ўз default саҳифасини ишлатиб кирилчани крякозябра қилади (зал принтерларида
+  // n=17 тасдиқланган — реал тест-чек, 2026-07-22).
+  init: Buffer.from([0x1b, 0x40, 0x1b, 0x74, 0x11]),
   boldOn: Buffer.from([0x1b, 0x45, 0x01]),
   boldOff: Buffer.from([0x1b, 0x45, 0x00]),
   alignL: Buffer.from([0x1b, 0x61, 0x00]),
