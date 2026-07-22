@@ -94,9 +94,9 @@ function itemRow(name: string, qty: number, price: number): Buffer {
   const cols =
     String(qty).padStart(5) + money(price).padStart(11) + money(price * qty).padStart(13);
   if (name.length <= WIDTH - COLW) {
-    return Buffer.concat([txt(name.padEnd(WIDTH - COLW) + cols), nl]);
+    return Buffer.concat([ESC.boldOn, txt(name.padEnd(WIDTH - COLW)), ESC.boldOff, txt(cols), nl]);
   }
-  return Buffer.concat([txt(name), nl, txt(" ".repeat(WIDTH - COLW) + cols), nl]);
+  return Buffer.concat([ESC.boldOn, txt(name), ESC.boldOff, nl, txt(" ".repeat(WIDTH - COLW) + cols), nl]);
 }
 
 // ── Кухня тикети (битта станция) ──────────────────────────────────────────
@@ -173,12 +173,12 @@ export function buildCheck(o: CheckData): Buffer {
   if (o.isComp)
     parts.push(ESC.alignC, txt(o.compReason ? `БЕСПЛАТНО: ${o.compReason}` : "БЕСПЛАТНО (гость)"), nl, ESC.alignL);
   // Мета — 2× баланд (Официант жирный, эга сўрови бўйича).
-  parts.push(dhOn, ESC.boldOn, txt(`Официант: ${o.waiter ?? "—"}`), nl, ESC.boldOff);
-  parts.push(txt(`Стол: ${o.hall ?? "—"}${o.tableNo ? ` / ${o.tableNo}` : ""}`), nl);
+  parts.push(ESC.boldOn, txt(`Официант: ${o.waiter ?? "—"}`), nl, ESC.boldOff);
+  parts.push(ESC.boldOn, txt(`Стол: ${o.hall ?? "—"}${o.tableNo ? ` / ${o.tableNo}` : ""}`), nl, ESC.boldOff);
   parts.push(txt(`Заказ: ${o.checkNo}`), nl);
   parts.push(txt(`Открыт: ${ruDateTime(o.createdAt)}`), nl);
   if (o.closedAt) parts.push(txt(`Закрыт: ${ruDateTime(o.closedAt)}`), nl);
-  parts.push(dhOff, hr(), ITEM_HEAD);
+  parts.push(hr(), ITEM_HEAD);
   for (const it of o.items) parts.push(itemRow(it.name, it.qty, it.price));
   parts.push(
     hr(),
@@ -190,7 +190,7 @@ export function buildCheck(o: CheckData): Buffer {
   parts.push(ESC.boldOn, dhOn, twoCol("ИТОГО", `${money(o.total)}uzs`), dhOff, ESC.boldOff);
   parts.push(txt("Способ оплаты"), nl);
   for (const p of o.payments)
-    parts.push(twoCol("  " + (PAY_LABEL[p.method] ?? p.method), `${money(p.amount)}uzs`));
+    parts.push(ESC.boldOn, twoCol("  " + (PAY_LABEL[p.method] ?? p.method), `${money(p.amount)}uzs`), ESC.boldOff);
   // Пер-гость бўлиш: чек 2..6 кишига тенг бўлса, ҳар бирига қанча.
   if (o.total > 0 && !o.isComp) {
     parts.push(hr(), txt("На каждого (поровну):"), nl);
