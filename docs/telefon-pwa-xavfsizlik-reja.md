@@ -124,3 +124,43 @@ App Store азоби йўқ, **авто-янгиланади**, интернет
 - **PIN / парол** — Рустам ака қўяди (Claude credential киритмайди).
 - **Live CloPOS**'ни бузмаймиз — янги тизим алоҳида серверда, синовдан кейин кўчамиз.
 - **Прод деплой** — Шерхон ака (канон орқали).
+
+---
+
+## 7. Деплой андозаси (staging'да исботланган) + тузатишлар
+
+> Манба: `docker-compose.yml` · `docker/deploy.sh` · `Caddyfile`.
+> Staging тирик: `100.124.38.91:8082/api/health` → `200 {"ok":true}`.
+
+### Стек (docker-compose — 5 сервис)
+
+| Сервис | Нима |
+|---|---|
+| **postgres** | база (17-alpine), **ички** — host'га чиқмайди |
+| **api** | tRPC (`:3000` ички), `PIN_PEPPER`, `DATABASE_URL` |
+| **web** | Caddy — SPA + `/trpc`,`/api` proxy (`WEB_PORT`) |
+| **sites** | лендинг + QR-меню (POS'дан алоҳида) |
+| **backup** | ҳар кеча 03:00 `pg_dump.gz`, 14 кун сақлаш |
+
+`./docker/deploy.sh`: бэкап → build → up → healthcheck → **авто-rollback** (200 бермаса эски образга).
+
+### Threat-model тузатиши (андоза кўрилди — эски "гаплар" аслида ҳал)
+
+- ✅ **#6 PIN pepper — БOР** (`PIN_PEPPER` env). Прод'да кучли қиймат қўй (default «dev-pepper-change-me»).
+- ✅ **#9 Backup — БOР** (тунги `pg_dump` + деплой-олди encrypted `BACKUP_PASSPHRASE`). Off-site нусха қолди.
+- ✅ **Postgres ички** (host port-map йўқ) → «5432 конфликти / 5433'га map» хавотир КЕРАК ЭМАС.
+- ⚠️ `api:3000` staging'да фош — прод `.15`да **фақат web порт** очилсин; api + postgres ички.
+- 🔴 **XFF фикс аниқ:** `Caddyfile` `reverse_proxy api:3000` XFF'ни қайта ёзмайди (Caddy default = қўшади)
+  → чап-XFF мижоз назоратида. **Фикс:** `header_up X-Forwarded-For {remote_host}` (роль×IP гейт спуфланмасин).
+
+### `.15`га деплой (қадамлар)
+
+1. `.15`га **Docker** ўрнат.
+2. Репо + **`.env`**: кучли `POSTGRES_PASSWORD`, `PIN_PEPPER`, `BOOTSTRAP_DIRECTOR_PIN` (Рустам PIN),
+   `WEB_PORT`, `BACKUP_PASSPHRASE`.
+3. `./docker/deploy.sh` → build + up + healthcheck.
+4. web портни LAN'га боғла; **XFF фикс** + роль×IP гейт; api/postgres ички.
+5. Телефон → `http://192.168.1.15:<WEB_PORT>` → PWA.
+
+Мавжуд `.15` Postgres'га тегмайди (Docker ички namespace). Ягона очиқ савол: `.15` Postgres'да CloPOS
+базаси борми (`psql -U postgres -l` — Рустам/Шерхон, credential) — CloPOS **булутда**, шунга эҳтимол йўқ.
