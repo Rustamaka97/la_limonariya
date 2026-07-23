@@ -72,7 +72,6 @@ const RU_MONTHS = ["января","февраля","марта","апреля","
 function ruDateTime(d: Date): string {
   return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()} г., ${hhmm(d)}`;
 }
-const fmt = (n: number) => n.toLocaleString("ru-RU");
 // CloPOS каби: вергул-минг + .00 (itemRow ва мижоз чеки суммалари).
 const money = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -256,49 +255,43 @@ export function printCheck(order: CheckData, barIp: string | null): void {
 
 // ── Пречек (тўлов олдидан ҳисоб танишув, ҳали очиқ стол) ──────────────────
 export function buildPrecheck(o: Omit<CheckData, "payments" | "isComp" | "compReason">): Buffer {
-  const parts: Buffer[] = [
-    ESC.init,
-    ESC.alignC,
-    ESC.boldOn,
-    txt(o.brandName), nl,
-    ESC.boldOff,
-    txt(`${o.brandCity} · ${o.brandPhone}`), nl,
-    hr(),
-    ESC.boldOn,
-    txt("*** ПРЕЧЕК ***"), nl,
-    ESC.boldOff,
-    txt("Тўлов эмас — ҳисоб танишув учун"), nl,
-    ESC.alignL, hr(),
-    twoCol("Зал", o.hall ?? "—"),
-  ];
-  if (o.tableNo) parts.push(twoCol("Стол", o.tableNo));
-  parts.push(
-    twoCol("Заказ №", o.checkNo),
-    twoCol("Вақт", hhmm(o.createdAt)),
-    ESC.boldOn,
-    twoCol("Официант", o.waiter ?? "—"),
-    ESC.boldOff,
-    hr(),
-    ITEM_HEAD,
-  );
+  const dhOn = Buffer.from([0x1d, 0x21, 0x01]); // 2× баланд (кенгликка тегмайди)
+  const dhOff = Buffer.from([0x1d, 0x21, 0x00]);
+  // Лого — чек билан бир хил (Palatino расм).
+  const parts: Buffer[] = [ESC.init, LOGO_RASTER, nl, ESC.alignL];
+  // ПРЕЧЕК банери — мижоз буни тўланган чек деб адашмасин.
+  parts.push(ESC.alignC, ESC.boldOn, txt("*** ПРЕЧЕК ***"), nl, ESC.boldOff);
+  parts.push(txt("Предварительный счёт — не оплата"), nl, ESC.alignL);
+  // Мета — чек билан бир хил (Официант/Стол жирный).
+  parts.push(ESC.boldOn, txt(`Официант: ${o.waiter ?? "—"}`), nl, ESC.boldOff);
+  parts.push(ESC.boldOn, txt(`Стол: ${o.hall ?? "—"}${o.tableNo ? ` / ${o.tableNo}` : ""}`), nl, ESC.boldOff);
+  parts.push(txt(`Заказ: ${o.checkNo}`), nl);
+  parts.push(txt(`Открыт: ${ruDateTime(o.createdAt)}`), nl);
+  parts.push(hr(), ITEM_HEAD);
   for (const it of o.items) parts.push(itemRow(it.name, it.qty, it.price));
   parts.push(
     hr(),
-    twoCol("Оралиқ сумма", fmt(o.subtotal)),
-    twoCol(`Хизмат ${o.servicePct}%`, fmt(o.service)),
+    twoCol("Промежуточный итог", `${money(o.subtotal)}uzs`),
+    twoCol(`Плата за обслуживание (${o.servicePct}%)`, `${money(o.service)}uzs`),
   );
-  if (o.discount && o.discount > 0) parts.push(twoCol("Чегирма", `-${fmt(o.discount)}`));
+  if (o.discount && o.discount > 0) parts.push(twoCol("Скидка", `-${money(o.discount)}uzs`));
+  // ИТОГО — 2× баланд + жирный (чек билан бир хил, энг муҳим рақам).
+  parts.push(ESC.boldOn, dhOn, twoCol("ИТОГО", `${money(o.total)}uzs`), dhOff, ESC.boldOff);
+  // Пер-гость бўлиш — тўловдан олдин ким қанча тўлашини кўрсин.
+  if (o.total > 0) {
+    parts.push(hr(), txt("На каждого (поровну):"), nl);
+    for (let n = 2; n <= 6; n++) {
+      parts.push(twoCol(`  ${n} человек`, `${money(Math.round(o.total / n))}uzs`));
+    }
+  }
   parts.push(
-    ESC.boldOn,
-    Buffer.from([0x1d, 0x21, 0x01]),
-    twoCol("ЖАМИ", `${fmt(o.total)} so'm`),
-    Buffer.from([0x1d, 0x21, 0x00]),
-    ESC.boldOff,
     hr(),
     ESC.alignC,
-    txt("*** ПРЕЧЕК — тўлов эмас ***"), nl,
+    ESC.boldOn,
+    txt("*** ПРЕЧЕК — не оплата ***"), nl,
+    ESC.boldOff,
     ESC.alignL,
-    ESC.feedCut,
+    ESC.feedCut, // kick ЙЎҚ — пречек кассани очмайди
   );
   return Buffer.concat(parts);
 }
