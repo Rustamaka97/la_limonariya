@@ -2685,10 +2685,9 @@ function OrderView({
   const [editPrice, setEditPrice] = useState("");
   const [editBusy, setEditBusy] = useState(false);
   const [unsent, setUnsent] = useState(0);
-  const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  // tickets — таом камайтириш логикаси учун (кухняга кетган бор-йўқлигини текшир). Preview UI олинди.
   const [tickets, setTickets] = useState<{ id: string; createdAt: string; itemCount: number }[]>([]);
-  const [showTickets, setShowTickets] = useState(false);
   // 📜 История чека (CloPOS) — заказ амаллари timeline (audit_log'дан).
   const [showHistory, setShowHistory] = useState(false);
   const [events, setEvents] = useState<
@@ -2925,8 +2924,8 @@ function OrderView({
         return;
       }
       // ticketId — retry replay икки марта кухняга юбормайди (мавжудни қайтаради).
-      const t = await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: uuid() });
-      if (t.id) setTicketId(t.id);
+      // Preview экрани ЙЎҚ (олинди): тикет тўғри принтерга кетади, кассир заказ экранида қолади (CloPOS'дай сразу).
+      await trpc.pos.sendToKitchen.mutate({ orderId: id, ticketId: uuid() });
       refresh();
       vibrate([20]);
     } finally {
@@ -3162,7 +3161,6 @@ function OrderView({
     return () => { alive = false; };
   }, [showQr, payCfg, order?.total, discount?.amount, order?.checkNo, id]);
 
-  if (ticketId) return <KitchenTicketView ticketId={ticketId} onBack={() => setTicketId(null)} />;
   if (!order) return <Spin />;
   if (order.status === "closed") return <Chek order={order} cashReceived={paidCash} onBack={onBack} />;
 
@@ -4131,14 +4129,6 @@ function OrderView({
               {sending ? <ISpin className="h-4 w-4" /> : null}
               {sending ? "Юборилмоқда…" : unsent > 0 ? `Отправить (${unsent})` : "Отправить"}
             </button>
-            <button
-              onClick={() => tickets.length > 0 && setShowTickets((v) => !v)}
-              disabled={tickets.length === 0}
-              title={tickets.length === 0 ? "Ҳали тикет йўқ" : `Тикетлар (${tickets.length})`}
-              className="grid h-12 w-[34px] place-items-center bg-clopos-disabled text-[14px] font-bold text-clopos-disabled-text transition enabled:hover:brightness-95 disabled:opacity-60"
-            >
-              ···
-            </button>
             {/* Закрыть Чек — доим ўнгда, тўлов (кассир+онлайн+бўш эмас бўлса яшил актив). */}
             <button
               onClick={() => setPaying(true)}
@@ -4153,26 +4143,6 @@ function OrderView({
             </button>
           </div>
 
-          {showTickets && tickets.length > 0 && (
-            <div className="border-t border-clopos-line">
-              {tickets.map((t) => {
-                const d = new Date(t.createdAt);
-                const p = (n: number) => String(n).padStart(2, "0");
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTicketId(t.id)}
-                    className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] transition hover:bg-clopos-bg"
-                  >
-                    <span className="tabular-nums text-[#3a3a44]">
-                      {p(d.getHours())}:{p(d.getMinutes())}
-                    </span>
-                    <span className="tabular-nums text-[#95959f]">{t.itemCount} дона</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </aside>
       </div>
 
@@ -4330,17 +4300,6 @@ function OrderView({
               >
                 <MoreIcon k="saletype" /> Тип продажи
               </button>
-              {tickets.length > 0 && (
-                <button
-                  onClick={() => {
-                    setShowMore(false);
-                    setShowTickets(true);
-                  }}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg"
-                >
-                  <MoreIcon k="receipt" /> Заказ тарихи (тикетлар)
-                </button>
-              )}
               {canComp && (
                 <button
                   onClick={() => {
@@ -5687,92 +5646,6 @@ function Line({ l, r }: { l: string; r: string }) {
     <div className="flex justify-between gap-2">
       <span className="text-zinc-500">{l}</span>
       <span className="tabular-nums">{r}</span>
-    </div>
-  );
-}
-
-type Ticket = {
-  id: string;
-  createdAt: string;
-  tableNo: string | null;
-  hall: string | null;
-  items: { name: string; qty: number; note?: string | null; station: string | null }[];
-};
-
-function KitchenTicketView({ ticketId, onBack }: { ticketId: string; onBack: () => void }) {
-  const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [w, setW] = useReceiptWidth();
-  useEffect(() => {
-    trpc.pos.ticket.query({ ticketId }).then(setTicket).catch(() => {});
-  }, [ticketId]);
-
-  if (!ticket) return <Spin />;
-
-  const byStation = new Map<string, { name: string; qty: number; note?: string | null }[]>();
-  for (const it of ticket.items) {
-    const key = it.station ?? "Бошқа";
-    const a = byStation.get(key) ?? [];
-    a.push({ name: it.name, qty: it.qty, note: it.note });
-    byStation.set(key, a);
-  }
-  const d = new Date(ticket.createdAt);
-  const p = (n: number) => String(n).padStart(2, "0");
-  const when = `${p(d.getHours())}:${p(d.getMinutes())}`;
-
-  return (
-    <div className="space-y-3">
-      <style>{printCss("ticket", w)}</style>
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-zinc-500 transition hover:bg-white hover:text-brand"
-      >
-        <IBack className="h-4 w-4" />
-        Заказга қайтиш
-      </button>
-      <div
-        id="ticket"
-        className="mx-auto max-w-xs space-y-3 rounded-2xl border border-brand-cream-soft bg-white p-5 font-mono text-[13px] text-zinc-800 shadow-sm"
-      >
-        <div className="text-center font-bold">КУХНЯ ТИКЕТИ</div>
-        <Hr />
-        <Line l="Зал" r={ticket.hall ?? "—"} />
-        {ticket.tableNo && <Line l="Стол" r={ticket.tableNo} />}
-        <Line l="Вақт" r={when} />
-        {[...byStation.entries()].map(([station, items]) => (
-          <div key={station}>
-            <Hr />
-            <div className="font-semibold tracking-wide">{station.toUpperCase()}</div>
-            {items.map((it, i) => (
-              <div key={i}>
-                <div className="flex justify-between gap-2 text-base">
-                  <span>{it.name}</span>
-                  <span className="font-bold tabular-nums">×{it.qty}</span>
-                </div>
-                {it.note && <div className="pl-3 text-sm font-semibold">&gt;&gt; {it.note}</div>}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="mx-auto flex max-w-xs gap-2">
-        <button
-          onClick={() => {
-            const reason = window.prompt("Қайта чоп сабаби? (масалан: принтер тиқилди)");
-            if (reason?.trim()) trpc.pos.reprintTicket.mutate({ ticketId, reason: reason.trim() }).catch(() => {});
-          }}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-brand-cream/30"
-        >
-          <IPrinter className="h-4 w-4" />
-          Қайта чоп
-        </button>
-        <button
-          onClick={onBack}
-          className="flex-1 rounded-xl bg-brand-gold py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-gold-deep"
-        >
-          Давом этиш
-        </button>
-      </div>
-      <WidthToggle w={w} onChange={setW} />
     </div>
   );
 }
