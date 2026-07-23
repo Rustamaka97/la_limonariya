@@ -4216,14 +4216,17 @@ function OrderView({
             className="w-full max-w-sm rounded-t-3xl bg-white p-3 shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-2 py-2">
-              <h3 className="text-[15px] font-bold text-brand-ink">Қўшимча амаллар</h3>
+            <div className="flex items-center gap-2 px-2 py-2">
               <button
+                type="button"
                 onClick={() => setShowMore(false)}
-                className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 transition hover:bg-clopos-bg"
+                title="Орқага"
+                aria-label="Орқага"
+                className="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-brand-ink transition hover:bg-clopos-bg active:scale-95"
               >
-                <span className="text-lg leading-none" aria-hidden>✕</span>
+                <IBack className="h-4 w-4" />
               </button>
+              <h3 className="text-[15px] font-bold text-brand-ink">Қўшимча амаллар</h3>
             </div>
             <div className="grid gap-1">
               {/* 👤 Мижоз бириктириш (CloPOS «Добавить клиента») */}
