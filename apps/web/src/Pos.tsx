@@ -64,6 +64,21 @@ function BottomIcon({ k }: { k: string }) {
     />
   );
 }
+// «Қўшимча амаллар» меню иконкалари — металл-олтин сет (icons-more-gold.webp, 4×3).
+const MORE_POS: Record<string, string> = {
+  user: "0% 0%", percent: "33.33% 0%", swap: "66.67% 0%", brush: "100% 0%",
+  move: "0% 33.33%", users: "33.33% 33.33%", saletype: "66.67% 33.33%", receipt: "100% 33.33%",
+  stop: "0% 66.67%", trash: "33.33% 66.67%",
+};
+function MoreIcon({ k }: { k: string }) {
+  return (
+    <span
+      className="inline-block h-5 w-5 shrink-0 rounded bg-no-repeat"
+      style={{ backgroundImage: "url(/brand/icons-more-gold.webp)", backgroundSize: "400% 400%", backgroundPosition: MORE_POS[k] ?? "0% 0%" }}
+      aria-hidden="true"
+    />
+  );
+}
 // ?toolbar=gold|glass|enamel|clay URL параметр билан вариант танланади (дефолт = металл-олтин).
 const TOOL_VARIANT = (() => {
   const v = new URLSearchParams(window.location.search).get("toolbar");
@@ -4243,7 +4258,7 @@ function OrderView({
                 disabled={!online || order.locked}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
               >
-                <IUser className="h-5 w-5 text-clopos-icon" /> Мижоз бириктириш
+                <MoreIcon k="user" /> Мижоз бириктириш
               </button>
               {/* 🏷 Чегирма (CloPOS «Скидка») — фақат manager+ */}
               {isManager && (
@@ -4257,7 +4272,7 @@ function OrderView({
                   disabled={!online || order.locked || order.items.length === 0}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
                 >
-                  <span className="w-5 text-center text-[17px]" aria-hidden>🏷</span> Чегирма
+                  <MoreIcon k="percent" /> Чегирма
                 </button>
               )}
               {isManager && (
@@ -4273,7 +4288,7 @@ function OrderView({
                   disabled={!online || order.locked}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
                 >
-                  <IUser className="h-5 w-5 text-clopos-icon" /> Официантни алмаштириш
+                  <MoreIcon k="swap" /> Официантни алмаштириш
                 </button>
               )}
               {order.items.length > 0 && !order.locked && (
@@ -4285,7 +4300,7 @@ function OrderView({
                   disabled={!online}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
                 >
-                  <span className="w-5 text-center" aria-hidden>🧹</span> Чекни тозалаш
+                  <MoreIcon k="brush" /> Чекни тозалаш
                 </button>
               )}
               <button
@@ -4296,7 +4311,7 @@ function OrderView({
                 disabled={!online}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
               >
-                <ISwap className="h-5 w-5 text-clopos-icon" /> Бошқа столга кўчириш
+                <MoreIcon k="move" /> Бошқа столга кўчириш
               </button>
               {/* 👥 Меҳмонлар сони (CloPOS «Изменить кол-во гостей») */}
               <button
@@ -4308,7 +4323,7 @@ function OrderView({
                 disabled={!online || order.locked}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
               >
-                <IUsers className="h-5 w-5 text-clopos-icon" /> Меҳмонлар сони{order.guests ? ` (${order.guests})` : ""}
+                <MoreIcon k="users" /> Меҳмонлар сони{order.guests ? ` (${order.guests})` : ""}
               </button>
               {/* 🚚 Тип продажи (CloPOS «Изменить тип продажи») — зал/доставка/собой */}
               <button
@@ -4319,7 +4334,7 @@ function OrderView({
                 disabled={!online || order.locked}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
               >
-                <IMoped className="h-5 w-5 text-clopos-icon" /> Тип продажи
+                <MoreIcon k="saletype" /> Тип продажи
               </button>
               {tickets.length > 0 && (
                 <button
@@ -4329,7 +4344,7 @@ function OrderView({
                   }}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg"
                 >
-                  <IReceipt className="h-5 w-5 text-clopos-icon" /> Заказ тарихи (тикетлар)
+                  <MoreIcon k="receipt" /> Заказ тарихи (тикетлар)
                 </button>
               )}
               {canComp && (
@@ -4341,7 +4356,7 @@ function OrderView({
                   disabled={!online}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-brand-ink transition hover:bg-clopos-bg disabled:opacity-40"
                 >
-                  <IStop className="h-5 w-5 text-clopos-icon" /> Стоп-лист{stoppedCount > 0 ? ` (${stoppedCount})` : ""}
+                  <MoreIcon k="stop" /> Стоп-лист{stoppedCount > 0 ? ` (${stoppedCount})` : ""}
                 </button>
               )}
               <button
@@ -4352,7 +4367,7 @@ function OrderView({
                 disabled={!online}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] text-red-600 transition hover:bg-red-50 disabled:opacity-40"
               >
-                <ITrash className="h-5 w-5" /> Заказни бекор қилиш
+                <MoreIcon k="trash" /> Заказни бекор қилиш
               </button>
             </div>
           </div>
