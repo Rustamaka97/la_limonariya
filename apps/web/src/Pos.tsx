@@ -4097,6 +4097,12 @@ function OrderView({
               <span className="text-[#95959f]">Сервис:</span>
               <span className="tabular-nums text-[#3a3a44]">{fmt(order.service)}so'm ({order.servicePct}%)</span>
             </div>
+            {order.discountAmount > 0 && (
+              <div className="flex justify-between text-[12px]">
+                <span className="text-rose-600">Скидка{order.discountReason ? ` — ${order.discountReason}` : ""}:</span>
+                <span className="font-semibold tabular-nums text-rose-600">−{fmt(order.discountAmount)}so'm</span>
+              </div>
+            )}
             {deposit > 0 && (
               <div className="flex justify-between text-[12px]">
                 <span className="text-emerald-700">
