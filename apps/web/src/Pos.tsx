@@ -50,6 +50,20 @@ function CardIcon({ k, className = "h-11 w-11" }: { k: string; className?: strin
     />
   );
 }
+// Пастки toolbar иконкалари — металл-олтин сет (icons-bottom-gold.webp, 3×2).
+const BOTTOM_POS: Record<string, string> = {
+  refresh: "0% 0%", sound: "50% 0%", clock: "100% 0%",
+  expand: "0% 100%", cash: "50% 100%", exit: "100% 100%",
+};
+function BottomIcon({ k }: { k: string }) {
+  return (
+    <span
+      className="inline-block h-6 w-6 shrink-0 rounded bg-no-repeat"
+      style={{ backgroundImage: "url(/brand/icons-bottom-gold.webp)", backgroundSize: "300% 200%", backgroundPosition: BOTTOM_POS[k] ?? "0% 0%" }}
+      aria-hidden="true"
+    />
+  );
+}
 // ?toolbar=gold|glass|enamel|clay URL параметр билан вариант танланади (дефолт = металл-олтин).
 const TOOL_VARIANT = (() => {
   const v = new URLSearchParams(window.location.search).get("toolbar");
@@ -993,7 +1007,7 @@ function FloorView({
                 onClick={() => window.location.reload()}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
-                <span className="text-lg">🔄</span> Янгилаш
+                <BottomIcon k="refresh" /> Янгилаш
               </button>
               <button
                 onClick={() => {
@@ -1003,13 +1017,13 @@ function FloorView({
                 }}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
-                <span className="text-lg">{soundOff ? "🔇" : "🔊"}</span> {soundOff ? "Овоз ўчиқ" : "Овоз"}
+                <BottomIcon k="sound" /> {soundOff ? "Овоз ўчиқ" : "Овоз"}
               </button>
               <button
                 onClick={() => setShowClock(true)}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
-                <span className="text-lg">🕐</span> Соат
+                <BottomIcon k="clock" /> Соат
               </button>
               <button
                 onClick={() => {
@@ -1018,19 +1032,19 @@ function FloorView({
                 }}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
-                <span className="text-lg">⤢</span> Экран
+                <BottomIcon k="expand" /> Экран
               </button>
               <button
                 onClick={() => { setShowPanel(false); onNavigate("moliya", true); }}
                 className="flex items-center justify-center gap-2 rounded-xl border border-brand-cream-soft py-3 text-[13px] font-medium text-zinc-700 transition hover:border-brand hover:bg-brand-cream/30"
               >
-                <span className="text-lg">🧾</span> Касса
+                <BottomIcon k="cash" /> Касса
               </button>
               <button
                 onClick={() => { setShowPanel(false); onLogout(); }}
                 className="flex items-center justify-center gap-2 rounded-xl border border-red-200 py-3 text-[13px] font-medium text-red-600 transition hover:bg-red-50"
               >
-                <span className="text-lg">⎋</span> Чиқиш
+                <BottomIcon k="exit" /> Чиқиш
               </button>
             </div>
           </div>
