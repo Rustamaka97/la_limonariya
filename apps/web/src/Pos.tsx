@@ -4113,49 +4113,43 @@ function OrderView({
             </div>
           </div>
 
-          {/* CloPOS тугма-қатор: Отправить/Оплата · ··· · Отменить продажу */}
+          {/* CloPOS тугма-қатор 1:1: Отправить · ··· · Закрыть Чек.
+              (Отменить продажу → «Қўшимча амаллар»да «Заказни бекор қилиш» бор.) */}
           <div className="flex gap-0.5 px-3 pb-3 pt-2">
-            {unsent > 0 ? (
-              <button
-                onClick={sendToKitchen}
-                disabled={sending}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-l-[3px] bg-clopos-green text-[14px] font-semibold text-white transition hover:brightness-105 disabled:opacity-60"
-              >
-                {sending ? <ISpin className="h-4 w-4" /> : null}
-                {sending ? "Юборилмоқда…" : `Отправить (${unsent})`}
-              </button>
-            ) : canClose && online && !empty ? (
-              <button
-                onClick={() => setPaying(true)}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-l-[3px] bg-clopos-green text-[14px] font-semibold text-white transition hover:brightness-105"
-              >
-                <ICard className="h-4 w-4" /> Оплата
-              </button>
-            ) : (
-              <div
-                className="flex h-12 flex-1 cursor-not-allowed items-center justify-center rounded-l-[3px] bg-clopos-disabled text-[14px] font-semibold text-clopos-disabled-text"
-                title={!online ? "Тўлов уланганда" : empty ? "Заказ бўш" : "Чекни кассир ёпади"}
-              >
-                {empty || unsent > 0 ? "Отправить" : "Оплата"}
-              </div>
-            )}
+            {/* Отправить — доим кўринади; юборилмаган таом бор→яшил актив, йўқ→кулранг disabled.
+                Босса — сразу кухняга + тикет чиқади (оралиқ савол ЙЎҚ). */}
+            <button
+              onClick={sendToKitchen}
+              disabled={sending || unsent === 0}
+              title={unsent === 0 ? "Юборилмаган таом йўқ" : undefined}
+              className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-l-[3px] text-[14px] font-semibold transition disabled:cursor-not-allowed ${
+                unsent > 0
+                  ? "bg-clopos-green text-white hover:brightness-105 disabled:opacity-60"
+                  : "bg-clopos-disabled text-clopos-disabled-text"
+              }`}
+            >
+              {sending ? <ISpin className="h-4 w-4" /> : null}
+              {sending ? "Юборилмоқда…" : unsent > 0 ? `Отправить (${unsent})` : "Отправить"}
+            </button>
             <button
               onClick={() => tickets.length > 0 && setShowTickets((v) => !v)}
               disabled={tickets.length === 0}
               title={tickets.length === 0 ? "Ҳали тикет йўқ" : `Тикетлар (${tickets.length})`}
-              className="grid h-12 w-[34px] place-items-center rounded-r-[3px] bg-clopos-disabled text-[14px] font-bold text-clopos-disabled-text transition enabled:hover:brightness-95 disabled:opacity-60"
+              className="grid h-12 w-[34px] place-items-center bg-clopos-disabled text-[14px] font-bold text-clopos-disabled-text transition enabled:hover:brightness-95 disabled:opacity-60"
             >
               ···
             </button>
+            {/* Закрыть Чек — доим ўнгда, тўлов (кассир+онлайн+бўш эмас бўлса яшил актив). */}
             <button
-              onClick={() => setCancelling((v) => !v)}
-              disabled={!online}
-              className="ml-2 flex h-12 shrink-0 items-center justify-center gap-2 rounded-[3px] bg-clopos-gold px-4 text-[13px] font-semibold text-clopos-gold-text transition hover:brightness-95 disabled:opacity-50"
+              onClick={() => setPaying(true)}
+              disabled={!canClose || !online || empty}
+              title={!online ? "Тўлов уланганда" : empty ? "Заказ бўш" : !canClose ? "Чекни кассир ёпади" : undefined}
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-r-[3px] bg-clopos-green text-[14px] font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-clopos-disabled disabled:text-clopos-disabled-text"
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="1.8" fill="none" aria-hidden="true">
-                <path d="M1 1l10 10M11 1L1 11" />
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M1 13l4 4L13 9" /><path d="M10 16l1.5 1.5L23 6" />
               </svg>
-              Отменить продажу
+              Закрыть Чек
             </button>
           </div>
 
@@ -4202,7 +4196,7 @@ function OrderView({
                 className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-gold px-5 py-3 font-semibold text-brand-ink transition active:scale-[.98] disabled:opacity-50 motion-reduce:active:scale-100"
               >
                 {sending ? <ISpin className="h-5 w-5" /> : <IFlame className="h-5 w-5" />}
-                {sending ? "Юборилмоқда…" : `Кухняга (${unsent})`}
+                {sending ? "Юборилмоқда…" : `Отправить (${unsent})`}
               </button>
             ) : canClose && online ? (
               <button
@@ -4210,7 +4204,7 @@ function OrderView({
                 className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition active:scale-[.98] motion-reduce:active:scale-100"
               >
                 <IReceipt className="h-5 w-5" />
-                Ёпиш ва чек
+                Закрыть Чек
               </button>
             ) : (
               <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink/50">
